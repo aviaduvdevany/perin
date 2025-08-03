@@ -86,7 +86,7 @@ export default function PerinDemo() {
         >
           <div className="card p-6">
             <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">
-              Choose Perin's Personality
+              Choose Perin&apos;s Personality
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
@@ -117,7 +117,15 @@ export default function PerinDemo() {
               ].map((personality) => (
                 <motion.button
                   key={personality.id}
-                  onClick={() => setSelectedPersonality(personality.id as any)}
+                  onClick={() =>
+                    setSelectedPersonality(
+                      personality.id as
+                        | "friendly"
+                        | "professional"
+                        | "creative"
+                        | "analytical"
+                    )
+                  }
                   className={`p-4 rounded-xl border transition-all duration-300 ${
                     selectedPersonality === personality.id
                       ? "border-[var(--primary)] bg-[var(--primary)]/10"
@@ -148,7 +156,7 @@ export default function PerinDemo() {
         >
           <div className="card p-6">
             <h2 className="text-xl font-bold text-[var(--foreground)] mb-4">
-              Control Perin's Status
+              Control Perin&apos;s Status
             </h2>
             <div className="flex flex-wrap gap-3">
               {[
@@ -160,7 +168,16 @@ export default function PerinDemo() {
               ].map((status) => (
                 <motion.button
                   key={status.id}
-                  onClick={() => handleStatusChange(status.id as any)}
+                  onClick={() =>
+                    handleStatusChange(
+                      status.id as
+                        | "idle"
+                        | "thinking"
+                        | "typing"
+                        | "listening"
+                        | "busy"
+                    )
+                  }
                   className={`px-4 py-2 rounded-lg border transition-all duration-300 flex items-center space-x-2 ${
                     perinStatus === status.id
                       ? "border-[var(--primary)] bg-[var(--primary)] text-white"
@@ -250,7 +267,7 @@ export default function PerinDemo() {
                 <p className="text-sm text-[var(--foreground-muted)] leading-relaxed">
                   Experience an AI assistant that feels alive, remembers your
                   preferences, and adapts to your personality. Perin is more
-                  than just a tool - it's your digital companion.
+                  than just a tool - it&apos;s your digital companion.
                 </p>
               </div>
             </SpotlightCard>

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { usePerinAI } from "../hooks/usePerinAI";
 import { useSession } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
 import { PerinLoading } from "./ui/PerinLoading";
@@ -18,9 +18,7 @@ export function PerinChat() {
   const [perinStatus, setPerinStatus] = useState<
     "idle" | "thinking" | "typing" | "listening"
   >("idle");
-  const [perinMood, setPerinMood] = useState<
-    "happy" | "focused" | "thoughtful" | "excited" | "calm"
-  >("focused");
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -43,7 +41,6 @@ export function PerinChat() {
     setMessages((prev) => [...prev, userMessage]);
     setStreamingMessage("");
     setPerinStatus("thinking");
-    setPerinMood("focused");
 
     try {
       const currentMessages = [...messages, userMessage];
@@ -79,12 +76,10 @@ export function PerinChat() {
         setMessages((prev) => [...prev, assistantMessage]);
         setStreamingMessage("");
         setPerinStatus("idle");
-        setPerinMood("happy");
       }
     } catch (error) {
       console.error("Error sending message:", error);
       setPerinStatus("idle");
-      setPerinMood("thoughtful");
 
       // Add error message to chat
       const errorMessage: ChatMessage = {
