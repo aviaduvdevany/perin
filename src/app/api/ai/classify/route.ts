@@ -4,8 +4,8 @@ import { authOptions } from "../../../../lib/auth";
 import {
   executePerinChat,
   validateOpenAIConfig,
-  getUserIdFromSession,
 } from "../../../../lib/ai/openai";
+import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
 import { ErrorResponses } from "../../../../lib/utils/error-handlers";
 
 export interface IntentClassification {

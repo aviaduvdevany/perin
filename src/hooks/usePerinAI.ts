@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { getUserIdFromSession } from "@/lib/ai/openai";
+import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import type {
   PerinChatRequest,
   PerinMemoryRequest,

@@ -1,14 +1,19 @@
 import OpenAI from "openai";
-import type {
-  PerinChatRequest,
-  PerinChatResponse,
-} from "../../types";
-import type { Session } from "next-auth";
+import type { PerinChatRequest, PerinChatResponse } from "../../types";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client only on server-side
+let openai: OpenAI | null = null;
+
+const initializeOpenAI = (): OpenAI => {
+  if (!openai) {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("OPENAI_API_KEY environment variable is not configured");
+    }
+    openai = new OpenAI({ apiKey });
+  }
+  return openai;
+};
 
 /**
  * Smart query function that executes OpenAI chat completion directly
@@ -18,6 +23,9 @@ export const executePerinChat = async (
   request: PerinChatRequest
 ): Promise<PerinChatResponse> => {
   try {
+    // Initialize OpenAI client (server-side only)
+    const openaiClient = initializeOpenAI();
+
     // Construct dynamic system prompt
     const systemPrompt = buildSystemPrompt(request);
 
@@ -28,7 +36,7 @@ export const executePerinChat = async (
     ];
 
     // Execute OpenAI chat completion
-    const response = await openai.chat.completions.create({
+    const response = await openaiClient.chat.completions.create({
       model: "gpt-4",
       messages,
       stream: true,
@@ -112,16 +120,4 @@ export const validateOpenAIConfig = (): boolean => {
     return false;
   }
   return true;
-};
-
-/**
- * Helper function to safely extract user ID from session
- */
-export const getUserIdFromSession = (
-  session: Session | null
-): string | null => {
-  if (session?.user?.id) {
-    return session.user.id;
-  }
-  return null;
 };

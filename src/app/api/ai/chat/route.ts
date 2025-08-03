@@ -4,8 +4,8 @@ import { authOptions } from "../../../../lib/auth";
 import {
   executePerinChat,
   validateOpenAIConfig,
-  getUserIdFromSession,
 } from "../../../../lib/ai/openai";
+import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
 import { getRelevantMemoryContext } from "../../../../lib/ai/memory";
 import {
   buildPerinSystemPrompt,

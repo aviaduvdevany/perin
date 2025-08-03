@@ -7,7 +7,7 @@ import {
   getMemoryEntries,
   clearMemoryEntries,
 } from "../../../../lib/ai/memory";
-import { getUserIdFromSession } from "../../../../lib/ai/openai";
+import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
 import { ErrorResponses } from "../../../../lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
