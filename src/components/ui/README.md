@@ -627,6 +627,54 @@ interface CarouselItem {
 
 ---
 
+### 💬 FloatingInput
+
+A floating input component that stays fixed at the bottom of the screen with a shadow effect. Perfect for chat interfaces and immersive experiences.
+
+#### Usage
+
+```tsx
+import { FloatingInput } from "./ui/FloatingInput";
+
+<FloatingInput
+  onSendMessage={(message) => console.log(message)}
+  isLoading={false}
+  placeholder="Type your message..."
+  disabled={false}
+/>;
+```
+
+#### Props
+
+| Property        | Type                        | Default                  | Description                                                       |
+| --------------- | --------------------------- | ------------------------ | ----------------------------------------------------------------- |
+| `onSendMessage` | `(message: string) => void` | `—`                      | Callback function called when a message is sent                   |
+| `isLoading`     | `boolean`                   | `false`                  | Whether the input is in a loading state (shows spinner in button) |
+| `placeholder`   | `string`                    | `"Type your message..."` | Placeholder text for the input field                              |
+| `disabled`      | `boolean`                   | `false`                  | Whether the input is disabled                                     |
+
+#### Features
+
+- **Fixed positioning**: Stays at the bottom of the screen during scrolling
+- **Floating effect**: Enhanced shadow and backdrop blur for floating appearance
+- **Smooth animations**: Framer Motion animations for focus, hover, and tap states
+- **Keyboard support**: Enter to send, Shift+Enter for new line
+- **Loading states**: Shows spinner when processing
+- **Responsive design**: Adapts to different screen sizes
+
+#### Example with Custom Configuration
+
+```tsx
+<FloatingInput
+  onSendMessage={handleSendMessage}
+  isLoading={isProcessing}
+  placeholder="Ask Perin anything..."
+  disabled={!isAuthenticated}
+/>
+```
+
+---
+
 ### 💡 SpotlightCard
 
 A card component with spotlight effects that follow the cursor. Features smooth radial gradient animations and customizable spotlight colors.
