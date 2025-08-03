@@ -1,16 +1,10 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../../lib/auth";
-import {
-  executePerinChat,
-  validateOpenAIConfig,
-} from "../../../../lib/ai/openai";
+import { validateOpenAIConfig } from "../../../../lib/ai/openai";
+import { executePerinChatWithLangGraph } from "../../../../lib/ai/langgraph";
 import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
 import { getRelevantMemoryContext } from "../../../../lib/ai/memory";
-import {
-  buildPerinSystemPrompt,
-  buildSpecializedPrompt,
-} from "../../../../lib/ai/prompts/system";
 import * as userQueries from "../../../../lib/queries/users";
 import { ErrorResponses } from "../../../../lib/utils/error-handlers";
 
@@ -54,39 +48,25 @@ export async function POST(request: NextRequest) {
       conversationContext
     );
 
-    // Build system prompt
-    const systemPromptContext = {
-      user,
-      conversationHistory: conversationContext,
-      currentTime: new Date().toISOString(),
-      timezone: user.timezone,
-    };
+    // Note: System prompt building is now handled within the LangGraph workflow
 
-    const systemPrompt = specialization
-      ? buildSpecializedPrompt(
-          systemPromptContext,
-          specialization as
-            | "negotiation"
-            | "scheduling"
-            | "memory"
-            | "coordination"
-        )
-      : buildPerinSystemPrompt(systemPromptContext);
+    // Note: chatRequest is no longer used with LangGraph implementation
 
-    // Prepare chat request
-    const chatRequest = {
-      messages: [
-        { role: "system" as const, content: systemPrompt },
-        ...messages,
-      ],
-      tone: tone || user.tone || "friendly",
-      perinName: perinName || user.perin_name || "Perin",
-      memory: memoryContext,
-      userId: userId,
-    };
-
-    // Execute AI chat
-    const { response } = await executePerinChat(chatRequest);
+    // Execute AI chat with LangGraph
+    const { response } = await executePerinChatWithLangGraph(
+      messages,
+      userId,
+      tone || user.tone || "friendly",
+      perinName || user.perin_name || "Perin",
+      specialization,
+      {
+        perin_name: user.perin_name || undefined,
+        tone: user.tone || undefined,
+        timezone: user.timezone,
+        preferred_hours: user.preferred_hours || undefined,
+        memory: user.memory || undefined,
+      }
+    );
 
     // Log the interaction for debugging and audits
     console.log("AI Chat Interaction:", {

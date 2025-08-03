@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import PerinAvatar from "./PerinAvatar";
 import PerinStatus from "./PerinStatus";
 import QuickActions from "./QuickActions";

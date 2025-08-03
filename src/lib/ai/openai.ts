@@ -18,6 +18,8 @@ const initializeOpenAI = (): OpenAI => {
 /**
  * Smart query function that executes OpenAI chat completion directly
  * Returns typed results with proper error handling
+ * 
+ * @deprecated Use executePerinChatWithLangGraph from langgraph/index.ts instead
  */
 export const executePerinChat = async (
   request: PerinChatRequest

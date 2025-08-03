@@ -76,3 +76,26 @@ export interface SystemPromptContext {
   currentTime?: string;
   timezone?: string;
 }
+
+// LangGraph-specific types
+export interface LangGraphChatState {
+  messages: ChatMessage[];
+  userId: string;
+  tone: string;
+  perinName: string;
+  specialization?: "negotiation" | "scheduling" | "memory" | "coordination";
+  memoryContext: Record<string, unknown>;
+  conversationContext: string;
+  systemPrompt: string;
+  openaiResponse: string;
+  streamChunks: string[];
+  currentStep: string;
+  error?: string;
+  user?: {
+    perin_name?: string;
+    tone?: string;
+    timezone?: string;
+    preferred_hours?: Record<string, unknown>;
+    memory?: Record<string, unknown>;
+  };
+}
