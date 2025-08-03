@@ -1,6 +1,77 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Custom scrollbar styles */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--card-border-rgb), 0.2) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--card-border-rgb), 0.2);
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--card-border-rgb), 0.4);
+}
+
+/* Ultra-thin scrollbar for minimal appearance */
+.scrollbar-ultra-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--card-border-rgb), 0.1) transparent;
+}
+
+.scrollbar-ultra-thin::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scrollbar-ultra-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-ultra-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--card-border-rgb), 0.1);
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.scrollbar-ultra-thin:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(var(--card-border-rgb), 0.3);
+}
+
+/* Hidden scrollbar for completely seamless experience */
+.scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* CSS Variables for colors */
+:root {
+  --card-border-rgb: 255, 255, 255;
+}
+
+[data-theme="dark"] {
+  --card-border-rgb: 255, 255, 255;
+}
+
+[data-theme="light"] {
+  --card-border-rgb: 0, 0, 0;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

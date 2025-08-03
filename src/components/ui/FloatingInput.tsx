@@ -45,7 +45,7 @@ export function FloatingInput({
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={placeholder}
-          className="flex-1 p-4 bg-[var(--card-background)]/90 backdrop-blur-md border border-[var(--card-border)]/50 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]/30 shadow-2xl"
+          className="flex-1 p-4 bg-[var(--card-background)]/90 backdrop-blur-md border border-[var(--card-border)]/50 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]/30 shadow-2xl scrollbar-ultra-thin"
           rows={1}
           disabled={isLoading || disabled}
           whileFocus={{ scale: 1.02 }}

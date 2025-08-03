@@ -142,7 +142,7 @@ export function PerinChat() {
       )}
 
       {/* Messages - Full screen area */}
-      <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4 scrollbar-ultra-thin">
         {messages.length === 0 && (
           <div className="text-center text-[var(--foreground-muted)] py-20">
             <div className="mb-8">
