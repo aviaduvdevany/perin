@@ -9,7 +9,6 @@ export const APP_CONFIG = {
 
   // Feature Flags
   FEATURES: {
-    ENABLE_MEETINGS: true,
     ENABLE_USER_PROFILES: true,
   },
 

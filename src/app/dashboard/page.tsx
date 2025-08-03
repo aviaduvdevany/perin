@@ -3,6 +3,7 @@
 import { useAuth } from "../../hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { PerinChat } from "../../components/PerinChat";
 
 export default function DashboardPage() {
   const { session, isAuthenticated, isLoading, logout } = useAuth();
@@ -32,7 +33,9 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Dashboard</h1>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Perin Dashboard
+              </h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">
@@ -51,34 +54,49 @@ export default function DashboardPage() {
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <div className="border-4 border-dashed border-gray-200 rounded-lg h-96 p-8">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Welcome to your Dashboard!
-              </h2>
-              <p className="text-gray-600 mb-4">
-                You are successfully authenticated.
-              </p>
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="font-semibold mb-2">User Information:</h3>
-                <div className="text-left space-y-1">
-                  <p>
-                    <strong>ID:</strong> {session?.user?.id}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {session?.user?.email}
-                  </p>
-                  <p>
-                    <strong>Name:</strong> {session?.user?.name || "Not set"}
-                  </p>
-                  <p>
-                    <strong>Role:</strong> {session?.user?.role}
-                  </p>
-                  <p>
-                    <strong>Beta User:</strong>{" "}
-                    {session?.user?.isBetaUser ? "Yes" : "No"}
-                  </p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* User Information Card */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Your Profile
+                </h2>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Email</p>
+                    <p className="font-medium">{session?.user?.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Name</p>
+                    <p className="font-medium">
+                      {session?.user?.name || "Not set"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Role</p>
+                    <p className="font-medium">
+                      {(session?.user as { role?: string })?.role || "User"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Beta Access</p>
+                    <p className="font-medium">
+                      {(session?.user as { isBetaUser?: boolean })?.isBetaUser
+                        ? "Yes"
+                        : "No"}
+                    </p>
+                  </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Chat Interface */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                  Chat with Perin
+                </h2>
+                <PerinChat />
               </div>
             </div>
           </div>

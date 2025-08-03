@@ -1,5 +1,4 @@
 import { hash, compare } from "bcryptjs";
-import { executeMutation, executeSingleQuery } from "./db-helpers";
 import * as userQueries from "../queries/users";
 import type { User } from "../db-types";
 
@@ -42,12 +41,9 @@ export async function createUserWithPassword(userData: {
 }): Promise<{ success: boolean; error?: string; user?: User }> {
   try {
     // Check if user already exists
-    const existingUserSql = userQueries.getUserByEmail(userData.email);
-    const existingResult = await executeSingleQuery<User>(existingUserSql, [
-      userData.email,
-    ]);
+    const existingUser = await userQueries.getUserByEmail(userData.email);
 
-    if (existingResult.data) {
+    if (existingUser) {
       return { success: false, error: "User with this email already exists" };
     }
 
@@ -71,37 +67,9 @@ export async function createUserWithPassword(userData: {
     };
 
     // Create user
-    const createSql = userQueries.createUser(userToCreate);
-    const result = await executeMutation(createSql, [
-      userToCreate.email,
-      userToCreate.name,
-      userToCreate.hashed_password,
-      userToCreate.image,
-      userToCreate.perin_name,
-      userToCreate.tone,
-      userToCreate.avatar_url,
-      userToCreate.preferred_hours,
-      userToCreate.timezone,
-      userToCreate.memory,
-      userToCreate.is_beta_user,
-      userToCreate.role,
-    ]);
+    const newUser = await userQueries.createUser(userToCreate);
 
-    if (!result.success) {
-      return { success: false, error: result.error || "Failed to create user" };
-    }
-
-    // Get the created user
-    const getUserSql = userQueries.getUserByEmail(userData.email);
-    const userResult = await executeSingleQuery<User>(getUserSql, [
-      userData.email,
-    ]);
-
-    if (!userResult.data) {
-      return { success: false, error: "Failed to retrieve created user" };
-    }
-
-    return { success: true, user: userResult.data[0] };
+    return { success: true, user: newUser };
   } catch (error) {
     console.error("Error creating user:", error);
     return { success: false, error: "Internal server error" };
@@ -118,29 +86,14 @@ export async function updateUserPassword(
   try {
     const hashedPassword = await hashPassword(newPassword);
 
-    const updateSql = userQueries.updateUser(userId, {
+    const updatedUser = await userQueries.updateUser(userId, {
       hashed_password: hashedPassword,
     });
-    const result = await executeMutation(updateSql, [
-      userId,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      null,
-      hashedPassword,
-    ]);
 
-    if (!result.success) {
+    if (!updatedUser) {
       return {
         success: false,
-        error: result.error || "Failed to update password",
+        error: "Failed to update password",
       };
     }
 

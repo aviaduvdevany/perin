@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  executeSingleQuery,
-  executeMutation,
-} from "../../../../lib/utils/db-helpers";
-import {
   withErrorHandler,
   ErrorResponses,
 } from "../../../../lib/utils/error-handlers";
 import * as userQueries from "../../../../lib/queries/users";
-import type { User } from "../../../../lib/db-types";
 
 // GET /api/users/[id] - Get a specific user
 export const GET = withErrorHandler(
@@ -18,20 +13,20 @@ export const GET = withErrorHandler(
   ) => {
     const { id } = await params;
 
-    const sql = userQueries.getUserById(id);
-    const result = await executeSingleQuery<User>(sql, [id]);
+    try {
+      const user = await userQueries.getUserById(id);
 
-    if (result.error) {
-      return ErrorResponses.databaseError(result.error);
+      if (!user) {
+        return ErrorResponses.notFound("User not found");
+      }
+
+      return NextResponse.json({
+        user,
+      });
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return ErrorResponses.databaseError("Failed to fetch user");
     }
-
-    if (!result.data) {
-      return ErrorResponses.notFound("User not found");
-    }
-
-    return NextResponse.json({
-      user: result.data[0],
-    });
   }
 );
 
@@ -44,29 +39,30 @@ export const PUT = withErrorHandler(
     const { id } = await params;
     const body = await request.json();
 
-    // Check if user exists
-    const existingSql = userQueries.getUserById(id);
-    const existingResult = await executeSingleQuery<User>(existingSql, [id]);
+    try {
+      // Check if user exists
+      const existingUser = await userQueries.getUserById(id);
 
-    if (!existingResult.data) {
-      return ErrorResponses.notFound("User not found");
+      if (!existingUser) {
+        return ErrorResponses.notFound("User not found");
+      }
+
+      // Update user
+      const { email, name } = body;
+      const updatedUser = await userQueries.updateUser(id, { email, name });
+
+      if (!updatedUser) {
+        return ErrorResponses.databaseError("Failed to update user");
+      }
+
+      return NextResponse.json({
+        message: "User updated successfully",
+        user: { id, email, name },
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      return ErrorResponses.databaseError("Failed to update user");
     }
-
-    // Update user
-    const { email, name } = body;
-    const updateSql = userQueries.updateUser(id, { email, name });
-    const result = await executeMutation(updateSql, [id, email, name]);
-
-    if (!result.success) {
-      return ErrorResponses.databaseError(
-        result.error || "Failed to update user"
-      );
-    }
-
-    return NextResponse.json({
-      message: "User updated successfully",
-      user: { id, email, name },
-    });
   }
 );
 
@@ -78,26 +74,27 @@ export const DELETE = withErrorHandler(
   ) => {
     const { id } = await params;
 
-    // Check if user exists
-    const existingSql = userQueries.getUserById(id);
-    const existingResult = await executeSingleQuery<User>(existingSql, [id]);
+    try {
+      // Check if user exists
+      const existingUser = await userQueries.getUserById(id);
 
-    if (!existingResult.data) {
-      return ErrorResponses.notFound("User not found");
+      if (!existingUser) {
+        return ErrorResponses.notFound("User not found");
+      }
+
+      // Delete user
+      const deleted = await userQueries.deleteUser(id);
+
+      if (!deleted) {
+        return ErrorResponses.databaseError("Failed to delete user");
+      }
+
+      return NextResponse.json({
+        message: "User deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      return ErrorResponses.databaseError("Failed to delete user");
     }
-
-    // Delete user
-    const deleteSql = userQueries.deleteUser(id);
-    const result = await executeMutation(deleteSql, [id]);
-
-    if (!result.success) {
-      return ErrorResponses.databaseError(
-        result.error || "Failed to delete user"
-      );
-    }
-
-    return NextResponse.json({
-      message: "User deleted successfully",
-    });
   }
 );

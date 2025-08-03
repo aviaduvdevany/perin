@@ -43,7 +43,6 @@ export const COPY = {
   // Page titles
   PAGES: {
     HOME: "Home",
-    MEETINGS: "Meetings",
     PROFILE: "Profile",
     SETTINGS: "Settings",
   },

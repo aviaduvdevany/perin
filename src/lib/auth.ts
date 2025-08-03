@@ -1,9 +1,7 @@
-import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
-import { executeSingleQuery } from "./utils/db-helpers";
 import * as userQueries from "./queries/users";
-import type { User } from "./db-types";
+import type { NextAuthOptions } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -20,16 +18,11 @@ export const authOptions: NextAuthOptions = {
 
         try {
           // Get user by email
-          const sql = userQueries.getUserByEmail(credentials.email);
-          const result = await executeSingleQuery<User>(sql, [
-            credentials.email,
-          ]);
+          const user = await userQueries.getUserByEmail(credentials.email);
 
-          if (!result.data || result.error) {
+          if (!user) {
             return null;
           }
-
-          const user = result.data[0];
 
           // Check if user has a password (for OAuth users, this might be null)
           if (!user.hashed_password) {
@@ -74,9 +67,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.sub!;
-        session.user.role = token.role as string;
-        session.user.isBetaUser = token.isBetaUser as boolean;
+        session.user.id = token.sub || "";
+        session.user.role = token.role;
+        session.user.isBetaUser = token.isBetaUser;
       }
       return session;
     },
