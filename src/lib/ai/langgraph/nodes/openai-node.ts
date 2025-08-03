@@ -5,7 +5,7 @@ import type { ChatMessage } from "../../../../types";
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;
 
-const initializeOpenAI = (): OpenAI => {
+export const initializeOpenAI = (): OpenAI => {
   if (!openai) {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -19,7 +19,7 @@ const initializeOpenAI = (): OpenAI => {
 /**
  * Build dynamic system prompt based on user preferences and context
  */
-const buildSystemPrompt = (state: LangGraphChatState): string => {
+export const buildSystemPrompt = (state: LangGraphChatState): string => {
   const { tone, perinName, memoryContext, user } = state;
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.

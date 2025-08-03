@@ -1,5 +1,6 @@
-import { executeChatGraph } from "./graphs/base-chat";
 import { createInitialChatState } from "./state/chat-state";
+import { memoryNode } from "./nodes/memory-node";
+import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import type { ChatMessage, PerinChatResponse } from "../../../types";
 
 /**
@@ -35,24 +36,47 @@ export const executePerinChatWithLangGraph = async (
       initialState.user = user;
     }
 
-    // Execute the LangGraph workflow
-    const result = await executeChatGraph(initialState);
-
-    // Check for errors
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    // Create streaming response from the result
+    // Create a streaming response that processes the workflow in real-time
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          // Stream the collected chunks
-          for (const chunk of result.streamChunks) {
-            controller.enqueue(new TextEncoder().encode(chunk));
+          // Step 1: Load memory (non-streaming)
+          const memoryResult = await memoryNode(initialState);
+          const stateWithMemory = { ...initialState, ...memoryResult };
+
+          // Step 2: Call OpenAI with real-time streaming
+          const openaiClient = initializeOpenAI();
+          const systemPrompt = buildSystemPrompt(stateWithMemory);
+
+          // Prepare messages with system prompt
+          const messagesWithSystem: ChatMessage[] = [
+            { role: "system", content: systemPrompt },
+            ...messages,
+          ];
+
+          // Execute OpenAI chat completion with streaming
+          const response = await openaiClient.chat.completions.create({
+            model: "gpt-4",
+            messages: messagesWithSystem.map((msg) => ({
+              role: msg.role,
+              content: msg.content,
+            })),
+            stream: true,
+            temperature: 0.7,
+            max_tokens: 1000,
+          });
+
+          // Stream chunks as they arrive
+          for await (const chunk of response) {
+            const content = chunk.choices[0]?.delta?.content;
+            if (content) {
+              controller.enqueue(new TextEncoder().encode(content));
+            }
           }
+
           controller.close();
         } catch (error) {
+          console.error("Error in streaming chat execution:", error);
           controller.error(error);
         }
       },

@@ -216,16 +216,42 @@ export const executePerinChatWithLangGraph = async (
     specialization
   );
 
-  // Execute the LangGraph workflow
-  const result = await executeChatGraph(initialState);
-
-  // Create streaming response from the result
+  // Create a streaming response that processes the workflow in real-time
   const stream = new ReadableStream({
     async start(controller) {
-      for (const chunk of result.streamChunks) {
-        controller.enqueue(new TextEncoder().encode(chunk));
+      try {
+        // Step 1: Load memory (non-streaming)
+        const memoryResult = await memoryNode(initialState);
+        const stateWithMemory = { ...initialState, ...memoryResult };
+
+        // Step 2: Call OpenAI with real-time streaming
+        const openaiClient = initializeOpenAI();
+        const systemPrompt = buildSystemPrompt(stateWithMemory);
+
+        // Execute OpenAI chat completion with streaming
+        const response = await openaiClient.chat.completions.create({
+          model: "gpt-4",
+          messages: messagesWithSystem.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        // Stream chunks as they arrive
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            controller.enqueue(new TextEncoder().encode(content));
+          }
+        }
+
+        controller.close();
+      } catch (error) {
+        controller.error(error);
       }
-      controller.close();
     },
   });
 
@@ -276,11 +302,13 @@ const { response } = await executePerinChatWithLangGraph(
 - Same request/response structure
 - Same error handling patterns
 
-### 2. **Streaming Functionality**
+### 2. **Streaming Functionality** ⚡
 
-- Real-time character-by-character output preserved
-- Same streaming response format
-- Compatible with existing frontend components
+- **Real-time character-by-character output preserved**
+- **Same streaming response format**
+- **Compatible with existing frontend components**
+- **Fixed: Proper streaming implementation that streams chunks as they arrive**
+- **No more waiting for complete response before streaming**
 
 ### 3. **Type Safety**
 
