@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+// 🧠 Perin Project Conventions — Cursor Reference
 
-## Getting Started
+// This file outlines the conventions, file structure, and coding practices
+// to be followed across the Perin Next.js monolith project
 
-First, run the development server:
+// -------------------------------------------------------------
+// 📁 Project Structure (simplified outline)
+// -------------------------------------------------------------
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- /app                  → Next.js app directory
+  - /api                → API route handlers
+    - /<route>/route.ts → Route handlers with exported HTTP methods (GET, POST, etc.)
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- /lib
+  - /queries            → SQL query files per domain (pure SQL tagged strings)
+  - /db.ts              → Neon client config (pg module)
+  - /tables.ts          → Constants for table names
+  - /db-types.ts        → Type definitions for DB schemas (from pg output or manually defined)
+  - /utils              → Helpers (formatting, error handling, etc.)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- /constants
+  - config.ts           → App-wide constants (API URLs, feature flags)
+  - copy.ts             → Friendly microcopy & messaging
 
-## Learn More
+- middleware.ts
+- tailwind.config.ts
+- tsconfig.json
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+// -------------------------------------------------------------
+// 🧩 API Layer Conventions
+// -------------------------------------------------------------
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+// 1. Each route file exports HTTP method handlers
+//    Good: /app/api/meetings/route.ts
 
-## Deploy on Vercel
+export async function POST(req: Request) { /* ... */ }
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+// 2. SQL queries are defined in lib/queries/*.ts
+//    Use parameterized SQL tagged templates for safety
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+import { sql } from '@vercel/postgres';
+import { MEETINGS_TABLE } from '../tables';
+
+export const getMeetingsByUser = (userId: string) => sql`
+  SELECT * FROM ${sql.identifier([MEETINGS_TABLE])}
+  WHERE user_id = ${userId}
+`;
+
+// 3. All table names imported from lib/tables.ts
+
+export const USERS_TABLE = 'users';
+export const MEETINGS_TABLE = 'meetings';
+
+// 4. Database types stored in lib/db-types.ts
+//    Can be manually defined or generated using tools like pg-to-ts
+
+export interface Meeting {
+  id: string;
+  user_id: string;
+  title: string;
+  start_time: string;
+  end_time: string;
+}
+
