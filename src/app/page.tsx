@@ -8,107 +8,230 @@ export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Welcome to Perin
-          </h1>
-          <p className="text-xl text-gray-600 mb-8">
-            Your AI-powered productivity assistant
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-[var(--background)] via-[var(--background-secondary)] to-[var(--background)] relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-20 left-20 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-72 h-72 bg-[var(--accent)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="relative z-10 flex justify-between items-center p-8 max-w-7xl mx-auto">
+        <div className="flex items-center space-x-2">
+          <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-xl flex items-center justify-center">
+            <span className="text-white font-bold text-lg">P</span>
+          </div>
+          <span className="text-2xl font-bold bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] bg-clip-text text-transparent">
+            Perin
+          </span>
         </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          {!isLoading && (
-            <>
-              {isAuthenticated ? (
-                <Link
-                  className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-                  href="/dashboard"
-                >
-                  Go to Dashboard
-                </Link>
-              ) : (
-                <>
-                  <Link
-                    className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-                    href="/auth/signin"
-                  >
-                    Sign In
-                  </Link>
-                  <Link
-                    className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto"
-                    href="/auth/signup"
-                  >
-                    Sign Up
-                  </Link>
-                </>
-              )}
-            </>
-          )}
-        </div>
-
-        <div className="text-center mt-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+        <div className="hidden md:flex items-center space-x-8">
+          <a
+            href="#features"
+            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+          >
             Features
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="font-semibold text-lg mb-2">
-                Secure Authentication
-              </h3>
-              <p className="text-gray-600">
-                Built with NextAuth.js for secure, reliable authentication
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="font-semibold text-lg mb-2">
-                Database Integration
-              </h3>
-              <p className="text-gray-600">
-                PostgreSQL with type-safe queries and proper error handling
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="font-semibold text-lg mb-2">Modern UI</h3>
-              <p className="text-gray-600">
-                Clean, responsive design with Tailwind CSS
-              </p>
-            </div>
+          </a>
+          <a
+            href="#about"
+            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+          >
+            About
+          </a>
+          <a
+            href="#contact"
+            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+          >
+            Contact
+          </a>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <h1 className="text-5xl md:text-7xl font-bold text-[var(--foreground)] leading-tight">
+            Meet Your{" "}
+            <span className="bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] bg-clip-text text-transparent">
+              Perin
+            </span>
+          </h1>
+
+          <p className="text-xl md:text-2xl text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">
+            Your AI-powered productivity assistant. Delegate smarter, work
+            seamlessly, and unlock your full potential with intelligent
+            automation.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
+            {!isLoading && (
+              <>
+                {isAuthenticated ? (
+                  <Link
+                    href="/dashboard"
+                    className="btn-gradient text-lg px-8 py-4 glow"
+                  >
+                    Go to Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/signin"
+                      className="btn-gradient text-lg px-8 py-4 glow"
+                    >
+                      Sign In
+                    </Link>
+                    <Link
+                      href="/auth/signup"
+                      className="px-8 py-4 text-lg font-semibold text-[var(--foreground)] border-2 border-[var(--primary)] rounded-full hover:bg-[var(--primary)]/10 transition-all duration-300"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </>
+            )}
           </div>
         </div>
       </main>
 
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <Link
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="/api/health"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="Health check"
-            width={16}
-            height={16}
-          />
-          API Health
-        </Link>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/docs"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Documentation"
-            width={16}
-            height={16}
-          />
-          Documentation
-        </a>
+      {/* Features Section */}
+      <section id="features" className="relative z-10 py-20 px-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-[var(--foreground)] mb-6">
+              Why Choose Perin?
+            </h2>
+            <p className="text-xl text-[var(--foreground-muted)] max-w-2xl mx-auto">
+              Experience the future of productivity with our cutting-edge AI
+              technology
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+                Secure Authentication
+              </h3>
+              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+                Built with NextAuth.js for enterprise-grade security and
+                seamless user experience
+              </p>
+            </div>
+
+            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+                Intelligent Database
+              </h3>
+              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+                PostgreSQL with type-safe queries and intelligent error handling
+                for reliable performance
+              </p>
+            </div>
+
+            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+                Futuristic UI
+              </h3>
+              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+                Modern, responsive design with glass effects and smooth
+                animations for an immersive experience
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 py-12 px-8 border-t border-[var(--background-secondary)]">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
+          <div className="flex items-center space-x-2 mb-4 md:mb-0">
+            <div className="w-8 h-8 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">P</span>
+            </div>
+            <span className="text-lg font-bold text-[var(--foreground)]">
+              Perin
+            </span>
+          </div>
+
+          <div className="flex gap-6">
+            <Link
+              href="/api/health"
+              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <Image
+                src="/file.svg"
+                alt="Health check"
+                width={16}
+                height={16}
+                className="filter invert"
+              />
+              API Health
+            </Link>
+            <a
+              href="https://nextjs.org/docs"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent)] transition-colors"
+            >
+              <Image
+                src="/window.svg"
+                alt="Documentation"
+                width={16}
+                height={16}
+                className="filter invert"
+              />
+              Documentation
+            </a>
+          </div>
+        </div>
       </footer>
     </div>
   );
