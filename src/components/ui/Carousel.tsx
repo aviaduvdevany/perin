@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, PanInfo, useMotionValue, useTransform } from "framer-motion";
+import { motion, PanInfo, useMotionValue } from "framer-motion";
 import React, { JSX } from "react";
 
 // replace icons with your own if needed
@@ -63,7 +63,7 @@ const DEFAULT_ITEMS: CarouselItem[] = [
 const DRAG_BUFFER = 0;
 const VELOCITY_THRESHOLD = 500;
 const GAP = 16;
-const SPRING_OPTIONS = { type: "spring", stiffness: 300, damping: 30 };
+const SPRING_OPTIONS = { type: "spring" as const, stiffness: 300, damping: 30 };
 
 export default function Carousel({
   items = DEFAULT_ITEMS,
@@ -186,7 +186,9 @@ export default function Carousel({
           width: itemWidth,
           gap: `${GAP}px`,
           perspective: 1000,
-          perspectiveOrigin: `${currentIndex * trackItemOffset + itemWidth / 2}px 50%`,
+          perspectiveOrigin: `${
+            currentIndex * trackItemOffset + itemWidth / 2
+          }px 50%`,
           x,
         }}
         onDragEnd={handleDragEnd}
@@ -201,7 +203,16 @@ export default function Carousel({
             -(index - 1) * trackItemOffset,
           ];
           const outputRange = [90, 0, -90];
-          const rotateY = useTransform(x, range, outputRange, { clamp: false });
+          // Calculate rotation based on current x position
+          const currentX = x.get();
+          const rotation =
+            currentX >= range[0] && currentX <= range[2]
+              ? outputRange[1] +
+                ((currentX - range[1]) * (outputRange[2] - outputRange[1])) /
+                  (range[2] - range[1])
+              : currentX < range[1]
+              ? outputRange[0]
+              : outputRange[2];
           return (
             <motion.div
               key={index}
@@ -213,7 +224,7 @@ export default function Carousel({
               style={{
                 width: itemWidth,
                 height: round ? itemWidth : "100%",
-                rotateY: rotateY,
+                rotateY: rotation,
                 ...(round && { borderRadius: "50%" }),
               }}
               transition={effectiveTransition}
@@ -248,8 +259,8 @@ export default function Carousel({
                     ? "bg-white"
                     : "bg-[#333333]"
                   : round
-                    ? "bg-[#555]"
-                    : "bg-[rgba(51,51,51,0.4)]"
+                  ? "bg-[#555]"
+                  : "bg-[rgba(51,51,51,0.4)]"
               }`}
               animate={{
                 scale: currentIndex % items.length === index ? 1.2 : 1,
