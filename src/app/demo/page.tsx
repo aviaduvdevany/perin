@@ -5,7 +5,7 @@ import { PerinChat } from "../../components/PerinChat";
 
 export default function DemoPage() {
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+    <div className="h-[calc(100vh-64px)] bg-[var(--background)] flex flex-col">
       {/* Minimal Header */}
       <header className="border-b border-[var(--card-border)] bg-[var(--card-background)]/50 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4">
@@ -38,7 +38,7 @@ export default function DemoPage() {
       </header>
 
       {/* Main Content - Full Screen Chat */}
-      <main className="flex-1">
+      <main className="flex-1 h-[calc(100vh-64px-64px)]">
         <motion.div
           className="h-full"
           initial={{ opacity: 0 }}

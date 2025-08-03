@@ -6,11 +6,13 @@ import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
+import { PerinLoading } from "./ui/PerinLoading";
 import type { ChatMessage } from "../types";
 
 export function PerinChat() {
   const { data: session } = useSession();
   const { sendMessage, isChatLoading, chatError } = usePerinAI();
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [perinStatus, setPerinStatus] = useState<
@@ -33,7 +35,7 @@ export function PerinChat() {
     if (!message.trim() || isChatLoading) return;
 
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       role: "user",
       content: message,
     };
@@ -44,8 +46,9 @@ export function PerinChat() {
     setPerinMood("focused");
 
     try {
+      const currentMessages = [...messages, userMessage];
       const stream = await sendMessage({
-        messages: [...messages, userMessage],
+        messages: currentMessages,
         specialization: undefined,
       });
 
@@ -54,19 +57,23 @@ export function PerinChat() {
         const reader = stream.getReader();
         const decoder = new TextDecoder();
 
+        let fullResponse = "";
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value);
-          setStreamingMessage((prev) => prev + chunk);
+          fullResponse += chunk;
+          setStreamingMessage(fullResponse);
         }
 
         // Add the complete assistant message
         const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
+          id: `assistant-${Date.now()}-${Math.random()
+            .toString(36)
+            .substring(2, 9)}`,
           role: "assistant",
-          content: streamingMessage,
+          content: fullResponse,
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
@@ -78,6 +85,15 @@ export function PerinChat() {
       console.error("Error sending message:", error);
       setPerinStatus("idle");
       setPerinMood("thoughtful");
+
+      // Add error message to chat
+      const errorMessage: ChatMessage = {
+        id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        role: "assistant",
+        content: "Sorry, I encountered an error. Please try again.",
+      };
+
+      setMessages((prev) => [...prev, errorMessage]);
     }
   };
 
@@ -109,7 +125,7 @@ export function PerinChat() {
   }
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
       {/* Minimal Header - Only visible when there are messages */}
       {messages.length > 0 && (
         <div className="flex items-center p-4 border-b border-[var(--card-border)] bg-[var(--card-background)]/50 backdrop-blur-sm">
@@ -154,7 +170,7 @@ export function PerinChat() {
 
         {messages.map((message, index) => (
           <motion.div
-            key={message.id}
+            key={`${message.id}-${message.role}-${index}`}
             className={`flex ${
               message.role === "user" ? "justify-end" : "justify-start"
             }`}
@@ -178,7 +194,19 @@ export function PerinChat() {
           </motion.div>
         ))}
 
-        {/* Streaming message */}
+        {/* Immersive Loading State */}
+        {isChatLoading && !streamingMessage && (
+          <motion.div
+            className="flex justify-center w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <PerinLoading status={perinStatus} className="max-w-md" />
+          </motion.div>
+        )}
+
+        {/* Streaming message with enhanced styling */}
         {streamingMessage && (
           <motion.div
             className="flex justify-start"

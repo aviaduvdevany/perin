@@ -46,7 +46,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] flex flex-col">
+    <div className="h-[calc(100vh-64px)] bg-[var(--background)] flex flex-col">
       {/* Main Content - Full Screen Chat */}
       <main className="flex-1">
         <motion.div

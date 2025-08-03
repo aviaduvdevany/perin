@@ -675,6 +675,68 @@ import { FloatingInput } from "./ui/FloatingInput";
 
 ---
 
+### 🧠 PerinLoading
+
+An immersive, borderless loading component that shows Perin in various thinking states with pure visual animations. Creates a sense of Perin being alive and actively processing without any text distractions.
+
+#### Usage
+
+```tsx
+import { PerinLoading } from "./ui/PerinLoading";
+
+<PerinLoading status="thinking" showAvatar={true} className="max-w-md" />;
+```
+
+#### Props
+
+| Property     | Type                                                              | Default      | Description                                      |
+| ------------ | ----------------------------------------------------------------- | ------------ | ------------------------------------------------ |
+| `status`     | `"idle" \| "thinking" \| "typing" \| "listening" \| "processing"` | `"thinking"` | The current status of Perin's processing state   |
+| `showAvatar` | `boolean`                                                         | `true`       | Whether to show the Perin avatar with animations |
+| `className`  | `string`                                                          | `""`         | Additional CSS classes for styling               |
+
+#### Features
+
+- **Borderless design**: No borders or containers - feels like part of the screen
+- **Centered layout**: Perfectly centered for immersive experience
+- **Pure visual communication**: No text, only animations and visual cues
+- **Enhanced avatar animations**: Perin gently scales and rotates while thinking
+- **Thinking dots**: Larger, more prominent dots that pulse around the avatar
+- **Pulsing rings**: Concentric rings that expand and contract
+- **Floating particles**: Small particles that float up and down
+- **Emotional connection**: Creates feeling of Perin being alive and thinking
+
+#### Visual Elements
+
+- **Avatar breathing**: Gentle scale and rotation animation
+- **Thinking dots**: 3 dots that pulse in sequence around avatar
+- **Pulsing rings**: 2 concentric rings that expand and contract
+- **Floating particles**: 4 particles that float up and down in sequence
+- **Color gradients**: Dynamic gradients based on status
+
+#### Status Types
+
+- **thinking**: Purple to accent gradient
+- **typing**: Green to purple gradient
+- **listening**: Accent to purple gradient
+- **processing**: Accent to purple gradient
+- **idle**: Default purple to accent gradient
+
+#### Example Usage
+
+```tsx
+// Centered loading state
+<div className="flex justify-center w-full">
+  <PerinLoading status="thinking" showAvatar={true} />
+</div>
+
+// Different states
+<PerinLoading status="typing" />
+<PerinLoading status="listening" />
+```
+
+---
+
 ### 💡 SpotlightCard
 
 A card component with spotlight effects that follow the cursor. Features smooth radial gradient animations and customizable spotlight colors.
