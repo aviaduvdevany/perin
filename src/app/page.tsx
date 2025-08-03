@@ -16,39 +16,6 @@ export default function Home() {
         <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
       </div>
 
-      {/* Navigation */}
-      <nav className="relative z-10 flex justify-between items-center p-8 max-w-7xl mx-auto">
-        <div className="flex items-center space-x-2">
-          <div className="w-10 h-10 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-xl flex items-center justify-center">
-            <span className="text-white font-bold text-lg">P</span>
-          </div>
-          <span className="text-2xl font-bold bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] bg-clip-text text-transparent">
-            Perin
-          </span>
-        </div>
-
-        <div className="hidden md:flex items-center space-x-8">
-          <a
-            href="#features"
-            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
-          >
-            Features
-          </a>
-          <a
-            href="#about"
-            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
-          >
-            About
-          </a>
-          <a
-            href="#contact"
-            className="text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
-          >
-            Contact
-          </a>
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
         <div className="max-w-4xl mx-auto space-y-8">
