@@ -144,9 +144,7 @@ const Slider: React.FC<SliderProps> = ({
             transition: { duration: 0.25 },
           }}
           style={{
-            x: useTransform(() =>
-              region === "left" ? -overflow.get() / scale.get() : 0
-            ),
+            x: region === "left" ? -overflow.get() / scale.get() : 0,
           }}
         >
           {leftIcon}
@@ -161,22 +159,19 @@ const Slider: React.FC<SliderProps> = ({
         >
           <motion.div
             style={{
-              scaleX: useTransform(() => {
-                if (sliderRef.current) {
-                  const { width } = sliderRef.current.getBoundingClientRect();
-                  return 1 + overflow.get() / width;
-                }
-                return 1;
-              }),
+              scaleX: sliderRef.current
+                ? 1 +
+                  overflow.get() /
+                    sliderRef.current.getBoundingClientRect().width
+                : 1,
               scaleY: useTransform(overflow, [0, MAX_OVERFLOW], [1, 0.8]),
-              transformOrigin: useTransform(() => {
-                if (sliderRef.current) {
-                  const { left, width } =
-                    sliderRef.current.getBoundingClientRect();
-                  return clientX.get() < left + width / 2 ? "right" : "left";
-                }
-                return "center";
-              }),
+              transformOrigin: sliderRef.current
+                ? clientX.get() <
+                  sliderRef.current.getBoundingClientRect().left +
+                    sliderRef.current.getBoundingClientRect().width / 2
+                  ? "right"
+                  : "left"
+                : "center",
               height: useTransform(scale, [1, 1.2], [6, 12]),
               marginTop: useTransform(scale, [1, 1.2], [0, -3]),
               marginBottom: useTransform(scale, [1, 1.2], [0, -3]),
@@ -198,9 +193,7 @@ const Slider: React.FC<SliderProps> = ({
             transition: { duration: 0.25 },
           }}
           style={{
-            x: useTransform(() =>
-              region === "right" ? overflow.get() / scale.get() : 0
-            ),
+            x: region === "right" ? overflow.get() / scale.get() : 0,
           }}
         >
           {rightIcon}
