@@ -98,4 +98,49 @@ export interface LangGraphChatState {
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
   };
+  emailContext: {
+    recentEmails?: Array<{
+      from: string;
+      subject: string;
+      snippet: string;
+      date: string;
+      unread: boolean;
+    }>;
+    emailCount?: number;
+    hasUnread?: boolean;
+  };
+}
+
+// Gmail integration API types
+export interface GmailConnectResponse {
+  authUrl: string;
+  message: string;
+}
+
+export interface GmailCallbackRequest {
+  code: string;
+}
+
+export interface GmailCallbackResponse {
+  message: string;
+  integration: {
+    id: string;
+    type: string;
+    connected_at: string;
+    scopes: string[];
+  };
+}
+
+export interface GmailEmailsResponse {
+  emails: Array<{
+    id: string;
+    from: string;
+    to: string;
+    subject: string;
+    snippet: string;
+    date: string;
+    unread: boolean;
+  }>;
+  count: number;
+  message: string;
 }

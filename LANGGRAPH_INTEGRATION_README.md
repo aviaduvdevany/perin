@@ -29,9 +29,52 @@ src/lib/ai/langgraph/
 │   └── chat-state.ts          # State interface and factory
 ├── nodes/
 │   ├── memory-node.ts         # Memory loading node
-│   └── openai-node.ts         # OpenAI interaction node
+│   ├── openai-node.ts         # OpenAI interaction node
+│   └── gmail-node.ts          # Gmail integration node
 └── graphs/
     └── base-chat.ts           # Main chat workflow graph
+```
+
+### Complete Integration Structure
+
+```
+src/
+├── app/
+│   └── api/
+│       ├── ai/
+│       │   ├── chat/route.ts           # Main chat endpoint (LangGraph)
+│       │   ├── memory/route.ts         # Memory management
+│       │   └── classify/route.ts       # Intent classification
+│       └── integrations/
+│           └── gmail/
+│               ├── connect/route.ts    # Gmail OAuth connection
+│               ├── callback/route.ts   # OAuth callback handler
+│               └── emails/route.ts     # Email fetching endpoint
+├── lib/
+│   ├── ai/
+│   │   ├── openai.ts                   # OpenAI integration
+│   │   ├── memory.ts                   # Memory smart queries
+│   │   ├── langgraph/                  # LangGraph workflow
+│   │   │   ├── index.ts                # Main entry point
+│   │   │   ├── state/chat-state.ts     # State management
+│   │   │   ├── nodes/
+│   │   │   │   ├── memory-node.ts      # Memory loading node
+│   │   │   │   ├── gmail-node.ts       # Gmail integration node
+│   │   │   │   └── openai-node.ts      # OpenAI interaction node
+│   │   │   └── graphs/base-chat.ts     # Main workflow graph
+│   │   └── prompts/
+│   │       └── system.ts               # Dynamic prompts
+│   ├── integrations/
+│   │   └── gmail/
+│   │       ├── auth.ts                 # Gmail OAuth authentication
+│   │       └── client.ts               # Gmail API client
+│   └── queries/
+│       ├── users.ts                    # User smart queries
+│       └── integrations.ts             # Integration smart queries
+└── types/
+    ├── ai.ts                           # AI type definitions
+    ├── database.ts                     # Database types
+    └── api.ts                          # API types
 ```
 
 ### Workflow Architecture
@@ -44,7 +87,7 @@ src/lib/ai/langgraph/
 ├─────────────────────────────────────────────────────────────┤
 │                  LangGraph Workflow                        │
 ├─────────────────────────────────────────────────────────────┤
-│  START → LOAD_MEMORY → CALL_OPENAI → STREAM_RESPONSE → END │
+│  START → LOAD_MEMORY → LOAD_GMAIL → CALL_OPENAI → STREAM_RESPONSE → END │
 ├─────────────────────────────────────────────────────────────┤
 │  State flows through nodes with type safety                │
 └─────────────────────────────────────────────────────────────┘
@@ -68,6 +111,19 @@ export interface LangGraphChatState {
   // Memory and context
   memoryContext: Record<string, unknown>;
   conversationContext: string;
+
+  // Email context (Gmail integration)
+  emailContext: {
+    recentEmails?: Array<{
+      from: string;
+      subject: string;
+      snippet: string;
+      date: string;
+      unread: boolean;
+    }>;
+    emailCount?: number;
+    hasUnread?: boolean;
+  };
 
   // System prompt building
   systemPrompt: string;
@@ -118,7 +174,67 @@ export const memoryNode = async (
 };
 ```
 
-### 3. OpenAI Node (`src/lib/ai/langgraph/nodes/openai-node.ts`)
+### 3. Gmail Node (`src/lib/ai/langgraph/nodes/gmail-node.ts`)
+
+```typescript
+export const gmailNode = async (
+  state: LangGraphChatState
+): Promise<Partial<LangGraphChatState>> => {
+  // Check if user has Gmail connected
+  const gmailIntegration = await integrationQueries.getUserIntegration(
+    state.userId,
+    "gmail"
+  );
+
+  if (!gmailIntegration || !gmailIntegration.is_active) {
+    return {
+      emailContext: {},
+      currentStep: "gmail_not_connected",
+    };
+  }
+
+  // Check if conversation mentions email-related keywords
+  const conversationText = state.conversationContext.toLowerCase();
+  const emailKeywords = ["email", "message", "inbox", "sent", "reply", "mail"];
+  const mentionsEmail = emailKeywords.some((keyword) =>
+    conversationText.includes(keyword)
+  );
+
+  // Smart context loading - only load emails if contextually relevant
+  let emailContext = {};
+
+  if (
+    mentionsEmail ||
+    state.messages.some((msg) =>
+      ["email", "message", "inbox"].some((keyword) =>
+        msg.content.toLowerCase().includes(keyword)
+      )
+    )
+  ) {
+    // Fetch recent emails for context
+    const recentEmails = await fetchRecentEmails(state.userId, 5);
+
+    emailContext = {
+      recentEmails: recentEmails.map((email) => ({
+        from: email.from,
+        subject: email.subject,
+        snippet: email.snippet,
+        date: email.date,
+        unread: email.unread,
+      })),
+      emailCount: recentEmails.length,
+      hasUnread: recentEmails.some((email) => email.unread),
+    };
+  }
+
+  return {
+    emailContext,
+    currentStep: "gmail_context_loaded",
+  };
+};
+```
+
+### 4. OpenAI Node (`src/lib/ai/langgraph/nodes/openai-node.ts`)
 
 ```typescript
 export const openaiNode = async (
@@ -163,7 +279,7 @@ export const openaiNode = async (
 };
 ```
 
-### 4. Base Chat Graph (`src/lib/ai/langgraph/graphs/base-chat.ts`)
+### 5. Base Chat Graph (`src/lib/ai/langgraph/graphs/base-chat.ts`)
 
 ```typescript
 export const executeChatGraph = async (
@@ -174,9 +290,13 @@ export const executeChatGraph = async (
     const memoryResult = await memoryNode(initialState);
     const stateWithMemory = { ...initialState, ...memoryResult };
 
-    // Step 2: Call OpenAI
-    const openaiResult = await openaiNode(stateWithMemory);
-    const finalState = { ...stateWithMemory, ...openaiResult };
+    // Step 2: Load Gmail context (if relevant)
+    const gmailResult = await gmailNode(stateWithMemory);
+    const stateWithGmail = { ...stateWithMemory, ...gmailResult };
+
+    // Step 3: Call OpenAI
+    const openaiResult = await openaiNode(stateWithGmail);
+    const finalState = { ...stateWithGmail, ...openaiResult };
 
     return finalState;
   } catch (error) {
@@ -190,7 +310,7 @@ export const executeChatGraph = async (
 };
 ```
 
-### 5. Main Entry Point (`src/lib/ai/langgraph/index.ts`)
+### 6. Main Entry Point (`src/lib/ai/langgraph/index.ts`)
 
 ```typescript
 export const executePerinChatWithLangGraph = async (
@@ -333,6 +453,14 @@ const { response } = await executePerinChatWithLangGraph(
 - Memory context loading works exactly as before
 - Same memory retrieval logic
 - Same context injection into prompts
+
+### 7. **Gmail Integration** 📧
+
+- **Smart context loading**: Only loads emails when conversation mentions email-related keywords
+- **Recent email context**: Provides last 5 emails with sender, subject, and snippet
+- **Unread status tracking**: Identifies unread emails for priority handling
+- **OAuth2 authentication**: Secure Gmail API access with token refresh
+- **Contextual relevance**: Intelligent filtering based on conversation context
 
 ## 🧪 Testing
 

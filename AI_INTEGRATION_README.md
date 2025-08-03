@@ -30,17 +30,19 @@ The AI integration follows a **layered architecture** with **smart queries** and
 │                    API Layer (Next.js)                     │
 ├─────────────────────────────────────────────────────────────┤
 │  Routes: /api/ai/chat, /api/ai/memory, /api/ai/classify   │
+│  Integrations: /api/integrations/gmail/*                   │
 │  Features: Authentication, validation, streaming           │
 ├─────────────────────────────────────────────────────────────┤
 │                  Business Logic Layer                       │
 ├─────────────────────────────────────────────────────────────┤
 │  Smart Queries: Direct database execution with type safety │
 │  AI Logic: OpenAI integration, prompt building, memory     │
+│  Integrations: Gmail OAuth2, email context loading         │
 ├─────────────────────────────────────────────────────────────┤
 │                  Database Layer (PostgreSQL)               │
 ├─────────────────────────────────────────────────────────────┤
-│  Tables: users (with memory JSONB column)                  │
-│  Features: Persistent memory, user preferences             │
+│  Tables: users (memory), user_integrations (OAuth tokens)  │
+│  Features: Persistent memory, user preferences, integrations│
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -64,6 +66,7 @@ The AI integration follows a **layered architecture** with **smart queries** and
 ### ✅ **Phase 3: Advanced Features** - **PARTIALLY COMPLETE**
 
 - ✅ Intent classification (`/api/ai/classify`)
+- ✅ Gmail integration with LangGraph workflow
 - 🔄 Voice input/output (planned)
 - 🔄 Perin-to-Perin delegation (planned)
 
@@ -164,6 +167,80 @@ interface ClassifyApiRequest {
 
 **Response**: Intent classification with confidence scores
 
+### 4. Gmail Integration APIs
+
+#### Connect Gmail - `/api/integrations/gmail/connect`
+
+**Purpose**: Initiate Gmail OAuth2 connection
+
+**Method**: `POST`
+
+**Response**:
+
+```typescript
+interface GmailConnectResponse {
+  authUrl: string;
+  message: string;
+}
+```
+
+#### Gmail Callback - `/api/integrations/gmail/callback`
+
+**Purpose**: Handle OAuth2 callback and store tokens
+
+**Method**: `POST`
+
+**Request Body**:
+
+```typescript
+interface GmailCallbackRequest {
+  code: string;
+}
+```
+
+**Response**:
+
+```typescript
+interface GmailCallbackResponse {
+  message: string;
+  integration: {
+    id: string;
+    type: string;
+    connected_at: string;
+    scopes: string[];
+  };
+}
+```
+
+#### Fetch Emails - `/api/integrations/gmail/emails`
+
+**Purpose**: Retrieve recent emails for context
+
+**Method**: `GET`
+
+**Query Parameters**:
+
+- `limit` (default: 10) - Number of emails to fetch
+- `q` (optional) - Gmail search query
+
+**Response**:
+
+```typescript
+interface GmailEmailsResponse {
+  emails: Array<{
+    id: string;
+    from: string;
+    to: string;
+    subject: string;
+    snippet: string;
+    date: string;
+    unread: boolean;
+  }>;
+  count: number;
+  message: string;
+}
+```
+
 ## 🧠 Smart Query System
 
 ### Overview
@@ -205,6 +282,25 @@ export const validateOpenAIConfig = (): boolean
 
 // Extract user ID from session safely
 export const getUserIdFromSession = (session: Session | null): string | null
+```
+
+#### Gmail Integration Queries
+
+```typescript
+// Get user's Gmail integration
+export const getUserIntegration = async (userId: string, integrationType: string): Promise<UserIntegration | null>
+
+// Create new Gmail integration
+export const createUserIntegration = async (userId: string, integrationType: string, accessToken: string, ...): Promise<UserIntegration>
+
+// Update integration tokens
+export const updateIntegrationTokens = async (integrationId: string, accessToken: string, expiresAt: Date | null): Promise<boolean>
+
+// Get all user integrations
+export const getUserIntegrations = async (userId: string): Promise<UserIntegration[]>
+
+// Deactivate integration
+export const deactivateIntegration = async (userId: string, integrationType: string): Promise<boolean>
 ```
 
 ### API Route Usage
@@ -347,6 +443,10 @@ import type {
   MemoryEntry,
   UserMemory,
   IntentClassification,
+  GmailConnectResponse,
+  GmailCallbackRequest,
+  GmailCallbackResponse,
+  GmailEmailsResponse,
 } from "../types/ai";
 
 // NextAuth integration
@@ -395,6 +495,11 @@ DATABASE_URL=postgresql://username:password@localhost:5432/perin
 # NextAuth Configuration
 NEXTAUTH_SECRET=your-secret-key-here
 NEXTAUTH_URL=http://localhost:3000
+
+# Gmail Integration Configuration
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_REDIRECT_URI=http://localhost:3000/api/integrations/gmail/callback
 ```
 
 ### Production Configuration
@@ -409,6 +514,11 @@ DATABASE_URL=postgresql://username:password@ep-xxx-xxx-xxx.region.aws.neon.tech/
 # NextAuth Configuration
 NEXTAUTH_SECRET=production-secret-key
 NEXTAUTH_URL=https://your-app.vercel.app
+
+# Gmail Integration Configuration
+GOOGLE_CLIENT_ID=production-google-client-id
+GOOGLE_CLIENT_SECRET=production-google-client-secret
+GOOGLE_REDIRECT_URI=https://your-app.vercel.app/api/integrations/gmail/callback
 ```
 
 ### Environment Validation
@@ -491,6 +601,38 @@ function ClassificationExample() {
 
   return <button onClick={handleClassification}>Classify Intent</button>;
 }
+```
+
+### Gmail Integration
+
+```typescript
+// Connect Gmail
+const connectGmail = async () => {
+  const response = await fetch("/api/integrations/gmail/connect", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  const { authUrl } = await response.json();
+  window.location.href = authUrl;
+};
+
+// Fetch recent emails
+const fetchEmails = async () => {
+  const response = await fetch("/api/integrations/gmail/emails?limit=5");
+  const { emails } = await response.json();
+  return emails;
+};
+
+// Handle OAuth callback
+const handleCallback = async (code: string) => {
+  const response = await fetch("/api/integrations/gmail/callback", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  const { integration } = await response.json();
+  return integration;
+};
 ```
 
 ## 🛡️ Security & Best Practices
@@ -622,20 +764,40 @@ console.log("AI Chat Interaction:", {
 src/
 ├── app/
 │   └── api/
-│       └── ai/
-│           ├── chat/route.ts           # Main chat endpoint
-│           ├── memory/route.ts         # Memory management
-│           └── classify/route.ts       # Intent classification
+│       ├── ai/
+│       │   ├── chat/route.ts           # Main chat endpoint
+│       │   ├── memory/route.ts         # Memory management
+│       │   └── classify/route.ts       # Intent classification
+│       └── integrations/
+│           └── gmail/
+│               ├── connect/route.ts    # Gmail OAuth connection
+│               ├── callback/route.ts   # OAuth callback handler
+│               └── emails/route.ts     # Email fetching endpoint
 ├── components/
 │   └── PerinChat.tsx                   # Chat UI component
 ├── hooks/
 │   └── usePerinAI.ts                   # AI integration hook
 ├── lib/
-│   └── ai/
-│       ├── openai.ts                   # OpenAI integration
-│       ├── memory.ts                   # Memory smart queries
-│       └── prompts/
-│           └── system.ts               # Dynamic prompts
+│   ├── ai/
+│   │   ├── openai.ts                   # OpenAI integration
+│   │   ├── memory.ts                   # Memory smart queries
+│   │   ├── langgraph/                  # LangGraph workflow
+│   │   │   ├── index.ts                # Main entry point
+│   │   │   ├── state/chat-state.ts     # State management
+│   │   │   ├── nodes/
+│   │   │   │   ├── memory-node.ts      # Memory loading node
+│   │   │   │   ├── gmail-node.ts       # Gmail integration node
+│   │   │   │   └── openai-node.ts      # OpenAI interaction node
+│   │   │   └── graphs/base-chat.ts     # Main workflow graph
+│   │   └── prompts/
+│   │       └── system.ts               # Dynamic prompts
+│   ├── integrations/
+│   │   └── gmail/
+│   │       ├── auth.ts                 # Gmail OAuth authentication
+│   │       └── client.ts               # Gmail API client
+│   └── queries/
+│       ├── users.ts                    # User smart queries
+│       └── integrations.ts             # Integration smart queries
 ├── types/
 │   ├── ai.ts                           # AI type definitions
 │   ├── database.ts                     # Database types
@@ -659,6 +821,7 @@ src/
 - **v1.3.0**: Added comprehensive type safety
 - **v1.4.0**: Enhanced streaming and error handling
 - **v1.5.0**: Complete NextAuth integration and documentation
+- **v1.6.0**: Added Gmail integration with LangGraph workflow
 
 ---
 

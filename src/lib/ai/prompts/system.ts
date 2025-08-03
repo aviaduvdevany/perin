@@ -5,6 +5,17 @@ export interface SystemPromptContext {
   conversationHistory?: string;
   currentTime?: string;
   timezone?: string;
+  emailContext?: {
+    recentEmails?: Array<{
+      from: string;
+      subject: string;
+      snippet: string;
+      date: string;
+      unread: boolean;
+    }>;
+    emailCount?: number;
+    hasUnread?: boolean;
+  };
 }
 
 /**
@@ -18,7 +29,21 @@ export const buildPerinSystemPrompt = (
     conversationHistory = "",
     currentTime = new Date().toISOString(),
     timezone = user.timezone || "UTC",
+    emailContext = {},
   } = context;
+
+  let emailContextPrompt = '';
+  if (emailContext?.recentEmails && emailContext.recentEmails.length > 0) {
+    emailContextPrompt = `
+    Recent Email Context:
+    - You have ${emailContext.emailCount} recent emails
+    - ${emailContext.hasUnread ? 'You have unread emails' : 'No unread emails'}
+    - Recent emails: ${emailContext.recentEmails.map((email: { from: string; subject: string }) => 
+      `From: ${email.from}, Subject: "${email.subject}"`
+    ).join(', ')}
+
+You can reference these emails naturally in conversation and help with email-related tasks.`;
+  }
 
   const perinName = user.perin_name || "Perin";
   const tone = user.tone || "friendly";

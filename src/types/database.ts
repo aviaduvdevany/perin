@@ -55,4 +55,16 @@ export interface UpdateUserData {
   role?: string;
 }
 
-
+export interface UserIntegration {
+  id: string;
+  user_id: string;
+  integration_type: string;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: string;
+  scopes: string[];
+  connected_at: string;
+  last_sync_at: string | null;
+  is_active: boolean;
+  metadata: Record<string, unknown>;
+}

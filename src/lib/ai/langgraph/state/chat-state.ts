@@ -24,4 +24,5 @@ export const createInitialChatState = (
   openaiResponse: "",
   streamChunks: [],
   currentStep: "initialized",
+  emailContext: {},
 });
