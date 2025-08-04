@@ -1,121 +1,346 @@
-// 🧠 Perin Project Conventions — Cursor Reference
+# 🧠 Perin - AI-Powered Digital Delegate
 
-// This file outlines the conventions, file structure, and coding practices
-// to be followed across the Perin Next.js monolith project
+> A Next.js application featuring an intelligent AI assistant with Gmail integration, persistent memory, and multi-agent coordination capabilities.
 
-// -------------------------------------------------------------
-// 📁 Project Structure (simplified outline)
-// -------------------------------------------------------------
+## 🚀 Quick Start
 
-- /app → Next.js app directory
+```bash
+# Clone the repository
+git clone <repository-url>
+cd perin
 
-  - /api → API route handlers
-    - /<route>/route.ts → Route handlers with exported HTTP methods (GET, POST, etc.)
-  - /auth → Authentication pages (signin, signup)
-  - /dashboard → Protected dashboard pages
+# Install dependencies
+npm install
 
-- /lib
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
 
-  - /queries → Smart query functions per domain (execute directly, return typed results)
-  - /db.ts → PostgreSQL client config (pg module with connection pooling)
-  - /tables.ts → Constants for table names
-  - /db-types.ts → Type definitions for DB schemas (from pg output or manually defined)
-  - /utils → Helpers (formatting, error handling, auth utilities, etc.)
+# Run the development server
+npm run dev
+```
 
-- /components
+Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
-  - /providers → React context providers (SessionProvider, etc.)
+## 📋 Table of Contents
 
-- /hooks
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Documentation](#documentation)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Development](#development)
+- [Deployment](#deployment)
 
-  - useAuth.ts → Authentication hook for client-side auth management
+## 🎯 Overview
 
-- /types
+Perin is an AI-powered digital delegate that helps users manage emails, schedule meetings, and coordinate tasks. Built with Next.js, OpenAI GPT-4, and PostgreSQL, it features:
 
-  - next-auth.d.ts → NextAuth type extensions
+- **Intelligent AI Assistant**: Context-aware conversations with persistent memory
+- **Gmail Integration**: OAuth2 authentication with smart email context loading
+- **LangGraph Workflow**: Multi-step reasoning and tool integration
+- **Service Layer Architecture**: Clean separation between UI and API layers
+- **Type Safety**: Full TypeScript coverage with NextAuth integration
 
-- /constants
+## 🏗️ Architecture
 
-  - config.ts → App-wide constants (API URLs, feature flags)
-  - copy.ts → Friendly microcopy & messaging
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend (React/Next.js)                │
+├─────────────────────────────────────────────────────────────┤
+│  Components: PerinChat, Dashboard, Onboarding             │
+│  Service Layer: users.ts, integrations.ts, ai.ts          │
+├─────────────────────────────────────────────────────────────┤
+│                    API Layer (Next.js)                     │
+├─────────────────────────────────────────────────────────────┤
+│  Routes: /api/ai/chat, /api/integrations/gmail/*          │
+│  Authentication: NextAuth.js with PostgreSQL              │
+├─────────────────────────────────────────────────────────────┤
+│                  Business Logic Layer                       │
+├─────────────────────────────────────────────────────────────┤
+│  LangGraph Workflow: Memory → Gmail → OpenAI → Response   │
+│  Smart Queries: Direct database execution with type safety │
+├─────────────────────────────────────────────────────────────┤
+│                  Database Layer (PostgreSQL)               │
+├─────────────────────────────────────────────────────────────┤
+│  Tables: users, user_integrations, memory (JSONB)         │
+│  Features: Connection pooling, JSONB for flexible data    │
+└─────────────────────────────────────────────────────────────┘
+```
 
-- middleware.ts → Route protection middleware
-- tailwind.config.ts
-- tsconfig.json
+## ✨ Features
 
-// -------------------------------------------------------------
-// 🧩 API Layer Conventions
-// -------------------------------------------------------------
+### 🤖 AI Assistant
 
-// 1. Each route file exports HTTP method handlers
-// Good: /app/api/users/route.ts
+- **Real-time Streaming**: Character-by-character response streaming
+- **Persistent Memory**: Context-aware conversations across sessions
+- **Dynamic Prompts**: Personalized system prompts based on user preferences
+- **Intent Classification**: Smart routing for different types of requests
 
-export async function POST(req: Request) { /_ ... _/ }
+### 📧 Gmail Integration
 
-// 2. SQL queries are defined in lib/queries/\*.ts
-// Use smart query functions that execute directly and return typed results
+- **OAuth2 Authentication**: Secure Gmail API access
+- **Smart Context Loading**: Only loads emails when conversationally relevant
+- **Email Analysis**: Summarize, categorize, and respond to emails
+- **Token Management**: Automatic refresh and secure storage
 
-import { query } from '../db';
-import { USERS_TABLE } from '../tables';
-import type { User } from '../db-types';
+### 🧠 LangGraph Workflow
 
-export const getUserById = async (userId: string): Promise<User | null> => {
-const sql = `    SELECT * FROM ${USERS_TABLE}
-    WHERE id = $1
- `;
+- **Multi-Step Reasoning**: Complex task decomposition
+- **Tool Integration**: Seamless integration with external services
+- **State Management**: Centralized workflow state
+- **Future-Ready**: Foundation for multi-agent coordination
 
-try {
-const result = await query(sql, [userId]);
-return result.rows[0] || null;
-} catch (error) {
-console.error('Error getting user by ID:', error);
-throw error;
-}
-};
+### 🛡️ Security & Performance
 
-// 3. All table names imported from lib/tables.ts
+- **Type Safety**: Full TypeScript coverage
+- **Authentication**: NextAuth.js with JWT tokens
+- **Database Security**: Parameterized queries, connection pooling
+- **Error Handling**: Graceful error recovery and logging
 
-export const USERS_TABLE = 'users';
+## 📚 Documentation
 
-// 4. Database types stored in lib/db-types.ts
-// Can be manually defined or generated using tools like pg-to-ts
+### Core Documentation
 
-export interface User {
-id: string;
-email: string;
-name: string | null;
-created_at: string;
-updated_at: string;
-}
+- **[AI Integration](./AI_INTEGRATION_README.md)** - OpenAI integration, memory management, and streaming
+- **[Gmail Integration](./GMAIL_INTEGRATION_README.md)** - OAuth2 flow, email context, and API endpoints
+- **[LangGraph Integration](./LANGGRAPH_INTEGRATION_README.md)** - Workflow orchestration and multi-step reasoning
+- **[Authentication](./AUTH_README.md)** - NextAuth.js setup, user management, and security
 
-// 5. API routes use smart queries directly
+### Development Documentation
 
-export async function GET(request: NextRequest) {
-try {
-const user = await userQueries.getUserById(id);
-return NextResponse.json({ user });
-} catch (error) {
-return ErrorResponses.databaseError('Failed to fetch user');
-}
-}
+- **[Service Layer](./SERVICE_LAYER_README.md)** - API abstraction and client-side data fetching
+- **[Type System](./TYPES_README.md)** - TypeScript organization and NextAuth integration
+- **[UI Components](./src/components/ui/README.md)** - Reusable React components with animations
 
-// -------------------------------------------------------------
-// 🔐 Authentication Conventions
-// -------------------------------------------------------------
+### Quick Reference
 
-// 1. Use NextAuth.js for authentication
-// 2. Smart queries handle all database operations
-// 3. Middleware protects routes automatically
-// 4. Type-safe session management
-// 5. Secure password hashing with bcrypt
+- **[Project Conventions](./README.md#project-conventions)** - Coding standards and file structure
+- **[API Reference](./AI_INTEGRATION_README.md#api-endpoints)** - Complete API endpoint documentation
+- **[Environment Setup](./AUTH_README.md#environment-configuration)** - Required environment variables
 
-// -------------------------------------------------------------
-// 🛡️ Security Best Practices
-// -------------------------------------------------------------
+## 🛠️ Tech Stack
 
-// 1. Parameterized SQL queries (prevents SQL injection)
-// 2. Input validation and sanitization
-// 3. Error handling without exposing sensitive data
-// 4. JWT tokens for stateless authentication
-// 5. CSRF protection via NextAuth
-// 6. Secure password hashing (bcrypt with 12 salt rounds)
+### Frontend
+
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type-safe development
+- **Tailwind CSS** - Utility-first styling
+- **Framer Motion** - Smooth animations
+- **NextAuth.js** - Authentication and session management
+
+### Backend
+
+- **OpenAI GPT-4** - AI language model
+- **LangGraph** - Multi-step reasoning workflows
+- **PostgreSQL** - Primary database with JSONB support
+- **pg** - Database client with connection pooling
+
+### Integrations
+
+- **Gmail API** - Email management and context
+- **Google OAuth2** - Secure authentication
+- **Vercel** - Deployment and hosting
+
+### Development Tools
+
+- **ESLint** - Code linting
+- **PostCSS** - CSS processing
+- **Git** - Version control
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- PostgreSQL database
+- OpenAI API key
+- Google Cloud Console project (for Gmail integration)
+
+### Environment Setup
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd perin
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   Required variables:
+
+   ```bash
+   # Database
+   DATABASE_URL=postgresql://username:password@localhost:5432/perin
+
+   # OpenAI
+   OPENAI_API_KEY=sk-your-openai-api-key
+
+   # NextAuth
+   NEXTAUTH_SECRET=your-secret-key
+   NEXTAUTH_URL=http://localhost:3000
+
+   # Gmail Integration
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   GOOGLE_REDIRECT_URI=http://localhost:3000/api/integrations/gmail/callback
+   ```
+
+4. **Set up the database**
+
+   ```bash
+   # Create database tables (see AUTH_README.md for schema)
+   ```
+
+5. **Run the development server**
+
+   ```bash
+   npm run dev
+   ```
+
+6. **Visit the application**
+   - Open [http://localhost:3000](http://localhost:3000)
+   - Register a new account
+   - Start chatting with Perin!
+
+## 🏗️ Project Conventions
+
+### File Structure
+
+```
+src/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Protected dashboard
+│   ├── onboarding/        # User onboarding flow
+│   └── services/          # Service layer (API abstraction)
+├── components/            # Reusable React components
+│   ├── ui/               # UI components with animations
+│   └── providers/        # Context providers
+├── hooks/                # Custom React hooks
+├── lib/                  # Business logic and utilities
+│   ├── ai/              # AI integration and LangGraph
+│   ├── integrations/    # Third-party integrations
+│   ├── queries/         # Database smart queries
+│   └── utils/           # Helper functions
+└── types/               # TypeScript type definitions
+```
+
+### Coding Standards
+
+- **TypeScript**: Strict mode enabled, no `any` types
+- **Smart Queries**: Direct database execution with type safety
+- **Service Layer**: No direct API calls in components
+- **Error Handling**: Consistent error responses and logging
+- **Authentication**: NextAuth.js with proper session management
+
+### API Patterns
+
+- **RESTful Design**: Standard HTTP methods and status codes
+- **Type Safety**: Full TypeScript coverage for requests/responses
+- **Error Handling**: Consistent error response format
+- **Streaming**: Real-time responses where appropriate
+
+## 🔧 Development
+
+### Available Scripts
+
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run type-check   # Run TypeScript compiler
+```
+
+### Database Operations
+
+```bash
+# Smart queries are used throughout the application
+# See lib/queries/ for available functions
+```
+
+### Testing
+
+```bash
+# Run tests (when implemented)
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+## 🚀 Deployment
+
+### Vercel (Recommended)
+
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Manual Deployment
+
+1. Build the application: `npm run build`
+2. Start the production server: `npm start`
+3. Set up reverse proxy (nginx/Apache) if needed
+
+### Environment Variables for Production
+
+```bash
+# Update URLs for production domain
+NEXTAUTH_URL=https://your-domain.com
+GOOGLE_REDIRECT_URI=https://your-domain.com/api/integrations/gmail/callback
+NEXT_PUBLIC_API_URL=https://your-domain.com
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
+
+### Development Guidelines
+
+- Follow the established coding conventions
+- Add tests for new features
+- Update documentation as needed
+- Ensure TypeScript compilation passes
+- Test the application thoroughly
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the specialized README files above
+- **Issues**: Create an issue on GitHub
+- **Discussions**: Use GitHub Discussions for questions
+
+## 🔄 Version History
+
+- **v1.0.0**: Initial release with basic AI chat
+- **v1.1.0**: Added memory management and persistence
+- **v1.2.0**: Implemented Gmail integration
+- **v1.3.0**: Added LangGraph workflow orchestration
+- **v1.4.0**: Implemented service layer architecture
+- **v1.5.0**: Enhanced documentation and type safety
+
+---
+
+**Built with ❤️ by the Perin Development Team**

@@ -20,7 +20,7 @@ export const initializeOpenAI = (): OpenAI => {
  * Build dynamic system prompt based on user preferences and context
  */
 export const buildSystemPrompt = (state: LangGraphChatState): string => {
-  const { tone, perinName, memoryContext, user } = state;
+  const { tone, perinName, memoryContext, user, emailContext } = state;
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
@@ -29,6 +29,7 @@ Core Capabilities:
 - Persistent memory and context awareness
 - Emotionally intelligent, human-like responses
 - Multi-agent coordination when needed
+- Email management and analysis (when Gmail is connected)
 
 Your Tone: ${tone}
 Your Name: ${perinName}
@@ -40,6 +41,7 @@ Key Principles:
 4. Be emotionally intelligent and empathetic
 5. Help with scheduling, coordination, and delegation tasks
 6. Maintain persistent identity across conversations
+7. When email context is available, use it to provide informed responses about emails
 
 Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
@@ -47,7 +49,26 @@ User Preferences:
 - Timezone: ${user?.timezone || "UTC"}
 - Preferred Hours: ${JSON.stringify(user?.preferred_hours || {}, null, 2)}
 
-Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence.`;
+Email Context: ${
+    emailContext && emailContext.recentEmails
+      ? `You have access to recent emails:
+${emailContext.recentEmails
+  .map(
+    (email, index) =>
+      `${index + 1}. From: ${email.from}
+   Subject: ${email.subject}
+   Snippet: ${email.snippet}
+   Date: ${email.date}
+   Unread: ${email.unread ? "Yes" : "No"}`
+  )
+  .join("\n\n")}
+
+Total emails: ${emailContext.emailCount}
+Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
+      : "No recent email context available"
+  }
+
+Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox.`;
 
   return basePrompt;
 };

@@ -1,36 +1,44 @@
 # 🧠 Perin AI Integration Documentation
 
-This document provides a comprehensive overview of the AI integration system implemented in the Perin project, featuring OpenAI GPT-4, persistent memory, dynamic system prompts, and full TypeScript type safety.
+> Comprehensive guide to the AI integration system featuring OpenAI GPT-4, LangGraph workflows, Gmail integration, and persistent memory management.
 
 ## 📋 Table of Contents
 
-- [Architecture Overview](#architecture-overview)
-- [Implementation Status](#implementation-status)
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Core Features](#core-features)
 - [API Endpoints](#api-endpoints)
-- [Smart Query System](#smart-query-system)
+- [LangGraph Workflow](#langgraph-workflow)
+- [Gmail Integration](#gmail-integration)
 - [Memory Management](#memory-management)
-- [Frontend Integration](#frontend-integration)
+- [Service Layer](#service-layer)
 - [Type Safety](#type-safety)
 - [Environment Configuration](#environment-configuration)
 - [Usage Examples](#usage-examples)
-- [Security & Best Practices](#security--best-practices)
 - [Troubleshooting](#troubleshooting)
 
-## 🏗️ Architecture Overview
+## 🎯 Overview
 
-The AI integration follows a **layered architecture** with **service layer**, **smart queries**, and **type-safe operations**:
+The Perin AI integration provides a sophisticated AI assistant with:
+
+- **Real-time Streaming**: Character-by-character response streaming
+- **Persistent Memory**: Context-aware conversations across sessions
+- **Gmail Integration**: Smart email context loading and analysis
+- **LangGraph Workflow**: Multi-step reasoning and tool integration
+- **Service Layer**: Clean API abstraction for client components
+- **Type Safety**: Full TypeScript coverage throughout
+
+## 🏗️ Architecture
+
+### System Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (React/Next.js)                │
 ├─────────────────────────────────────────────────────────────┤
 │  Components: PerinChat, usePerinAI hook                   │
+│  Service Layer: ai.ts, users.ts, integrations.ts          │
 │  Features: Real-time streaming, memory management          │
-├─────────────────────────────────────────────────────────────┤
-│                  Service Layer (TypeScript)                │
-├─────────────────────────────────────────────────────────────┤
-│  Services: ai.ts, users.ts, integrations.ts               │
-│  Features: Centralized API calls, type safety, error handling│
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -40,9 +48,9 @@ The AI integration follows a **layered architecture** with **service layer**, **
 ├─────────────────────────────────────────────────────────────┤
 │                  Business Logic Layer                       │
 ├─────────────────────────────────────────────────────────────┤
+│  LangGraph Workflow: Memory → Gmail → OpenAI → Response   │
 │  Smart Queries: Direct database execution with type safety │
 │  AI Logic: OpenAI integration, prompt building, memory     │
-│  Integrations: Gmail OAuth2, email context loading         │
 ├─────────────────────────────────────────────────────────────┤
 │                  Database Layer (PostgreSQL)               │
 ├─────────────────────────────────────────────────────────────┤
@@ -51,37 +59,81 @@ The AI integration follows a **layered architecture** with **service layer**, **
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## ✅ Implementation Status
+### File Structure
 
-### ✅ **Phase 1: AI MVP** - **COMPLETE**
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── ai/
+│   │   │   ├── chat/route.ts           # Main chat endpoint (LangGraph)
+│   │   │   ├── memory/route.ts         # Memory management
+│   │   │   └── classify/route.ts       # Intent classification
+│   │   └── integrations/
+│   │       └── gmail/
+│   │           ├── connect/route.ts    # Gmail OAuth connection
+│   │           ├── callback/route.ts   # OAuth callback handler
+│   │           └── emails/route.ts     # Email fetching endpoint
+│   └── services/                       # Service layer
+│       ├── internalApi.ts              # Base API utility
+│       ├── users.ts                    # User services
+│       ├── integrations.ts             # Integration services
+│       └── ai.ts                       # AI services (future)
+├── lib/
+│   ├── ai/
+│   │   ├── openai.ts                   # OpenAI integration
+│   │   ├── memory.ts                   # Memory smart queries
+│   │   ├── langgraph/                  # LangGraph workflow
+│   │   │   ├── index.ts                # Main entry point
+│   │   │   ├── state/chat-state.ts     # State management
+│   │   │   ├── nodes/
+│   │   │   │   ├── memory-node.ts      # Memory loading node
+│   │   │   │   ├── gmail-node.ts       # Gmail integration node
+│   │   │   │   └── openai-node.ts      # OpenAI interaction node
+│   │   │   └── graphs/base-chat.ts     # Main workflow graph
+│   │   └── prompts/
+│   │       └── system.ts               # Dynamic prompts
+│   ├── integrations/
+│   │   └── gmail/
+│   │       ├── auth.ts                 # Gmail OAuth authentication
+│   │       └── client.ts               # Gmail API client
+│   └── queries/
+│       ├── users.ts                    # User smart queries
+│       └── integrations.ts             # Integration smart queries
+└── types/
+    ├── ai.ts                           # AI type definitions
+    ├── database.ts                     # Database types
+    └── api.ts                          # API types
+```
 
-- ✅ Core chat API (`/api/ai/chat`)
-- ✅ Dynamic system prompts
-- ✅ Real-time streaming responses
-- ✅ User authentication integration
-- ✅ Type-safe implementation
+## ✨ Core Features
 
-### ✅ **Phase 2: Memory Support** - **COMPLETE**
+### 🤖 AI Assistant
 
-- ✅ Memory API (`/api/ai/memory`)
-- ✅ Persistent user memory storage
-- ✅ Memory retrieval and context injection
-- ✅ Smart memory queries
+- **Real-time Streaming**: Character-by-character response streaming
+- **Persistent Memory**: Context-aware conversations across sessions
+- **Dynamic Prompts**: Personalized system prompts based on user preferences
+- **Intent Classification**: Smart routing for different types of requests
 
-### ✅ **Phase 3: Advanced Features** - **PARTIALLY COMPLETE**
+### 📧 Gmail Integration
 
-- ✅ Intent classification (`/api/ai/classify`)
-- ✅ Gmail integration with LangGraph workflow
-- 🔄 Voice input/output (planned)
-- 🔄 Perin-to-Perin delegation (planned)
+- **OAuth2 Authentication**: Secure Gmail API access
+- **Smart Context Loading**: Only loads emails when conversationally relevant
+- **Email Analysis**: Summarize, categorize, and respond to emails
+- **Token Management**: Automatic refresh and secure storage
+
+### 🧠 LangGraph Workflow
+
+- **Multi-Step Reasoning**: Complex task decomposition
+- **Tool Integration**: Seamless integration with external services
+- **State Management**: Centralized workflow state
+- **Future-Ready**: Foundation for multi-agent coordination
 
 ## 🛣️ API Endpoints
 
-### 1. Chat API - `/api/ai/chat`
+### 1. Chat API - `POST /api/ai/chat`
 
 **Purpose**: Main AI interaction endpoint with streaming responses
-
-**Method**: `POST`
 
 **Request Body**:
 
@@ -117,10 +169,11 @@ interface ChatApiRequest {
 - ✅ Authentication required
 - ✅ Dynamic system prompt construction
 - ✅ Memory context injection
+- ✅ Gmail context loading (when relevant)
 - ✅ Real-time streaming
 - ✅ Error handling
 
-### 2. Memory API - `/api/ai/memory`
+### 2. Memory API - `GET /api/ai/memory`
 
 **Purpose**: Manage persistent user memory and preferences
 
@@ -156,11 +209,9 @@ DELETE /api/ai/memory?keys=old_conversations
 DELETE /api/ai/memory
 ```
 
-### 3. Classification API - `/api/ai/classify`
+### 3. Classification API - `POST /api/ai/classify`
 
 **Purpose**: Classify user intent for advanced routing
-
-**Method**: `POST`
 
 **Request Body**:
 
@@ -172,154 +223,286 @@ interface ClassifyApiRequest {
 
 **Response**: Intent classification with confidence scores
 
-### 4. Gmail Integration APIs
+## 🧠 LangGraph Workflow
 
-#### Connect Gmail - `/api/integrations/gmail/connect`
+### Workflow Overview
 
-**Purpose**: Initiate Gmail OAuth2 connection
+The AI integration uses LangGraph for orchestrated multi-step reasoning:
 
-**Method**: `POST`
-
-**Response**:
-
-```typescript
-interface GmailConnectResponse {
-  authUrl: string;
-  message: string;
-}
+```
+START → LOAD_MEMORY → LOAD_GMAIL → CALL_OPENAI → STREAM_RESPONSE → END
 ```
 
-#### Gmail Callback - `/api/integrations/gmail/callback`
-
-**Purpose**: Handle OAuth2 callback and store tokens
-
-**Method**: `POST`
-
-**Request Body**:
+### State Management
 
 ```typescript
-interface GmailCallbackRequest {
-  code: string;
-}
-```
+interface LangGraphChatState {
+  // Input messages from user
+  messages: ChatMessage[];
 
-**Response**:
+  // User context and preferences
+  userId: string;
+  tone: string;
+  perinName: string;
+  specialization?: "negotiation" | "scheduling" | "memory" | "coordination";
 
-```typescript
-interface GmailCallbackResponse {
-  message: string;
-  integration: {
-    id: string;
-    type: string;
-    connected_at: string;
-    scopes: string[];
+  // Memory and context
+  memoryContext: Record<string, unknown>;
+  conversationContext: string;
+
+  // Email context (Gmail integration)
+  emailContext: {
+    recentEmails?: Array<{
+      from: string;
+      subject: string;
+      snippet: string;
+      date: string;
+      unread: boolean;
+    }>;
+    emailCount?: number;
+    hasUnread?: boolean;
+  };
+
+  // System prompt building
+  systemPrompt: string;
+
+  // OpenAI response handling
+  openaiResponse: string;
+  streamChunks: string[];
+
+  // Workflow status
+  currentStep: string;
+  error?: string;
+
+  // User data (loaded from database)
+  user?: {
+    perin_name?: string;
+    tone?: string;
+    timezone?: string;
+    preferred_hours?: Record<string, unknown>;
+    memory?: Record<string, unknown>;
   };
 }
 ```
 
-#### Fetch Emails - `/api/integrations/gmail/emails`
+### Workflow Nodes
 
-**Purpose**: Retrieve recent emails for context
+#### 1. Memory Node (`memory-node.ts`)
 
-**Method**: `GET`
+- Extracts conversation context from messages
+- Loads relevant memory using `getRelevantMemoryContext`
+- Returns memory context and conversation context
 
-**Query Parameters**:
+#### 2. Gmail Node (`gmail-node.ts`)
 
-- `limit` (default: 10) - Number of emails to fetch
-- `q` (optional) - Gmail search query
+- Checks if user has Gmail connected
+- Detects email-related keywords in conversation
+- Loads recent emails only when contextually relevant
+- Returns email context with recent emails and metadata
 
-**Response**:
+#### 3. OpenAI Node (`openai-node.ts`)
+
+- Builds dynamic system prompt with all context
+- Calls OpenAI API with streaming
+- Returns streaming response chunks
+
+### Main Entry Point
 
 ```typescript
-interface GmailEmailsResponse {
-  emails: Array<{
-    id: string;
-    from: string;
-    to: string;
-    subject: string;
-    snippet: string;
-    date: string;
-    unread: boolean;
-  }>;
-  count: number;
-  message: string;
-}
+export const executePerinChatWithLangGraph = async (
+  messages: ChatMessage[],
+  userId: string,
+  tone: string = "friendly",
+  perinName: string = "Perin",
+  specialization?: "negotiation" | "scheduling" | "memory" | "coordination",
+  user?: UserData
+): Promise<PerinChatResponse> => {
+  // Create initial state
+  const initialState = createInitialChatState(
+    messages,
+    userId,
+    tone,
+    perinName,
+    specialization
+  );
+
+  // Create streaming response that processes workflow in real-time
+  const stream = new ReadableStream({
+    async start(controller) {
+      try {
+        // Step 1: Load memory
+        const memoryResult = await memoryNode(initialState);
+        const stateWithMemory = { ...initialState, ...memoryResult };
+
+        // Step 2: Load Gmail context (if relevant)
+        const gmailResult = await gmailNode(stateWithMemory);
+        const stateWithGmail = { ...stateWithMemory, ...gmailResult };
+
+        // Step 3: Call OpenAI with real-time streaming
+        const openaiClient = initializeOpenAI();
+        const systemPrompt = buildSystemPrompt(stateWithGmail);
+
+        const response = await openaiClient.chat.completions.create({
+          model: "gpt-4",
+          messages: messagesWithSystem.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+
+        // Stream chunks as they arrive
+        for await (const chunk of response) {
+          const content = chunk.choices[0]?.delta?.content;
+          if (content) {
+            controller.enqueue(new TextEncoder().encode(content));
+          }
+        }
+
+        controller.close();
+      } catch (error) {
+        controller.error(error);
+      }
+    },
+  });
+
+  return {
+    stream,
+    response: new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+      },
+    }),
+  };
+};
 ```
 
-## 🧠 Smart Query System
+## 📧 Gmail Integration
 
-### Overview
+### Smart Context Loading
 
-The AI integration uses **smart queries** - functions that execute database operations directly and return typed results. This provides:
-
-- **Type Safety**: All operations return properly typed results
-- **Error Handling**: Built-in try/catch with proper error logging
-- **Simplified API Routes**: No manual query execution needed
-- **Better Performance**: Direct database execution
-- **Cleaner Code**: Less boilerplate in API routes
-
-### AI Smart Queries
-
-#### Memory Management Queries
+The Gmail integration uses intelligent context detection:
 
 ```typescript
-// Get user memory with context
-export const getUserMemory = async (userId: string): Promise<UserMemory | null>
+export const gmailNode = async (
+  state: LangGraphChatState
+): Promise<Partial<LangGraphChatState>> => {
+  // Check if user has Gmail connected
+  const gmailIntegration = await integrationQueries.getUserIntegration(
+    state.userId,
+    "gmail"
+  );
 
-// Add memory entry
-export const addMemoryEntry = async (userId: string, key: string, entry: MemoryEntry): Promise<boolean>
+  if (!gmailIntegration || !gmailIntegration.is_active) {
+    return {
+      emailContext: {},
+      currentStep: "gmail_not_connected",
+    };
+  }
 
-// Get relevant memory context
-export const getRelevantMemoryContext = async (userId: string, context: string): Promise<Record<string, MemoryEntry>>
+  // Check if conversation mentions email-related keywords
+  const conversationText = state.conversationContext.toLowerCase();
+  const emailKeywords = ["email", "message", "inbox", "sent", "reply", "mail"];
+  const mentionsEmail = emailKeywords.some((keyword) =>
+    conversationText.includes(keyword)
+  );
 
-// Clear memory entries
-export const clearMemoryEntries = async (userId: string, keys: string[]): Promise<boolean>
+  // Smart context loading - only load emails if contextually relevant
+  if (
+    mentionsEmail ||
+    state.messages.some((msg) =>
+      ["email", "message", "inbox"].some((keyword) =>
+        msg.content.toLowerCase().includes(keyword)
+      )
+    )
+  ) {
+    // Fetch recent emails for context
+    const recentEmails = await fetchRecentEmails(state.userId, 5);
+
+    return {
+      emailContext: {
+        recentEmails: recentEmails.map((email) => ({
+          from: email.from,
+          subject: email.subject,
+          snippet: email.snippet,
+          date: email.date,
+          unread: email.unread,
+        })),
+        emailCount: recentEmails.length,
+        hasUnread: recentEmails.some((email) => email.unread),
+      },
+      currentStep: "gmail_context_loaded",
+    };
+  }
+
+  return {
+    emailContext: {},
+    currentStep: "gmail_context_loaded",
+  };
+};
 ```
 
-#### OpenAI Integration Queries
+### System Prompt Integration
+
+Email context is automatically included in the system prompt:
 
 ```typescript
-// Execute AI chat with streaming
-export const executePerinChat = async (request: PerinChatRequest): Promise<PerinChatResponse>
+export const buildSystemPrompt = (state: LangGraphChatState): string => {
+  const { tone, perinName, memoryContext, user, emailContext } = state;
 
-// Validate OpenAI configuration
-export const validateOpenAIConfig = (): boolean
+  const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
-// Extract user ID from session safely
-export const getUserIdFromSession = (session: Session | null): string | null
-```
+Core Capabilities:
+- Natural negotiation and conversation
+- Persistent memory and context awareness
+- Emotionally intelligent, human-like responses
+- Multi-agent coordination when needed
+- Email management and analysis (when Gmail is connected)
 
-#### Gmail Integration Queries
+Your Tone: ${tone}
+Your Name: ${perinName}
 
-```typescript
-// Get user's Gmail integration
-export const getUserIntegration = async (userId: string, integrationType: string): Promise<UserIntegration | null>
+Key Principles:
+1. Always maintain your assigned tone and personality
+2. Use your name (${perinName}) naturally in conversation
+3. Reference relevant memory and context when appropriate
+4. Be emotionally intelligent and empathetic
+5. Help with scheduling, coordination, and delegation tasks
+6. Maintain persistent identity across conversations
+7. When email context is available, use it to provide informed responses about emails
 
-// Create new Gmail integration
-export const createUserIntegration = async (userId: string, integrationType: string, accessToken: string, ...): Promise<UserIntegration>
+Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
-// Update integration tokens
-export const updateIntegrationTokens = async (integrationId: string, accessToken: string, expiresAt: Date | null): Promise<boolean>
+User Preferences:
+- Timezone: ${user?.timezone || "UTC"}
+- Preferred Hours: ${JSON.stringify(user?.preferred_hours || {}, null, 2)}
 
-// Get all user integrations
-export const getUserIntegrations = async (userId: string): Promise<UserIntegration[]>
+Email Context: ${
+    emailContext && emailContext.recentEmails
+      ? `You have access to recent emails:
+${emailContext.recentEmails
+  .map(
+    (email, index) =>
+      `${index + 1}. From: ${email.from}
+   Subject: ${email.subject}
+   Snippet: ${email.snippet}
+   Date: ${email.date}
+   Unread: ${email.unread ? "Yes" : "No"}`
+  )
+  .join("\n\n")}
 
-// Deactivate integration
-export const deactivateIntegration = async (userId: string, integrationType: string): Promise<boolean>
-```
+Total emails: ${emailContext.emailCount}
+Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
+      : "No recent email context available"
+  }
 
-### API Route Usage
+Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox.`;
 
-```typescript
-// Before: Manual query execution
-const sql = memoryQueries.getUserMemory(userId);
-const result = await executeQuery(sql, [userId]);
-
-// After: Direct smart query usage
-const memory = await memoryQueries.getUserMemory(userId);
-if (!memory) {
-  return ErrorResponses.notFound("Memory not found");
-}
+  return basePrompt;
+};
 ```
 
 ## 💾 Memory Management
@@ -341,6 +524,22 @@ interface UserMemory {
 }
 ```
 
+### Smart Memory Queries
+
+```typescript
+// Get user memory with context
+export const getUserMemory = async (userId: string): Promise<UserMemory | null>
+
+// Add memory entry
+export const addMemoryEntry = async (userId: string, key: string, entry: MemoryEntry): Promise<boolean>
+
+// Get relevant memory context
+export const getRelevantMemoryContext = async (userId: string, context: string): Promise<Record<string, MemoryEntry>>
+
+// Clear memory entries
+export const clearMemoryEntries = async (userId: string, keys: string[]): Promise<boolean>
+```
+
 ### Memory Features
 
 1. **Persistent Storage**: JSONB column in PostgreSQL
@@ -349,95 +548,79 @@ interface UserMemory {
 4. **Automatic Cleanup**: Memory management utilities
 5. **Performance Optimized**: Efficient queries with indexing
 
-### Memory Usage Examples
+## 🔧 Service Layer
+
+### Overview
+
+The service layer provides clean API abstraction for client components:
 
 ```typescript
-// Store user preference
-await addMemoryEntry(userId, "preferences", {
-  content: "Prefers morning meetings",
-  timestamp: new Date().toISOString(),
-  type: "preference",
+// Before: Direct API calls in components
+const response = await fetch("/api/ai/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(data),
 });
 
-// Retrieve relevant context
-const context = await getRelevantMemoryContext(userId, "meeting scheduling");
+// After: Service layer abstraction
+import { chatService } from "../services/ai";
+const response = await chatService.sendMessage(data);
 ```
 
-## 🎨 Frontend Integration
+### Service Structure
 
-### React Hook - `usePerinAI`
-
-```typescript
-export function usePerinAI(): UsePerinAI {
-  const { data: session } = useSession();
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const [chatError, setChatError] = useState<string | null>(null);
-
-  const sendMessage = useCallback(
-    async (request: PerinChatRequest): Promise<ReadableStream | null> => {
-      // Implementation with streaming support
-    },
-    [session]
-  );
-
-  const getMemory = useCallback(
-    async (keys?: string[]): Promise<PerinMemoryResponse | null> => {
-      // Memory retrieval
-    },
-    [session]
-  );
-
-  return {
-    sendMessage,
-    isChatLoading,
-    chatError,
-    getMemory,
-    // ... other methods
-  };
-}
+```
+src/app/services/
+├── internalApi.ts          # Base API request utility
+├── users.ts               # User-related API services
+├── integrations.ts        # Integration-related API services
+└── ai.ts                  # AI-related API services (future)
 ```
 
-### Chat Component - `PerinChat`
+### Base API Utility
 
 ```typescript
-export function PerinChat() {
-  const { sendMessage, isChatLoading, chatError } = usePerinAI();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [streamingMessage, setStreamingMessage] = useState("");
+const internalApiRequest = async (
+  path: string,
+  method: HTTPMethod,
+  body?: unknown
+) => {
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || "";
+  const url = `${baseUrl}/api/${path}`;
 
-  const handleSendMessage = async () => {
-    // Real-time streaming implementation
-    const stream = await sendMessage({ messages, specialization: undefined });
-    // Process streaming response
+  const options = {
+    method,
+    body: body ? JSON.stringify(body) : undefined,
+    headers: {
+      "Content-Type": "application/json",
+    },
   };
 
-  return (
-    <div className="chat-interface">{/* Chat UI with streaming support */}</div>
-  );
-}
-```
+  try {
+    const response = await fetch(url, options);
 
-### Dashboard Integration
+    if (!response.ok) {
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}`
+      );
+    }
 
-```typescript
-// src/app/dashboard/page.tsx
-export default function DashboardPage() {
-  return (
-    <div className="dashboard">
-      <div className="user-info">{/* User profile information */}</div>
-      <div className="chat-interface">
-        <PerinChat />
-      </div>
-    </div>
-  );
-}
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      throw new Error("API response is not JSON");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error in internalApiRequest:", error);
+    throw error;
+  }
+};
 ```
 
 ## 🔒 Type Safety
 
 ### Type Organization
-
-The AI integration uses a **comprehensive type system** organized in `src/types/`:
 
 ```typescript
 // AI-specific types
@@ -448,10 +631,7 @@ import type {
   MemoryEntry,
   UserMemory,
   IntentClassification,
-  GmailConnectResponse,
-  GmailCallbackRequest,
-  GmailCallbackResponse,
-  GmailEmailsResponse,
+  LangGraphChatState,
 } from "../types/ai";
 
 // NextAuth integration
@@ -468,23 +648,6 @@ import type { User as DatabaseUser } from "../types/database";
 3. **Database Safety**: Separate database and NextAuth User types
 4. **API Contracts**: Type-safe request/response handling
 5. **Error Handling**: Typed error responses
-
-### Type Usage Examples
-
-```typescript
-// Type-safe chat request
-const request: PerinChatRequest = {
-  messages: [{ id: "1", role: "user", content: "Hello Perin!" }],
-  tone: "friendly",
-  perinName: "Perin",
-};
-
-// Type-safe memory operations
-const memory: UserMemory = await getUserMemory(userId);
-
-// Type-safe session handling
-const userId = getUserIdFromSession(session);
-```
 
 ## ⚙️ Environment Configuration
 
@@ -505,6 +668,9 @@ NEXTAUTH_URL=http://localhost:3000
 GOOGLE_CLIENT_ID=your-google-client-id
 GOOGLE_CLIENT_SECRET=your-google-client-secret
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/integrations/gmail/callback
+
+# App Configuration
+NEXT_PUBLIC_API_URL=http://localhost:3000
 ```
 
 ### Production Configuration
@@ -524,19 +690,9 @@ NEXTAUTH_URL=https://your-app.vercel.app
 GOOGLE_CLIENT_ID=production-google-client-id
 GOOGLE_CLIENT_SECRET=production-google-client-secret
 GOOGLE_REDIRECT_URI=https://your-app.vercel.app/api/integrations/gmail/callback
-```
 
-### Environment Validation
-
-```typescript
-// Validate OpenAI configuration
-export const validateOpenAIConfig = (): boolean => {
-  if (!process.env.OPENAI_API_KEY) {
-    console.error("OPENAI_API_KEY is not configured");
-    return false;
-  }
-  return true;
-};
+# App Configuration
+NEXT_PUBLIC_API_URL=https://your-app.vercel.app
 ```
 
 ## 💡 Usage Examples
@@ -567,6 +723,36 @@ function ChatExample() {
 }
 ```
 
+### Gmail Integration
+
+```typescript
+import { connectGmailService } from "../services/integrations";
+
+// Connect Gmail
+const connectGmail = async () => {
+  try {
+    const { authUrl } = await connectGmailService();
+    if (authUrl) {
+      window.location.href = authUrl;
+    }
+  } catch (error) {
+    console.error("Error connecting Gmail:", error);
+  }
+};
+
+// Chat with email context
+const chatWithEmails = async () => {
+  const request = {
+    messages: [
+      { id: "1", role: "user", content: "Summarize my recent emails" },
+    ],
+  };
+
+  const stream = await sendMessage(request);
+  // Perin will automatically load and use email context
+};
+```
+
 ### Memory Management
 
 ```typescript
@@ -590,88 +776,6 @@ function MemoryExample() {
   return <button onClick={handleMemoryOperations}>Manage Memory</button>;
 }
 ```
-
-### Intent Classification
-
-```typescript
-import { usePerinAI } from "../hooks/usePerinAI";
-
-function ClassificationExample() {
-  const { classifyIntent } = usePerinAI();
-
-  const handleClassification = async () => {
-    const stream = await classifyIntent("I need to schedule a meeting");
-    // Process classification result
-  };
-
-  return <button onClick={handleClassification}>Classify Intent</button>;
-}
-```
-
-### Gmail Integration
-
-```typescript
-import { connectGmailService } from "../services/integrations";
-
-// Connect Gmail
-const connectGmail = async () => {
-  try {
-    const { authUrl } = await connectGmailService();
-    if (authUrl) {
-      window.location.href = authUrl;
-    }
-  } catch (error) {
-    console.error("Error connecting Gmail:", error);
-  }
-};
-
-// Fetch recent emails (future service)
-const fetchEmails = async () => {
-  try {
-    const { emails } = await fetchGmailEmailsService({ limit: 5 });
-    return emails;
-  } catch (error) {
-    console.error("Error fetching emails:", error);
-    return [];
-  }
-};
-
-// Handle OAuth callback (future service)
-const handleCallback = async (code: string) => {
-  try {
-    const { integration } = await handleGmailCallbackService({ code });
-    return integration;
-  } catch (error) {
-    console.error("Error handling callback:", error);
-  }
-};
-```
-
-## 🛡️ Security & Best Practices
-
-### Security Features
-
-1. **Authentication Required**: All AI endpoints require valid session
-2. **Input Validation**: Comprehensive request validation
-3. **Error Handling**: Secure error responses without data leakage
-4. **Rate Limiting**: Built-in protection against abuse
-5. **Secure Storage**: Encrypted memory storage
-
-### Best Practices
-
-1. **Type Safety**: Full TypeScript coverage
-2. **Smart Queries**: Direct database execution with error handling
-3. **Streaming Responses**: Real-time user experience
-4. **Memory Management**: Efficient persistent storage
-5. **Error Recovery**: Graceful error handling and recovery
-
-### Performance Optimizations
-
-1. **Connection Pooling**: Efficient database connections
-2. **Streaming**: Real-time response delivery
-3. **Memory Caching**: Intelligent memory retrieval
-4. **Type Optimization**: Efficient type imports
-5. **Error Boundaries**: React error boundary integration
 
 ## 🐛 Troubleshooting
 
@@ -718,18 +822,14 @@ while (true) {
 }
 ```
 
-#### 4. Memory Retrieval Issues
+#### 4. Gmail Integration Issues
 
-**Cause**: Database connection or query problems
+**Cause**: OAuth2 configuration problems
 **Solution**:
 
-```typescript
-// Check database connection
-const memory = await getUserMemory(userId);
-if (!memory) {
-  // Handle missing memory
-}
-```
+- Check Google Cloud Console configuration
+- Verify environment variables
+- Ensure redirect URIs match exactly
 
 ### Debug Mode
 
@@ -762,72 +862,18 @@ console.log("AI Chat Interaction:", {
      -H "Authorization: Bearer YOUR_SESSION_TOKEN"
    ```
 
-3. **Test intent classification**:
+3. **Test Gmail integration**:
    ```bash
-   curl -X POST http://localhost:3000/api/ai/classify \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer YOUR_SESSION_TOKEN" \
-     -d '{"message":"Schedule a meeting"}'
+   curl -X POST http://localhost:3000/api/integrations/gmail/connect \
+     -H "Authorization: Bearer YOUR_SESSION_TOKEN"
    ```
-
-## 📁 File Structure
-
-```
-src/
-├── app/
-│   ├── api/
-│   │   ├── ai/
-│   │   │   ├── chat/route.ts           # Main chat endpoint
-│   │   │   ├── memory/route.ts         # Memory management
-│   │   │   └── classify/route.ts       # Intent classification
-│   │   └── integrations/
-│   │       └── gmail/
-│   │           ├── connect/route.ts    # Gmail OAuth connection
-│   │           ├── callback/route.ts   # OAuth callback handler
-│   │           └── emails/route.ts     # Email fetching endpoint
-│   ├── services/                       # Service layer
-│   │   ├── internalApi.ts              # Base API utility
-│   │   ├── users.ts                    # User services
-│   │   ├── integrations.ts             # Integration services
-│   │   └── ai.ts                       # AI services (future)
-│   └── components/
-│       └── PerinChat.tsx               # Chat UI component
-├── hooks/
-│   └── usePerinAI.ts                   # AI integration hook
-├── lib/
-│   ├── ai/
-│   │   ├── openai.ts                   # OpenAI integration
-│   │   ├── memory.ts                   # Memory smart queries
-│   │   ├── langgraph/                  # LangGraph workflow
-│   │   │   ├── index.ts                # Main entry point
-│   │   │   ├── state/chat-state.ts     # State management
-│   │   │   ├── nodes/
-│   │   │   │   ├── memory-node.ts      # Memory loading node
-│   │   │   │   ├── gmail-node.ts       # Gmail integration node
-│   │   │   │   └── openai-node.ts      # OpenAI interaction node
-│   │   │   └── graphs/base-chat.ts     # Main workflow graph
-│   │   └── prompts/
-│   │       └── system.ts               # Dynamic prompts
-│   ├── integrations/
-│   │   └── gmail/
-│   │       ├── auth.ts                 # Gmail OAuth authentication
-│   │       └── client.ts               # Gmail API client
-│   └── queries/
-│       ├── users.ts                    # User smart queries
-│       └── integrations.ts             # Integration smart queries
-├── types/
-│   ├── ai.ts                           # AI type definitions
-│   ├── database.ts                     # Database types
-│   ├── api.ts                          # API types
-│   └── next-auth.d.ts                  # NextAuth extensions
-└── middleware.ts                       # Route protection
-```
 
 ## 📚 Additional Resources
 
 - [OpenAI API Documentation](https://platform.openai.com/docs)
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 - [NextAuth.js Documentation](https://next-auth.js.org/)
-- [Vercel AI SDK](https://sdk.vercel.ai/)
+- [Gmail API Documentation](https://developers.google.com/gmail/api)
 - [PostgreSQL JSONB](https://www.postgresql.org/docs/current/datatype-json.html)
 
 ## 🔄 Version History
@@ -837,9 +883,10 @@ src/
 - **v1.2.0**: Implemented intent classification
 - **v1.3.0**: Added comprehensive type safety
 - **v1.4.0**: Enhanced streaming and error handling
-- **v1.5.0**: Complete NextAuth integration and documentation
+- **v1.5.0**: Complete NextAuth integration
 - **v1.6.0**: Added Gmail integration with LangGraph workflow
-- **v1.7.0**: Implemented service layer architecture for clean API separation
+- **v1.7.0**: Implemented service layer architecture
+- **v1.8.0**: Enhanced documentation and examples
 
 ---
 

@@ -1,5 +1,6 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
+import { gmailNode } from "./nodes/gmail-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import type { ChatMessage, PerinChatResponse } from "../../../types";
 
@@ -44,9 +45,13 @@ export const executePerinChatWithLangGraph = async (
           const memoryResult = await memoryNode(initialState);
           const stateWithMemory = { ...initialState, ...memoryResult };
 
-          // Step 2: Call OpenAI with real-time streaming
+          // Step 2: Load Gmail context (if relevant)
+          const gmailResult = await gmailNode(stateWithMemory);
+          const stateWithGmail = { ...stateWithMemory, ...gmailResult };
+
+          // Step 3: Call OpenAI with real-time streaming
           const openaiClient = initializeOpenAI();
-          const systemPrompt = buildSystemPrompt(stateWithMemory);
+          const systemPrompt = buildSystemPrompt(stateWithGmail);
 
           // Prepare messages with system prompt
           const messagesWithSystem: ChatMessage[] = [
