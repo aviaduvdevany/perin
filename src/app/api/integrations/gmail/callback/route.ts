@@ -6,6 +6,62 @@ import { exchangeCodeForTokens } from "../../../../../lib/integrations/gmail/aut
 import * as integrationQueries from "../../../../../lib/queries/integrations";
 import { ErrorResponses } from "../../../../../lib/utils/error-handlers";
 
+export async function GET(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    const userId = getUserIdFromSession(session);
+    if (!userId) {
+      return ErrorResponses.unauthorized("Authentication required");
+    }
+
+    // Get authorization code from query parameters
+    const { searchParams } = new URL(request.url);
+    const code = searchParams.get("code");
+
+    if (!code) {
+      return ErrorResponses.badRequest("Authorization code is required");
+    }
+
+    // Exchange code for tokens
+    const tokens = await exchangeCodeForTokens(code);
+
+    if (!tokens.access_token) {
+      return ErrorResponses.internalServerError(
+        "Failed to obtain access token"
+      );
+    }
+
+    // Calculate expiration date
+    const expiresAt = tokens.expiry_date
+      ? new Date(tokens.expiry_date)
+      : new Date(Date.now() + 3600 * 1000); // 1 hour fallback
+
+    // Store integration in database
+    const integration = await integrationQueries.createUserIntegration(
+      userId,
+      "gmail",
+      tokens.access_token,
+      tokens.refresh_token || null,
+      expiresAt,
+      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
+      {
+        scope: tokens.scope,
+        token_type: tokens.token_type,
+      }
+    );
+
+    // Redirect to success page or dashboard
+    return Response.redirect(
+      new URL("/dashboard?gmail=connected", request.url)
+    );
+  } catch (error) {
+    console.error("Error in Gmail callback:", error);
+    // Redirect to error page
+    return Response.redirect(new URL("/dashboard?gmail=error", request.url));
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
@@ -27,22 +83,24 @@ export async function POST(request: NextRequest) {
     const tokens = await exchangeCodeForTokens(code);
 
     if (!tokens.access_token) {
-      return ErrorResponses.internalServerError("Failed to obtain access token");
+      return ErrorResponses.internalServerError(
+        "Failed to obtain access token"
+      );
     }
 
     // Calculate expiration date
-    const expiresAt = tokens.expiry_date 
+    const expiresAt = tokens.expiry_date
       ? new Date(tokens.expiry_date)
       : new Date(Date.now() + 3600 * 1000); // 1 hour fallback
 
     // Store integration in database
     const integration = await integrationQueries.createUserIntegration(
       userId,
-      'gmail',
+      "gmail",
       tokens.access_token,
       tokens.refresh_token || null,
       expiresAt,
-      ['https://www.googleapis.com/auth/gmail.modify'], // Full access
+      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
       {
         scope: tokens.scope,
         token_type: tokens.token_type,
@@ -56,7 +114,7 @@ export async function POST(request: NextRequest) {
         type: integration.integration_type,
         connected_at: integration.connected_at,
         scopes: integration.scopes,
-      }
+      },
     });
   } catch (error) {
     console.error("Error in Gmail callback:", error);

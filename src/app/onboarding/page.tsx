@@ -123,10 +123,16 @@ export default function OnboardingPage() {
   const connectGmail = async () => {
     setGmailConnecting(true);
     try {
-      const { authUrl } = await connectGmailService();
+      const response = await connectGmailService();
+      console.log("Gmail connect response:", response);
+
+      const { authUrl } = response;
 
       if (authUrl) {
+        console.log("Redirecting to:", authUrl);
         window.location.href = authUrl;
+      } else {
+        console.error("No authUrl in response:", response);
       }
     } catch (error) {
       console.error("Error connecting Gmail:", error);
@@ -139,12 +145,12 @@ export default function OnboardingPage() {
     try {
       // Update user profile with onboarding data
       const response = await updateUserProfileService({
-          name: onboardingData.name,
-          perin_name: onboardingData.perin_name,
-          tone: onboardingData.tone,
-          timezone: onboardingData.timezone,
-          preferred_hours: onboardingData.preferred_hours,
-          avatar_url: onboardingData.avatar_url,
+        name: onboardingData.name,
+        perin_name: onboardingData.perin_name,
+        tone: onboardingData.tone,
+        timezone: onboardingData.timezone,
+        preferred_hours: onboardingData.preferred_hours,
+        avatar_url: onboardingData.avatar_url,
       });
 
       if (response) {

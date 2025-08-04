@@ -7,7 +7,7 @@ export const connectGmailService = async () => {
       "integrations/gmail/connect",
       HTTPMethod.POST
     );
-    return response?.authUrl;
+    return response;
   } catch (error) {
     console.error("Error connecting Gmail:", error);
     throw error;
