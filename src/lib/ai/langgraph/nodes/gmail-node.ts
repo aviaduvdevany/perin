@@ -1,6 +1,6 @@
-import type { LangGraphChatState } from '../../../../types';
-import { fetchRecentEmails } from '../../../../lib/integrations/gmail/client';
-import * as integrationQueries from '../../../../lib/queries/integrations';
+import type { LangGraphChatState } from '@/types/ai';
+import { fetchRecentEmails } from '@/lib/integrations/gmail/client';
+import * as integrationQueries from '@/lib/queries/integrations';
 
 export const gmailNode = async (
   state: LangGraphChatState

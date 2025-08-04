@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { SessionProvider } from "../components/providers/SessionProvider";
-import { Navbar } from "../components/ui/Navbar";
+import { SessionProvider } from "@/components/providers/SessionProvider";
+import { Navbar } from "@/components/ui/Navbar";
 
 export const metadata: Metadata = {
   title: "Perin - Your AI-powered productivity assistant",

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { PerinChatRequest, PerinChatResponse } from "../../types";
+import type { PerinChatRequest, PerinChatResponse } from "@/types/ai";
 
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;

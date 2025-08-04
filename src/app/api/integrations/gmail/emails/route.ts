@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../../lib/auth";
-import { getUserIdFromSession } from "../../../../../lib/utils/session-helpers";
-import { fetchRecentEmails } from "../../../../../lib/integrations/gmail/client";
-import { ErrorResponses } from "../../../../../lib/utils/error-handlers";
+import { authOptions } from "@/lib/auth";
+import { getUserIdFromSession } from "@/lib/utils/session-helpers";
+import { fetchRecentEmails } from "@/lib/integrations/gmail/client";
+import { ErrorResponses } from "@/lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
   try {

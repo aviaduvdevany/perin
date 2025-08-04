@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   withErrorHandler,
   ErrorResponses,
-} from "../../../../lib/utils/error-handlers";
-import * as userQueries from "../../../../lib/queries/users";
+} from "@/lib/utils/error-handlers";
+import * as userQueries from "@/lib/queries/users";
 
 // GET /api/users/[id] - Get a specific user
 export const GET = withErrorHandler(

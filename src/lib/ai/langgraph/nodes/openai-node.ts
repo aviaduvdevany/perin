@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { LangGraphChatState } from "../../../../types";
-import type { ChatMessage } from "../../../../types";
+import type { LangGraphChatState } from "@/types/ai";
+import type { ChatMessage } from "@/types/ai";
 
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;
@@ -20,7 +20,14 @@ export const initializeOpenAI = (): OpenAI => {
  * Build dynamic system prompt based on user preferences and context
  */
 export const buildSystemPrompt = (state: LangGraphChatState): string => {
-  const { tone, perinName, memoryContext, user, emailContext } = state;
+  const {
+    tone,
+    perinName,
+    memoryContext,
+    user,
+    emailContext,
+    calendarContext,
+  } = state;
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
@@ -30,6 +37,7 @@ Core Capabilities:
 - Emotionally intelligent, human-like responses
 - Multi-agent coordination when needed
 - Email management and analysis (when Gmail is connected)
+- Calendar management and scheduling (when Calendar is connected)
 
 Your Tone: ${tone}
 Your Name: ${perinName}
@@ -42,6 +50,7 @@ Key Principles:
 5. Help with scheduling, coordination, and delegation tasks
 6. Maintain persistent identity across conversations
 7. When email context is available, use it to provide informed responses about emails
+8. When calendar context is available, use it to help with scheduling and provide insights about upcoming events
 
 Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
@@ -68,7 +77,31 @@ Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
       : "No recent email context available"
   }
 
-Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox.`;
+Calendar Context: ${
+    calendarContext && calendarContext.recentEvents
+      ? `You have access to recent calendar events:
+${calendarContext.recentEvents
+  .map(
+    (event, index) =>
+      `${index + 1}. ${event.summary}
+   Description: ${event.description}
+   Start: ${event.start}
+   End: ${event.end}
+   Location: ${event.location}
+   All Day: ${event.isAllDay ? "Yes" : "No"}
+   Attendees: ${event.attendees}`
+  )
+  .join("\n\n")}
+
+Total events: ${calendarContext.eventCount}
+Next event: ${
+          calendarContext.nextEvent ? calendarContext.nextEvent.summary : "None"
+        }
+Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}`
+      : "No recent calendar context available"
+  }
+
+Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.`;
 
   return basePrompt;
 };

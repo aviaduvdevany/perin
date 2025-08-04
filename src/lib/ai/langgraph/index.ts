@@ -1,8 +1,9 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
 import { gmailNode } from "./nodes/gmail-node";
+import { calendarNode } from "./nodes/calendar-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
-import type { ChatMessage, PerinChatResponse } from "../../../types";
+import type { ChatMessage, PerinChatResponse } from "@/types/ai";
 
 /**
  * Main LangGraph chat execution function
@@ -49,9 +50,13 @@ export const executePerinChatWithLangGraph = async (
           const gmailResult = await gmailNode(stateWithMemory);
           const stateWithGmail = { ...stateWithMemory, ...gmailResult };
 
-          // Step 3: Call OpenAI with real-time streaming
+          // Step 3: Load Calendar context (if relevant)
+          const calendarResult = await calendarNode(stateWithGmail);
+          const stateWithCalendar = { ...stateWithGmail, ...calendarResult };
+
+          // Step 4: Call OpenAI with real-time streaming
           const openaiClient = initializeOpenAI();
-          const systemPrompt = buildSystemPrompt(stateWithGmail);
+          const systemPrompt = buildSystemPrompt(stateWithCalendar);
 
           // Prepare messages with system prompt
           const messagesWithSystem: ChatMessage[] = [

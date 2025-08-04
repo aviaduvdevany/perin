@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { PerinChat } from "../../components/PerinChat";
+import { PerinChat } from "@/components/PerinChat";
 
 export default function DemoPage() {
   return (

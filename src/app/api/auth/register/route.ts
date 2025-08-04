@@ -3,12 +3,12 @@ import {
   withErrorHandler,
   ErrorResponses,
   validateRequiredFields,
-} from "../../../../lib/utils/error-handlers";
+} from "@/lib/utils/error-handlers";
 import {
   createUserWithPassword,
   isValidEmail,
   validatePassword,
-} from "../../../../lib/utils/auth-helpers";
+} from "@/lib/utils/auth-helpers";
 
 // POST /api/auth/register - Register a new user
 export const POST = withErrorHandler(async (request: NextRequest) => {

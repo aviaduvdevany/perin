@@ -1,6 +1,6 @@
 import { hash, compare } from "bcryptjs";
-import * as userQueries from "../queries/users";
-import type { User } from "../db-types";
+import * as userQueries from "@/lib/queries/users";
+import type { User } from "@/lib/db-types";
 
 // Authentication helper utilities
 

@@ -2,9 +2,9 @@ import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
-import { exchangeCodeForTokens } from "@/lib/integrations/gmail/auth";
+import { exchangeCodeForCalendarTokens } from "@/lib/integrations/calendar/auth";
 import * as integrationQueries from "@/lib/queries/integrations";
-import { ErrorResponses } from "@/lib/utils/error-handlers";
+import { ErrorResponses } from "../../../../../lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange code for tokens
-    const tokens = await exchangeCodeForTokens(code);
+    const tokens = await exchangeCodeForCalendarTokens(code);
 
     if (!tokens.access_token) {
       return ErrorResponses.internalServerError(
@@ -40,11 +40,14 @@ export async function GET(request: NextRequest) {
     // Store integration in database
     const integration = await integrationQueries.createUserIntegration(
       userId,
-      "gmail",
+      "calendar",
       tokens.access_token,
       tokens.refresh_token || null,
       expiresAt,
-      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
+      [
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/calendar.events",
+      ],
       {
         scope: tokens.scope,
         token_type: tokens.token_type,
@@ -53,12 +56,12 @@ export async function GET(request: NextRequest) {
 
     // Redirect to success page or dashboard
     return Response.redirect(
-      new URL("/dashboard?gmail=connected", request.url)
+      new URL("/dashboard?calendar=connected", request.url)
     );
   } catch (error) {
-    console.error("Error in Gmail callback:", error);
+    console.error("Error in calendar callback:", error);
     // Redirect to error page
-    return Response.redirect(new URL("/dashboard?gmail=error", request.url));
+    return Response.redirect(new URL("/dashboard?calendar=error", request.url));
   }
 }
 
@@ -80,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Exchange code for tokens
-    const tokens = await exchangeCodeForTokens(code);
+    const tokens = await exchangeCodeForCalendarTokens(code);
 
     if (!tokens.access_token) {
       return ErrorResponses.internalServerError(
@@ -96,11 +99,14 @@ export async function POST(request: NextRequest) {
     // Store integration in database
     const integration = await integrationQueries.createUserIntegration(
       userId,
-      "gmail",
+      "calendar",
       tokens.access_token,
       tokens.refresh_token || null,
       expiresAt,
-      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
+      [
+        "https://www.googleapis.com/auth/calendar.readonly",
+        "https://www.googleapis.com/auth/calendar.events",
+      ],
       {
         scope: tokens.scope,
         token_type: tokens.token_type,
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
     );
 
     return Response.json({
-      message: "Gmail connected successfully",
+      message: "Calendar connected successfully",
       integration: {
         id: integration.id,
         type: integration.integration_type,
@@ -117,7 +123,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error in Gmail callback:", error);
-    return ErrorResponses.internalServerError("Failed to connect Gmail");
+    console.error("Error in calendar callback:", error);
+    return ErrorResponses.internalServerError("Failed to connect calendar");
   }
 }

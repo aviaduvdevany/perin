@@ -1,7 +1,8 @@
 import { memoryNode } from "../nodes/memory-node";
 import { openaiNode } from "../nodes/openai-node";
-import type { LangGraphChatState } from "../../../../types";
+import type { LangGraphChatState } from "@/types/ai";
 import { gmailNode } from "../nodes/gmail-node";
+import { calendarNode } from "../nodes/calendar-node";
 
 /**
  * Simplified chat graph execution
@@ -19,9 +20,13 @@ export const executeChatGraph = async (
     const gmailResult = await gmailNode(stateWithMemory);
     const stateWithGmail = { ...stateWithMemory, ...gmailResult };
 
-    // Step 3: Call OpenAI with enhanced context
-    const openaiResult = await openaiNode(stateWithGmail);
-    const finalState = { ...stateWithGmail, ...openaiResult };
+    // Step 3: Load Calendar context (if relevant)
+    const calendarResult = await calendarNode(stateWithGmail);
+    const stateWithCalendar = { ...stateWithGmail, ...calendarResult };
+
+    // Step 4: Call OpenAI with enhanced context
+    const openaiResult = await openaiNode(stateWithCalendar);
+    const finalState = { ...stateWithCalendar, ...openaiResult };
 
     return finalState;
   } catch (error) {

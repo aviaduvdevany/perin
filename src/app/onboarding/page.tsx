@@ -2,11 +2,14 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import Stepper, { Step } from "../../components/ui/Stepper";
+import Stepper, { Step } from "@/components/ui/Stepper";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { connectGmailService } from "../services/integrations";
-import { updateUserProfileService } from "../services/users";
+import {
+  connectGmailService,
+  connectCalendarService,
+} from "@/app/services/integrations";
+import { updateUserProfileService } from "@/app/services/users";
 
 interface OnboardingData {
   name: string;
@@ -20,6 +23,7 @@ interface OnboardingData {
   };
   avatar_url: string;
   gmail_connected: boolean;
+  calendar_connected: boolean;
 }
 
 const toneOptions = [
@@ -102,6 +106,7 @@ export default function OnboardingPage() {
     },
     avatar_url: "/avatars/avatar-1.png",
     gmail_connected: false,
+    calendar_connected: false,
   });
 
   const [gmailConnecting, setGmailConnecting] = useState(false);
@@ -138,6 +143,29 @@ export default function OnboardingPage() {
       console.error("Error connecting Gmail:", error);
     } finally {
       setGmailConnecting(false);
+    }
+  };
+
+  const [calendarConnecting, setCalendarConnecting] = useState(false);
+
+  const connectCalendar = async () => {
+    setCalendarConnecting(true);
+    try {
+      const response = await connectCalendarService();
+      console.log("Calendar connect response:", response);
+
+      const { authUrl } = response;
+
+      if (authUrl) {
+        console.log("Redirecting to:", authUrl);
+        window.location.href = authUrl;
+      } else {
+        console.error("No authUrl in response:", response);
+      }
+    } catch (error) {
+      console.error("Error connecting Calendar:", error);
+    } finally {
+      setCalendarConnecting(false);
     }
   };
 
@@ -439,7 +467,105 @@ export default function OnboardingPage() {
             </motion.div>
           </Step>
 
-          {/* Step 5: Choose Avatar */}
+          {/* Step 5: Connect Calendar */}
+          <Step>
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center"
+            >
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-white mb-2">
+                  Connect Your Calendar
+                </h2>
+                <p className="text-gray-400">
+                  Let Perin help you manage your schedule and appointments
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-[#1D2239] rounded-2xl p-6 border border-gray-600">
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-4">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-white">
+                        Google Calendar
+                      </h3>
+                      <p className="text-sm text-gray-400">
+                        Read events and create appointments
+                      </p>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    onClick={connectCalendar}
+                    disabled={calendarConnecting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-6 rounded-xl transition-all duration-300 font-medium"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {calendarConnecting ? (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Connecting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Connect Calendar
+                      </div>
+                    )}
+                  </motion.button>
+
+                  <p className="text-xs text-gray-500 mt-4">
+                    You can skip this step and connect later from your dashboard
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          </Step>
+
+          {/* Step 6: Choose Avatar */}
           <Step>
             <motion.div
               initial={{ opacity: 0, x: 20 }}
@@ -484,7 +610,7 @@ export default function OnboardingPage() {
             </motion.div>
           </Step>
 
-          {/* Step 6: Final Setup */}
+          {/* Step 7: Final Setup */}
           <Step>
             <motion.div
               initial={{ opacity: 0, x: 20 }}

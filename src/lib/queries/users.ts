@@ -1,6 +1,6 @@
-import { USERS_TABLE } from "../tables";
-import type { User } from "../db-types";
-import { query } from "../db";
+import { USERS_TABLE } from "@/lib/tables";
+import type { User } from "@/lib/db-types";
+import { query } from "@/lib/db";
 
 // User-related SQL queries
 // All queries use parameterized SQL for safety and execute directly

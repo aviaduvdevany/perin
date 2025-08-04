@@ -1,4 +1,4 @@
-import { query } from "../db";
+import { query } from "@/lib/db";
 
 const INTEGRATIONS_TABLE = 'user_integrations';
 

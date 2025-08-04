@@ -109,6 +109,30 @@ export interface LangGraphChatState {
     emailCount?: number;
     hasUnread?: boolean;
   };
+  calendarContext: {
+    recentEvents?: Array<{
+      id: string;
+      summary: string;
+      description: string;
+      start: string;
+      end: string;
+      location: string;
+      isAllDay: boolean;
+      attendees: number;
+    }>;
+    eventCount?: number;
+    availability?: Array<{
+      start: string;
+      end: string;
+    }>;
+    nextEvent?: {
+      id: string;
+      summary: string;
+      start: string;
+      end: string;
+    } | null;
+    hasUpcomingEvents?: boolean;
+  };
 }
 
 // Gmail integration API types

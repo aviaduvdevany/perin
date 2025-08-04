@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { COPY } from "../../constants/copy";
+import { COPY } from "@/constants/copy";
 
 // Error handling utilities for API routes
 

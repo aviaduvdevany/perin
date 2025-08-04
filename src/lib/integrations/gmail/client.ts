@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { createGmailOAuth2Client, refreshGmailToken } from './auth';
-import * as integrationQueries from '../../../lib/queries/integrations';
+import * as integrationQueries from '@/lib/queries/integrations';
 
 // Create authenticated Gmail client
 export const createGmailClient = async (userId: string) => {

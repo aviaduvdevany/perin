@@ -1,4 +1,4 @@
-import type { ChatMessage, LangGraphChatState } from "../../../../types";
+import type { ChatMessage, LangGraphChatState } from "@/types/ai";
 
 // Re-export the centralized type
 export type { LangGraphChatState };
@@ -25,4 +25,5 @@ export const createInitialChatState = (
   streamChunks: [],
   currentStep: "initialized",
   emailContext: {},
+  calendarContext: {},
 });

@@ -3,8 +3,8 @@ import {
   withErrorHandler,
   ErrorResponses,
   validateRequiredFields,
-} from "../../../lib/utils/error-handlers";
-import * as userQueries from "../../../lib/queries/users";
+} from "@/lib/utils/error-handlers";
+import * as userQueries from "@/lib/queries/users";
 
 // GET /api/users - Get all users with pagination
 export const GET = withErrorHandler(async (request: NextRequest) => {

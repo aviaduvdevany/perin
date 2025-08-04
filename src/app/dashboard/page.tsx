@@ -1,10 +1,10 @@
 "use client";
 
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { PerinChat } from "../../components/PerinChat";
+import { PerinChat } from "@/components/PerinChat";
 
 export default function DashboardPage() {
   const { session, isAuthenticated, isLoading, logout } = useAuth();

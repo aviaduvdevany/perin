@@ -1,4 +1,4 @@
-import type { User } from "../../db-types";
+import type { User } from "@/lib/db-types";
 
 export interface SystemPromptContext {
   user: User;

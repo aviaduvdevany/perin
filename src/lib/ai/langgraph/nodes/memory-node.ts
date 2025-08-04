@@ -1,5 +1,5 @@
-import { getRelevantMemoryContext } from "../../memory";
-import type { LangGraphChatState } from "../../../../types";
+import { getRelevantMemoryContext } from "@/lib/ai/memory";
+import type { LangGraphChatState } from "@/types/ai";
 
 /**
  * Memory node for LangGraph workflow

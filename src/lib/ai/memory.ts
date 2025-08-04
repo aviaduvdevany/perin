@@ -1,7 +1,7 @@
-import { query } from "../db";
-import { USERS_TABLE } from "../tables";
-import type { MemoryEntry, UserMemory } from "../../types";
-import type { User as DatabaseUser } from "../../types/database";
+import { query } from "@/lib/db";
+import { USERS_TABLE } from "@/lib/tables";
+import type { MemoryEntry, UserMemory } from "@/types/ai";
+import type { User as DatabaseUser } from "@/types/database";
 
 /**
  * Smart query function to get user memory from database
