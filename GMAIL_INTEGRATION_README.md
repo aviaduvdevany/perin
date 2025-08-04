@@ -1,30 +1,30 @@
 # 📧 Gmail Integration Documentation
 
-This document provides a comprehensive overview of the Gmail integration system implemented in the Perin project, featuring OAuth2 authentication, email context loading, and seamless integration with the LangGraph workflow.
+> Comprehensive guide to Gmail integration with OAuth2 authentication, smart email context loading, and seamless integration with the LangGraph workflow.
 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [API Endpoints](#api-endpoints)
 - [OAuth2 Flow](#oauth2-flow)
+- [API Endpoints](#api-endpoints)
 - [Database Schema](#database-schema)
 - [LangGraph Integration](#langgraph-integration)
-- [Type Safety](#type-safety)
+- [Smart Context Loading](#smart-context-loading)
+- [Service Layer](#service-layer)
 - [Environment Configuration](#environment-configuration)
 - [Usage Examples](#usage-examples)
-- [Security & Best Practices](#security--best-practices)
 - [Troubleshooting](#troubleshooting)
 
 ## 🎯 Overview
 
 The Gmail integration enables Perin to access and analyze user emails for context-aware conversations. It features:
 
-- **OAuth2 Authentication**: Secure Gmail API access
+- **OAuth2 Authentication**: Secure Gmail API access with automatic token refresh
 - **Smart Context Loading**: Only loads emails when conversationally relevant
-- **LangGraph Integration**: Seamless workflow integration
-- **Token Management**: Automatic refresh and storage
-- **Type Safety**: Full TypeScript coverage
+- **LangGraph Integration**: Seamless workflow integration with email context
+- **Token Management**: Automatic refresh and secure storage in PostgreSQL
+- **Type Safety**: Full TypeScript coverage with proper error handling
 
 ## 🏗️ Architecture
 
@@ -35,6 +35,7 @@ The Gmail integration enables Perin to access and analyze user emails for contex
 │                    Frontend (React/Next.js)                │
 ├─────────────────────────────────────────────────────────────┤
 │  Gmail Connect UI, Email Context Display                   │
+│  Service Layer: connectGmailService()                      │
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -45,6 +46,7 @@ The Gmail integration enables Perin to access and analyze user emails for contex
 │                  Business Logic Layer                       │
 ├─────────────────────────────────────────────────────────────┤
 │  Gmail OAuth2 Client, Email Parsing, Token Management      │
+│  LangGraph gmailNode for context loading                   │
 ├─────────────────────────────────────────────────────────────┤
 │                  Database Layer (PostgreSQL)               │
 ├─────────────────────────────────────────────────────────────┤
@@ -59,7 +61,7 @@ src/
 ├── app/
 │   ├── api/integrations/gmail/
 │   │   ├── connect/route.ts      # OAuth initiation
-│   │   ├── callback/route.ts     # OAuth callback handler
+│   │   ├── callback/route.ts     # OAuth callback handler (GET/POST)
 │   │   └── emails/route.ts       # Email fetching
 │   └── services/
 │       ├── internalApi.ts        # Base API utility
@@ -71,6 +73,70 @@ src/
 │   └── integrations.ts          # Database operations
 └── lib/ai/langgraph/nodes/
     └── gmail-node.ts            # LangGraph integration
+```
+
+## 🔐 OAuth2 Flow
+
+### 1. Connection Initiation
+
+```typescript
+// Frontend initiates connection via service layer
+import { connectGmailService } from "../services/integrations";
+
+const connectGmail = async () => {
+  try {
+    const response = await connectGmailService();
+    const { authUrl } = response;
+
+    if (authUrl) {
+      window.location.href = authUrl;
+    }
+  } catch (error) {
+    console.error("Error connecting Gmail:", error);
+  }
+};
+```
+
+### 2. Google OAuth2 Authorization
+
+User is redirected to Google's OAuth2 consent screen where they:
+
+- Grant access to Gmail
+- Approve requested scopes:
+  - `https://www.googleapis.com/auth/gmail.modify` - Read, compose, and send emails
+  - `https://www.googleapis.com/auth/gmail.settings.basic` - Manage email settings
+- Receive authorization code
+
+### 3. Token Exchange
+
+```typescript
+// Backend exchanges code for tokens
+const tokens = await exchangeCodeForTokens(code);
+
+// Store integration in database
+const integration = await createUserIntegration(
+  userId,
+  "gmail",
+  tokens.access_token,
+  tokens.refresh_token,
+  expiresAt,
+  scopes,
+  metadata
+);
+```
+
+### 4. Token Refresh
+
+```typescript
+// Automatic token refresh when expired
+if (now >= expiresAt && integration.refresh_token) {
+  const newTokens = await refreshGmailToken(integration.refresh_token);
+  await updateIntegrationTokens(
+    integration.id,
+    newTokens.access_token,
+    newTokens.expiry_date
+  );
+}
 ```
 
 ## 🛣️ API Endpoints
@@ -94,35 +160,27 @@ interface GmailConnectResponse {
 
 ```bash
 curl -X POST http://localhost:3000/api/integrations/gmail/connect \
-  -H "Content-Type: application/json"
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 ```
 
-### 2. Gmail Callback - `POST /api/integrations/gmail/callback`
+### 2. Gmail Callback - `GET /api/integrations/gmail/callback`
 
 **Purpose**: Handle OAuth2 callback and store tokens
 
-**Authentication**: Required
+**Method**: `GET` (Google redirects with authorization code)
 
-**Request Body**:
+**Query Parameters**:
 
-```typescript
-interface GmailCallbackRequest {
-  code: string;
-}
+- `code` - Authorization code from Google
+- `scope` - Granted OAuth2 scopes
+
+**Response**: Redirects to dashboard with success/error status
+
+**Example URL**:
+
 ```
-
-**Response**:
-
-```typescript
-interface GmailCallbackResponse {
-  message: string;
-  integration: {
-    id: string;
-    type: string;
-    connected_at: string;
-    scopes: string[];
-  };
-}
+http://localhost:3000/api/integrations/gmail/callback?code=4/0AVMBsJjGFkmVkE99j-S88NT0QnJew6MsUYfN1jSKxrNqaLJ2XNKYkRLhCJ9sl_aSvx5FZA&scope=https://www.googleapis.com/auth/gmail.settings.basic%20https://www.googleapis.com/auth/gmail.modify
 ```
 
 ### 3. Fetch Emails - `GET /api/integrations/gmail/emails`
@@ -157,63 +215,8 @@ interface GmailEmailsResponse {
 **Example**:
 
 ```bash
-curl "http://localhost:3000/api/integrations/gmail/emails?limit=5&q=in:inbox"
-```
-
-## 🔐 OAuth2 Flow
-
-### 1. Connection Initiation
-
-```typescript
-// Frontend initiates connection
-const connectGmail = async () => {
-  const response = await fetch("/api/integrations/gmail/connect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  const { authUrl } = await response.json();
-  window.location.href = authUrl;
-};
-```
-
-### 2. Google OAuth2 Authorization
-
-User is redirected to Google's OAuth2 consent screen where they:
-
-- Grant access to Gmail
-- Approve requested scopes
-- Receive authorization code
-
-### 3. Token Exchange
-
-```typescript
-// Backend exchanges code for tokens
-const tokens = await exchangeCodeForTokens(code);
-
-// Store integration in database
-const integration = await createUserIntegration(
-  userId,
-  "gmail",
-  tokens.access_token,
-  tokens.refresh_token,
-  expiresAt,
-  scopes,
-  metadata
-);
-```
-
-### 4. Token Refresh
-
-```typescript
-// Automatic token refresh when expired
-if (now >= expiresAt && integration.refresh_token) {
-  const newTokens = await refreshGmailToken(integration.refresh_token);
-  await updateIntegrationTokens(
-    integration.id,
-    newTokens.access_token,
-    newTokens.expiry_date
-  );
-}
+curl "http://localhost:3000/api/integrations/gmail/emails?limit=5&q=in:inbox" \
+  -H "Authorization: Bearer YOUR_SESSION_TOKEN"
 ```
 
 ## 🗄️ Database Schema
@@ -283,7 +286,14 @@ export const gmailNode = async (
     conversationText.includes(keyword)
   );
 
-  if (mentionsEmail) {
+  if (
+    mentionsEmail ||
+    state.messages.some((msg) =>
+      ["email", "message", "inbox"].some((keyword) =>
+        msg.content.toLowerCase().includes(keyword)
+      )
+    )
+  ) {
     // Fetch recent emails for context
     const recentEmails = await fetchRecentEmails(state.userId, 5);
 
@@ -359,68 +369,91 @@ export const executeChatGraph = async (
 };
 ```
 
-## 🔒 Type Safety
+## 🧠 Smart Context Loading
 
-### Type Definitions
+### Keyword Detection
+
+The system intelligently detects when email context is needed:
 
 ```typescript
-// Gmail integration types
-export interface GmailConnectResponse {
-  authUrl: string;
-  message: string;
-}
+const emailKeywords = [
+  "email",
+  "message",
+  "inbox",
+  "sent",
+  "reply",
+  "mail",
+  "gmail",
+  "outlook",
+  "mailbox",
+  "correspondence",
+];
 
-export interface GmailCallbackRequest {
-  code: string;
-}
-
-export interface GmailCallbackResponse {
-  message: string;
-  integration: {
-    id: string;
-    type: string;
-    connected_at: string;
-    scopes: string[];
-  };
-}
-
-export interface GmailEmailsResponse {
-  emails: Array<{
-    id: string;
-    from: string;
-    to: string;
-    subject: string;
-    snippet: string;
-    date: string;
-    unread: boolean;
-  }>;
-  count: number;
-  message: string;
-}
-
-// Database integration types
-export interface UserIntegration {
-  id: string;
-  user_id: string;
-  integration_type: string;
-  access_token: string;
-  refresh_token: string | null;
-  token_expires_at: string;
-  scopes: string[];
-  connected_at: string;
-  last_sync_at: string | null;
-  is_active: boolean;
-  metadata: Record<string, unknown>;
-}
+const mentionsEmail = emailKeywords.some((keyword) =>
+  conversationText.toLowerCase().includes(keyword)
+);
 ```
 
-### Type Safety Features
+### Contextual Relevance
 
-1. **Full TypeScript Coverage**: All Gmail operations are fully typed
-2. **API Contract Safety**: Type-safe request/response handling
-3. **Database Type Safety**: Proper integration with database types
-4. **LangGraph Integration**: Type-safe state management
-5. **Error Handling**: Typed error responses
+Emails are only loaded when:
+
+1. **Direct Email Keywords**: User mentions "email", "inbox", "message", etc.
+2. **Conversation Context**: Previous messages contain email-related terms
+3. **User Intent**: Clear indication of email-related requests
+
+### Performance Optimization
+
+- **Lazy Loading**: Emails fetched only when needed
+- **Caching**: Recent emails cached for quick access
+- **Limited Results**: Only last 5 emails loaded by default
+- **Smart Filtering**: Focus on unread and recent emails
+
+## 🔧 Service Layer
+
+### Gmail Service
+
+```typescript
+// src/app/services/integrations.ts
+import internalApiRequest from "./internalApi";
+import { HTTPMethod } from "@/types/api";
+
+export const connectGmailService = async () => {
+  try {
+    const response = await internalApiRequest(
+      "integrations/gmail/connect",
+      HTTPMethod.POST
+    );
+    return response;
+  } catch (error) {
+    console.error("Error connecting Gmail:", error);
+    throw error;
+  }
+};
+```
+
+### Frontend Integration
+
+```typescript
+// Component usage
+import { connectGmailService } from "../services/integrations";
+
+const handleGmailConnect = async () => {
+  setConnecting(true);
+  try {
+    const response = await connectGmailService();
+    const { authUrl } = response;
+
+    if (authUrl) {
+      window.location.href = authUrl;
+    }
+  } catch (error) {
+    console.error("Failed to connect Gmail:", error);
+  } finally {
+    setConnecting(false);
+  }
+};
+```
 
 ## ⚙️ Environment Configuration
 
@@ -460,19 +493,25 @@ NEXTAUTH_URL=https://your-app.vercel.app
 
 1. **Create OAuth2 Credentials**:
 
-   - Go to Google Cloud Console
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
    - Create a new project or select existing
    - Enable Gmail API
    - Create OAuth2 credentials
    - Add authorized redirect URIs
 
 2. **Configure Scopes**:
+
    ```typescript
    const GMAIL_SCOPES = [
      "https://www.googleapis.com/auth/gmail.modify",
      "https://www.googleapis.com/auth/gmail.settings.basic",
    ];
    ```
+
+3. **Add Test Users** (for development):
+   - Go to OAuth consent screen
+   - Add your email as a test user
+   - Or make the app internal for your organization
 
 ## 💡 Usage Examples
 
@@ -493,18 +532,7 @@ const connectGmail = async () => {
   }
 };
 
-// Fetch recent emails (future service)
-const fetchRecentEmails = async (limit = 5) => {
-  try {
-    const { emails } = await fetchGmailEmailsService({ limit });
-    return emails;
-  } catch (error) {
-    console.error("Error fetching emails:", error);
-    return [];
-  }
-};
-
-// Check integration status (future service)
+// Check integration status
 const checkGmailStatus = async () => {
   try {
     const { isConnected } = await checkGmailStatusService();
@@ -523,7 +551,6 @@ import { connectGmailService } from "../services/integrations";
 
 function GmailIntegration() {
   const [isConnected, setIsConnected] = useState(false);
-  const [emails, setEmails] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -533,13 +560,6 @@ function GmailIntegration() {
   const handleConnect = async () => {
     setLoading(true);
     await connectGmail();
-  };
-
-  const handleFetchEmails = async () => {
-    setLoading(true);
-    const recentEmails = await fetchRecentEmails(5);
-    setEmails(recentEmails);
-    setLoading(false);
   };
 
   return (
@@ -553,22 +573,7 @@ function GmailIntegration() {
       ) : (
         <div>
           <p>✅ Gmail Connected</p>
-          <button onClick={handleFetchEmails} disabled={loading}>
-            {loading ? "Loading..." : "Fetch Recent Emails"}
-          </button>
-
-          {emails.length > 0 && (
-            <div className="emails-list">
-              <h4>Recent Emails</h4>
-              {emails.map((email) => (
-                <div key={email.id} className="email-item">
-                  <strong>{email.from}</strong>
-                  <p>{email.subject}</p>
-                  <small>{email.snippet}</small>
-                </div>
-              ))}
-            </div>
-          )}
+          <p>Perin can now help you with your emails!</p>
         </div>
       )}
     </div>
@@ -599,32 +604,6 @@ const conversationExample = async () => {
   // and can provide intelligent responses about email content
 };
 ```
-
-## 🛡️ Security & Best Practices
-
-### Security Features
-
-1. **OAuth2 Authentication**: Secure Gmail API access
-2. **Token Encryption**: Secure token storage in database
-3. **Scope Limitation**: Minimal required permissions
-4. **Token Refresh**: Automatic token renewal
-5. **User Isolation**: Each user's tokens are isolated
-
-### Best Practices
-
-1. **Smart Context Loading**: Only load emails when relevant
-2. **Error Handling**: Graceful error recovery
-3. **Rate Limiting**: Respect Gmail API limits
-4. **Token Management**: Proper token lifecycle management
-5. **Type Safety**: Full TypeScript coverage
-
-### Privacy Considerations
-
-1. **Minimal Data Storage**: Only store necessary tokens
-2. **User Consent**: Clear OAuth2 consent flow
-3. **Data Retention**: Configurable data retention policies
-4. **Access Control**: User-specific data isolation
-5. **Audit Logging**: Track integration usage
 
 ## 🐛 Troubleshooting
 
@@ -676,6 +655,15 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 await delay(1000); // Wait 1 second before retry
 ```
 
+#### 5. OAuth2 Callback Issues
+
+**Cause**: Incorrect redirect URI or missing test user
+**Solution**:
+
+- Verify `GOOGLE_REDIRECT_URI` matches exactly
+- Add your email as a test user in Google Cloud Console
+- Check that the app is in "Testing" mode and you're a test user
+
 ### Debug Mode
 
 Enable debug logging for Gmail operations:
@@ -695,18 +683,21 @@ if (process.env.DEBUG_GMAIL) {
 1. **Test OAuth2 Flow**:
 
    ```bash
-   curl -X POST http://localhost:3000/api/integrations/gmail/connect
+   curl -X POST http://localhost:3000/api/integrations/gmail/connect \
+     -H "Authorization: Bearer YOUR_SESSION_TOKEN"
    ```
 
 2. **Test Email Fetching**:
 
    ```bash
-   curl "http://localhost:3000/api/integrations/gmail/emails?limit=5"
+   curl "http://localhost:3000/api/integrations/gmail/emails?limit=5" \
+     -H "Authorization: Bearer YOUR_SESSION_TOKEN"
    ```
 
 3. **Test Integration Status**:
    ```bash
-   curl http://localhost:3000/api/integrations/gmail/status
+   curl http://localhost:3000/api/integrations/gmail/status \
+     -H "Authorization: Bearer YOUR_SESSION_TOKEN"
    ```
 
 ## 📚 Additional Resources
@@ -715,6 +706,7 @@ if (process.env.DEBUG_GMAIL) {
 - [Google OAuth2 Documentation](https://developers.google.com/identity/protocols/oauth2)
 - [Google Cloud Console](https://console.cloud.google.com/)
 - [Gmail API Scopes](https://developers.google.com/gmail/api/auth/scopes)
+- [LangGraph Documentation](https://langchain-ai.github.io/langgraph/)
 
 ## 🔄 Version History
 
@@ -723,6 +715,7 @@ if (process.env.DEBUG_GMAIL) {
 - **v1.2.0**: Enhanced error handling and token management
 - **v1.3.0**: Added comprehensive documentation
 - **v1.4.0**: Integrated with service layer architecture
+- **v1.5.0**: Enhanced smart context loading and performance
 
 ---
 
