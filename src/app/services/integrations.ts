@@ -2,6 +2,14 @@ import internalApiRequest from "./internalApi";
 import { HTTPMethod } from "@/types/api";
 
 export const connectGmailService = async () => {
-  const response = await internalApiRequest("integrations/gmail/connect", HTTPMethod.POST);
-  return response;
+  try {
+    const response = await internalApiRequest(
+      "integrations/gmail/connect",
+      HTTPMethod.POST
+    );
+    return response?.authUrl;
+  } catch (error) {
+    console.error("Error connecting Gmail:", error);
+    throw error;
+  }
 };
