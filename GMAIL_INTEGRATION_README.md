@@ -56,17 +56,21 @@ The Gmail integration enables Perin to access and analyze user emails for contex
 
 ```
 src/
-├── app/api/integrations/gmail/
-│   ├── connect/route.ts      # OAuth initiation
-│   ├── callback/route.ts     # OAuth callback handler
-│   └── emails/route.ts       # Email fetching
+├── app/
+│   ├── api/integrations/gmail/
+│   │   ├── connect/route.ts      # OAuth initiation
+│   │   ├── callback/route.ts     # OAuth callback handler
+│   │   └── emails/route.ts       # Email fetching
+│   └── services/
+│       ├── internalApi.ts        # Base API utility
+│       └── integrations.ts       # Gmail integration services
 ├── lib/integrations/gmail/
-│   ├── auth.ts              # OAuth2 authentication
-│   └── client.ts            # Gmail API client
+│   ├── auth.ts                  # OAuth2 authentication
+│   └── client.ts                # Gmail API client
 ├── lib/queries/
-│   └── integrations.ts      # Database operations
+│   └── integrations.ts          # Database operations
 └── lib/ai/langgraph/nodes/
-    └── gmail-node.ts        # LangGraph integration
+    └── gmail-node.ts            # LangGraph integration
 ```
 
 ## 🛣️ API Endpoints
@@ -475,37 +479,24 @@ NEXTAUTH_URL=https://your-app.vercel.app
 ### Frontend Integration
 
 ```typescript
+import { connectGmailService } from "../services/integrations";
+
 // Connect Gmail
 const connectGmail = async () => {
   try {
-    const response = await fetch("/api/integrations/gmail/connect", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to initiate Gmail connection");
+    const { authUrl } = await connectGmailService();
+    if (authUrl) {
+      window.location.href = authUrl;
     }
-
-    const { authUrl } = await response.json();
-    window.location.href = authUrl;
   } catch (error) {
     console.error("Error connecting Gmail:", error);
   }
 };
 
-// Fetch recent emails
+// Fetch recent emails (future service)
 const fetchRecentEmails = async (limit = 5) => {
   try {
-    const response = await fetch(
-      `/api/integrations/gmail/emails?limit=${limit}`
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch emails");
-    }
-
-    const { emails } = await response.json();
+    const { emails } = await fetchGmailEmailsService({ limit });
     return emails;
   } catch (error) {
     console.error("Error fetching emails:", error);
@@ -513,11 +504,10 @@ const fetchRecentEmails = async (limit = 5) => {
   }
 };
 
-// Check integration status
+// Check integration status (future service)
 const checkGmailStatus = async () => {
   try {
-    const response = await fetch("/api/integrations/gmail/status");
-    const { isConnected } = await response.json();
+    const { isConnected } = await checkGmailStatusService();
     return isConnected;
   } catch (error) {
     return false;
@@ -529,6 +519,7 @@ const checkGmailStatus = async () => {
 
 ```typescript
 import { useState, useEffect } from "react";
+import { connectGmailService } from "../services/integrations";
 
 function GmailIntegration() {
   const [isConnected, setIsConnected] = useState(false);
@@ -731,6 +722,7 @@ if (process.env.DEBUG_GMAIL) {
 - **v1.1.0**: Added LangGraph node integration
 - **v1.2.0**: Enhanced error handling and token management
 - **v1.3.0**: Added comprehensive documentation
+- **v1.4.0**: Integrated with service layer architecture
 
 ---
 

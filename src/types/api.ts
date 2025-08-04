@@ -71,3 +71,10 @@ export interface MemoryApiRequest {
 export interface ClassifyApiRequest {
   message: string;
 }
+
+export enum HTTPMethod {
+  GET = "GET",
+  POST = "POST",
+  PUT = "PUT",
+  DELETE = "DELETE",
+}

@@ -18,7 +18,7 @@ This document provides a comprehensive overview of the AI integration system imp
 
 ## 🏗️ Architecture Overview
 
-The AI integration follows a **layered architecture** with **smart queries** and **type-safe operations**:
+The AI integration follows a **layered architecture** with **service layer**, **smart queries**, and **type-safe operations**:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -26,6 +26,11 @@ The AI integration follows a **layered architecture** with **smart queries** and
 ├─────────────────────────────────────────────────────────────┤
 │  Components: PerinChat, usePerinAI hook                   │
 │  Features: Real-time streaming, memory management          │
+├─────────────────────────────────────────────────────────────┤
+│                  Service Layer (TypeScript)                │
+├─────────────────────────────────────────────────────────────┤
+│  Services: ai.ts, users.ts, integrations.ts               │
+│  Features: Centralized API calls, type safety, error handling│
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
 ├─────────────────────────────────────────────────────────────┤
@@ -606,32 +611,39 @@ function ClassificationExample() {
 ### Gmail Integration
 
 ```typescript
+import { connectGmailService } from "../services/integrations";
+
 // Connect Gmail
 const connectGmail = async () => {
-  const response = await fetch("/api/integrations/gmail/connect", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-  });
-  const { authUrl } = await response.json();
-  window.location.href = authUrl;
+  try {
+    const { authUrl } = await connectGmailService();
+    if (authUrl) {
+      window.location.href = authUrl;
+    }
+  } catch (error) {
+    console.error("Error connecting Gmail:", error);
+  }
 };
 
-// Fetch recent emails
+// Fetch recent emails (future service)
 const fetchEmails = async () => {
-  const response = await fetch("/api/integrations/gmail/emails?limit=5");
-  const { emails } = await response.json();
-  return emails;
+  try {
+    const { emails } = await fetchGmailEmailsService({ limit: 5 });
+    return emails;
+  } catch (error) {
+    console.error("Error fetching emails:", error);
+    return [];
+  }
 };
 
-// Handle OAuth callback
+// Handle OAuth callback (future service)
 const handleCallback = async (code: string) => {
-  const response = await fetch("/api/integrations/gmail/callback", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code }),
-  });
-  const { integration } = await response.json();
-  return integration;
+  try {
+    const { integration } = await handleGmailCallbackService({ code });
+    return integration;
+  } catch (error) {
+    console.error("Error handling callback:", error);
+  }
 };
 ```
 
@@ -763,18 +775,23 @@ console.log("AI Chat Interaction:", {
 ```
 src/
 ├── app/
-│   └── api/
-│       ├── ai/
-│       │   ├── chat/route.ts           # Main chat endpoint
-│       │   ├── memory/route.ts         # Memory management
-│       │   └── classify/route.ts       # Intent classification
-│       └── integrations/
-│           └── gmail/
-│               ├── connect/route.ts    # Gmail OAuth connection
-│               ├── callback/route.ts   # OAuth callback handler
-│               └── emails/route.ts     # Email fetching endpoint
-├── components/
-│   └── PerinChat.tsx                   # Chat UI component
+│   ├── api/
+│   │   ├── ai/
+│   │   │   ├── chat/route.ts           # Main chat endpoint
+│   │   │   ├── memory/route.ts         # Memory management
+│   │   │   └── classify/route.ts       # Intent classification
+│   │   └── integrations/
+│   │       └── gmail/
+│   │           ├── connect/route.ts    # Gmail OAuth connection
+│   │           ├── callback/route.ts   # OAuth callback handler
+│   │           └── emails/route.ts     # Email fetching endpoint
+│   ├── services/                       # Service layer
+│   │   ├── internalApi.ts              # Base API utility
+│   │   ├── users.ts                    # User services
+│   │   ├── integrations.ts             # Integration services
+│   │   └── ai.ts                       # AI services (future)
+│   └── components/
+│       └── PerinChat.tsx               # Chat UI component
 ├── hooks/
 │   └── usePerinAI.ts                   # AI integration hook
 ├── lib/
@@ -822,6 +839,7 @@ src/
 - **v1.4.0**: Enhanced streaming and error handling
 - **v1.5.0**: Complete NextAuth integration and documentation
 - **v1.6.0**: Added Gmail integration with LangGraph workflow
+- **v1.7.0**: Implemented service layer architecture for clean API separation
 
 ---
 

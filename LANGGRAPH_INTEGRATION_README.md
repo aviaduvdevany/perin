@@ -40,16 +40,21 @@ src/lib/ai/langgraph/
 ```
 src/
 ├── app/
-│   └── api/
-│       ├── ai/
-│       │   ├── chat/route.ts           # Main chat endpoint (LangGraph)
-│       │   ├── memory/route.ts         # Memory management
-│       │   └── classify/route.ts       # Intent classification
-│       └── integrations/
-│           └── gmail/
-│               ├── connect/route.ts    # Gmail OAuth connection
-│               ├── callback/route.ts   # OAuth callback handler
-│               └── emails/route.ts     # Email fetching endpoint
+│   ├── api/
+│   │   ├── ai/
+│   │   │   ├── chat/route.ts           # Main chat endpoint (LangGraph)
+│   │   │   ├── memory/route.ts         # Memory management
+│   │   │   └── classify/route.ts       # Intent classification
+│   │   └── integrations/
+│   │       └── gmail/
+│   │           ├── connect/route.ts    # Gmail OAuth connection
+│   │           ├── callback/route.ts   # OAuth callback handler
+│   │           └── emails/route.ts     # Email fetching endpoint
+│   └── services/                       # Service layer
+│       ├── internalApi.ts              # Base API utility
+│       ├── users.ts                    # User services
+│       ├── integrations.ts             # Integration services
+│       └── ai.ts                       # AI services (future)
 ├── lib/
 │   ├── ai/
 │   │   ├── openai.ts                   # OpenAI integration

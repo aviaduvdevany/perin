@@ -53,6 +53,7 @@ export interface UpdateUserData {
   memory?: Record<string, unknown>;
   is_beta_user?: boolean;
   role?: string;
+  avatar_url?: string;
 }
 
 export interface UserIntegration {
