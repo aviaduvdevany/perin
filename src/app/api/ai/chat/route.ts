@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../lib/auth";
-import { validateOpenAIConfig } from "../../../../lib/ai/openai";
-import { executePerinChatWithLangGraph } from "../../../../lib/ai/langgraph";
-import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
-import { getRelevantMemoryContext } from "../../../../lib/ai/memory";
-import * as userQueries from "../../../../lib/queries/users";
-import { ErrorResponses } from "../../../../lib/utils/error-handlers";
+import { authOptions } from "@/lib/auth";
+import { validateOpenAIConfig } from "@/lib/ai/openai";
+import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
+import { getUserIdFromSession } from "@/lib/utils/session-helpers";
+import { getRelevantMemoryContext } from "@/lib/ai/memory";
+import * as userQueries from "@/lib/queries/users";
+import { ErrorResponses } from "@/lib/utils/error-handlers";
 
 export async function POST(request: NextRequest) {
   try {

@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
+import { USER_INTEGRATIONS_TABLE } from "@/lib/tables";
 
-const INTEGRATIONS_TABLE = 'user_integrations';
 
 export interface UserIntegration {
   id: string;
@@ -22,7 +22,7 @@ export const getUserIntegration = async (
   integrationType: string
 ): Promise<UserIntegration | null> => {
   const sql = `
-    SELECT * FROM ${INTEGRATIONS_TABLE}
+    SELECT * FROM ${USER_INTEGRATIONS_TABLE}
     WHERE user_id = $1 AND integration_type = $2 AND is_active = true
   `;
 
@@ -46,7 +46,7 @@ export const createUserIntegration = async (
   metadata: Record<string, unknown> = {}
 ): Promise<UserIntegration> => {
   const sql = `
-    INSERT INTO ${INTEGRATIONS_TABLE} (
+    INSERT INTO ${USER_INTEGRATIONS_TABLE} (
       user_id, integration_type, access_token, refresh_token, 
       token_expires_at, scopes, metadata
     ) VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -81,7 +81,7 @@ export const updateIntegrationTokens = async (
   expiresAt: Date | null
 ): Promise<boolean> => {
   const sql = `
-    UPDATE ${INTEGRATIONS_TABLE}
+    UPDATE ${USER_INTEGRATIONS_TABLE}
     SET access_token = $1, token_expires_at = $2, last_sync_at = now()
     WHERE id = $3
   `;
@@ -104,7 +104,7 @@ export const getUserIntegrations = async (
   userId: string
 ): Promise<UserIntegration[]> => {
   const sql = `
-    SELECT * FROM ${INTEGRATIONS_TABLE}
+    SELECT * FROM ${USER_INTEGRATIONS_TABLE}
     WHERE user_id = $1 AND is_active = true
     ORDER BY connected_at DESC
   `;
@@ -124,7 +124,7 @@ export const deactivateIntegration = async (
   integrationType: string
 ): Promise<boolean> => {
   const sql = `
-    UPDATE ${INTEGRATIONS_TABLE}
+    UPDATE ${USER_INTEGRATIONS_TABLE}
     SET is_active = false
     WHERE user_id = $1 AND integration_type = $2
   `;

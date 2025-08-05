@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import { exchangeCodeForCalendarTokens } from "@/lib/integrations/calendar/auth";
 import * as integrationQueries from "@/lib/queries/integrations";
-import { ErrorResponses } from "../../../../../lib/utils/error-handlers";
+import { ErrorResponses } from "@/lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
   try {

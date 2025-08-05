@@ -1,14 +1,14 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../../lib/auth";
+import { authOptions } from "@/lib/auth";
 import {
   getUserMemory,
   addMemoryEntry,
   getMemoryEntries,
   clearMemoryEntries,
-} from "../../../../lib/ai/memory";
-import { getUserIdFromSession } from "../../../../lib/utils/session-helpers";
-import { ErrorResponses } from "../../../../lib/utils/error-handlers";
+} from "@/lib/ai/memory";
+import { getUserIdFromSession } from "@/lib/utils/session-helpers";
+import { ErrorResponses } from "@/lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
   try {
