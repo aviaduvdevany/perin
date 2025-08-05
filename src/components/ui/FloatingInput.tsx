@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { GlassInput } from "./Glass";
 
 interface FloatingInputProps {
   onSendMessage: (message: string) => void;
@@ -40,17 +41,18 @@ export function FloatingInput({
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
       <div className="flex space-x-3">
-        <motion.textarea
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder={placeholder}
-          className="flex-1 p-4 glassmorphism-strong border border-[var(--card-border)]/50 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 shadow-2xl scrollbar-ultra-thin text-[var(--cta-text)] placeholder-[var(--foreground-muted)]"
-          rows={1}
-          disabled={isLoading || disabled}
-          whileFocus={{ scale: 1.02 }}
-          transition={{ duration: 0.2 }}
-        />
+        <GlassInput className="flex-1 p-4">
+          <textarea
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder={placeholder}
+            className="w-full bg-transparent border-none resize-none text-sm focus:outline-none text-[var(--cta-text)] placeholder-[var(--foreground-muted)] scrollbar-ultra-thin"
+            rows={1}
+            disabled={isLoading || disabled}
+          />
+        </GlassInput>
+
         <motion.button
           onClick={handleSendMessage}
           disabled={!inputMessage.trim() || isLoading || disabled}

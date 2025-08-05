@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
 import { PerinLoading } from "./ui/PerinLoading";
+import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
 
 export function PerinChat() {
@@ -123,7 +124,12 @@ export function PerinChat() {
     <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
       {/* Minimal Header - Only visible when there are messages */}
       {messages.length > 0 && (
-        <div className="flex items-center p-4 border-b border-[var(--card-border)] glassmorphism">
+        <Glass
+          variant="default"
+          border={true}
+          glow={false}
+          className="flex items-center p-4 border-b border-[var(--card-border)]"
+        >
           <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center mr-3 glow-primary">
             <span className="text-white font-bold text-sm">P</span>
           </div>
@@ -138,7 +144,7 @@ export function PerinChat() {
           <div className="ml-auto">
             <div className="w-2 h-2 status-online rounded-full animate-pulse-subtle" />
           </div>
-        </div>
+        </Glass>
       )}
 
       {/* Messages - Full screen area */}
@@ -173,19 +179,28 @@ export function PerinChat() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
           >
-            <motion.div
-              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
-                message.role === "user"
-                  ? "bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
-                  : "glassmorphism text-[var(--cta-text)] shadow-sm"
-              }`}
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {message.content}
-              </p>
-            </motion.div>
+            {message.role === "user" ? (
+              <motion.div
+                className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
+                whileHover={{ scale: 1.02 }}
+                transition={{ duration: 0.2 }}
+              >
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {message.content}
+                </p>
+              </motion.div>
+            ) : (
+              <Glass
+                variant="default"
+                border={true}
+                glow={false}
+                className="max-w-xs lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
+              >
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {message.content}
+                </p>
+              </Glass>
+            )}
           </motion.div>
         ))}
 
@@ -209,20 +224,26 @@ export function PerinChat() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <motion.div
-              className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl glassmorphism text-[var(--cta-text)] shadow-sm"
-              animate={{ scale: [1, 1.01, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
+            <Glass
+              variant="default"
+              border={true}
+              glow={false}
+              className="max-w-xs lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
             >
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {streamingMessage}
-                <motion.span
-                  className="inline-block w-2 h-4 bg-[var(--accent-primary)] ml-1"
-                  animate={{ opacity: [1, 0.3, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                />
-              </p>
-            </motion.div>
+              <motion.div
+                animate={{ scale: [1, 1.01, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              >
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  {streamingMessage}
+                  <motion.span
+                    className="inline-block w-2 h-4 bg-[var(--accent-primary)] ml-1"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  />
+                </p>
+              </motion.div>
+            </Glass>
           </motion.div>
         )}
 

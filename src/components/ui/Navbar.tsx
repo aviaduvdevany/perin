@@ -6,13 +6,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
+import { Glass } from "./Glass";
 import {
   NavigationMenu,
-  NavigationMenuContent,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
   navigationMenuTriggerStyle,
 } from "./navigation-menu";
 import { Button } from "./button";
@@ -42,7 +41,13 @@ export function Navbar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-[var(--card-border)] glassmorphism-strong">
+    <Glass
+      variant="strong"
+      border={true}
+      glow={false}
+      backdropBlur="xl"
+      className="sticky top-0 z-50 w-full border-b border-[var(--card-border)]"
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -150,7 +155,12 @@ export function Navbar() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden glassmorphism border-t border-[var(--card-border)]">
+          <Glass
+            variant="default"
+            border={true}
+            glow={false}
+            className="md:hidden border-t border-[var(--card-border)]"
+          >
             <div className="space-y-1 pb-3 pt-2">
               {navigationItems.map((item) => {
                 // Skip auth-required items if not authenticated
@@ -222,9 +232,9 @@ export function Navbar() {
                 </>
               )}
             </div>
-          </div>
+          </Glass>
         )}
       </div>
-    </nav>
+    </Glass>
   );
 }

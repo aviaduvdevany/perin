@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { GlassCard, GlassInput } from "@/components/ui/Glass";
 
 export default function SignUpPage() {
   const [formData, setFormData] = useState({
@@ -81,7 +82,7 @@ export default function SignUpPage() {
       </nav>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="card p-8 space-y-8">
+        <GlassCard className="p-8 space-y-8">
           <div className="text-center">
             <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 glow-primary">
               <svg
@@ -114,17 +115,19 @@ export default function SignUpPage() {
               >
                 Full Name
               </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                autoComplete="name"
-                required
-                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
-                placeholder="Enter your full name"
-                value={formData.name}
-                onChange={handleChange}
-              />
+              <GlassInput className="p-4">
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className="w-full bg-transparent border-none outline-none text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:ring-0"
+                  placeholder="Enter your full name"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </GlassInput>
             </div>
 
             <div className="space-y-2">
@@ -134,17 +137,19 @@ export default function SignUpPage() {
               >
                 Email Address
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
-                placeholder="Enter your email"
-                value={formData.email}
-                onChange={handleChange}
-              />
+              <GlassInput className="p-4">
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="w-full bg-transparent border-none outline-none text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:ring-0"
+                  placeholder="Enter your email"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </GlassInput>
             </div>
 
             <div className="space-y-2">
@@ -154,17 +159,19 @@ export default function SignUpPage() {
               >
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
-                placeholder="Create a password (min 8 characters)"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <GlassInput className="p-4">
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="w-full bg-transparent border-none outline-none text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:ring-0"
+                  placeholder="Create a password (min 8 characters)"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </GlassInput>
             </div>
 
             <div className="space-y-2">
@@ -174,17 +181,19 @@ export default function SignUpPage() {
               >
                 Confirm Password
               </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
-                placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-              />
+              <GlassInput className="p-4">
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="w-full bg-transparent border-none outline-none text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:ring-0"
+                  placeholder="Confirm your password"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </GlassInput>
             </div>
 
             {error && (
@@ -220,7 +229,7 @@ export default function SignUpPage() {
               </Link>
             </p>
           </div>
-        </div>
+        </GlassCard>
       </div>
     </div>
   );

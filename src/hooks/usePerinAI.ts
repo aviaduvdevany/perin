@@ -58,8 +58,20 @@ export function usePerinAI(): UsePerinAI {
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to send message");
+          const contentType = response.headers.get("content-type");
+
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to send message");
+          } else {
+            // If it's not JSON, it might be HTML
+            const text = await response.text();
+            console.error(
+              "Non-JSON response received:",
+              text.substring(0, 500)
+            );
+            throw new Error("Received non-JSON response from server");
+          }
         }
 
         return response.body;

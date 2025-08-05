@@ -4,6 +4,145 @@ A collection of beautiful, animated UI components built with React, Framer Motio
 
 ## 📦 Components
 
+### 🪟 Glass
+
+A modern, reusable glassmorphism component with customizable effects, animations, and variants. Perfect for creating depth and visual hierarchy in your interface.
+
+#### Usage
+
+```tsx
+import { Glass, GlassCard, GlassPanel, GlassButton, GlassInput, GlassModal } from "./ui/Glass";
+
+// Basic glass component
+<Glass variant="default" glow={true} className="p-6">
+  <h3>Glass Content</h3>
+  <p>Beautiful glassmorphism effect</p>
+</Glass>
+
+// Predefined components
+<GlassCard className="p-4">
+  <h4>Card Content</h4>
+</GlassCard>
+
+<GlassPanel className="p-6">
+  <h4>Panel Content</h4>
+</GlassPanel>
+
+<GlassButton className="px-6 py-3">
+  Click me
+</GlassButton>
+
+<GlassInput className="p-4">
+  <input type="text" placeholder="Enter text..." />
+</GlassInput>
+
+<GlassModal className="max-w-md">
+  <h3>Modal Title</h3>
+  <p>Modal content here</p>
+</GlassModal>
+```
+
+#### Props
+
+| Property            | Type                                                          | Default     | Description                                           |
+| ------------------- | ------------------------------------------------------------- | ----------- | ----------------------------------------------------- |
+| `children`          | `ReactNode`                                                   | `—`         | Content to render inside the glass component          |
+| `variant`           | `"default" \| "strong" \| "subtle" \| "frosted" \| "colored"` | `"default"` | Visual style variant of the glass effect              |
+| `intensity`         | `"low" \| "medium" \| "high"`                                 | `"medium"`  | Intensity of the glass effect                         |
+| `border`            | `boolean`                                                     | `true`      | Whether to show a border                              |
+| `glow`              | `boolean`                                                     | `false`     | Whether to add a glow effect                          |
+| `glowColor`         | `"primary" \| "secondary" \| "success" \| "custom"`           | `"primary"` | Color of the glow effect                              |
+| `customGlowColor`   | `string`                                                      | `—`         | Custom glow color (used when glowColor is "custom")   |
+| `className`         | `string`                                                      | `—`         | Additional CSS classes                                |
+| `backdropBlur`      | `"sm" \| "md" \| "lg" \| "xl" \| "2xl" \| "3xl"`              | `"md"`      | Intensity of the backdrop blur effect                 |
+| `backgroundOpacity` | `number`                                                      | `—`         | Custom background opacity (overrides variant default) |
+| `borderOpacity`     | `number`                                                      | `—`         | Custom border opacity (overrides variant default)     |
+| `hoverEffect`       | `boolean`                                                     | `true`      | Whether to show hover animations                      |
+| `interactive`       | `boolean`                                                     | `false`     | Whether to enable interactive animations (hover, tap) |
+
+#### Variants
+
+- **default**: Standard glass effect with dark background
+- **strong**: More opaque glass with stronger blur
+- **subtle**: Light glass effect with minimal opacity
+- **frosted**: White/light glass effect
+- **colored**: Glass with primary color tint
+
+#### Example with Custom Configuration
+
+```tsx
+<Glass
+  variant="colored"
+  glow={true}
+  glowColor="secondary"
+  backdropBlur="xl"
+  backgroundOpacity={0.3}
+  borderOpacity={0.2}
+  interactive={true}
+  className="p-8 max-w-lg"
+>
+  <div className="text-center">
+    <h3 className="text-2xl font-bold mb-4">Custom Glass</h3>
+    <p>This glass component has custom styling and interactions</p>
+  </div>
+</Glass>
+```
+
+#### Predefined Components
+
+**GlassCard**: Default glass card with subtle styling
+
+```tsx
+<GlassCard className="p-6">
+  <h4>Card Title</h4>
+  <p>Card content with default glass styling</p>
+</GlassCard>
+```
+
+**GlassPanel**: Strong glass panel with glow effect
+
+```tsx
+<GlassPanel className="p-8">
+  <h3>Panel Title</h3>
+  <p>Panel content with enhanced glass effect</p>
+</GlassPanel>
+```
+
+**GlassButton**: Interactive glass button
+
+```tsx
+<GlassButton className="px-6 py-3" onClick={() => console.log("Clicked!")}>
+  Interactive Button
+</GlassButton>
+```
+
+**GlassInput**: Frosted glass input container
+
+```tsx
+<GlassInput className="p-4">
+  <input
+    type="text"
+    placeholder="Enter your text..."
+    className="w-full bg-transparent border-none outline-none text-white placeholder-gray-400"
+  />
+</GlassInput>
+```
+
+**GlassModal**: Modal-ready glass container
+
+```tsx
+<GlassModal className="max-w-md">
+  <h3 className="text-xl font-bold mb-4">Modal Title</h3>
+  <p className="mb-6">Modal content with strong glass effect</p>
+  <div className="flex gap-3">
+    <GlassButton className="px-4 py-2">Cancel</GlassButton>
+    <GlassButton className="px-4 py-2">Confirm</GlassButton>
+  </div>
+</GlassModal>
+```
+
+---
+
 ### 🚀 Dock
 
 A macOS-style dock component with smooth magnification effects and spring animations.
@@ -198,6 +337,15 @@ All components are designed to work with the Perin design system and use CSS cus
   className="bg-[var(--card-background)]"
   behindGradient="radial-gradient(circle, var(--primary), var(--accent))"
 />
+
+// Glass components with design system integration
+<GlassCard className="p-6">
+  <h3 className="text-[var(--foreground)]">Glass Card</h3>
+</GlassCard>
+
+<GlassPanel glowColor="primary" className="p-8">
+  <h3 className="text-[var(--foreground)]">Glass Panel</h3>
+</GlassPanel>
 ```
 
 ## 🚀 Getting Started
@@ -211,6 +359,7 @@ All components are designed to work with the Perin design system and use CSS cus
 2. **Import Components**
 
    ```tsx
+   import { Glass, GlassCard, GlassPanel } from "./ui/Glass";
    import Dock from "./ui/Dock";
    import ElasticSlider from "./ui/ElasticSlider";
    import ProfileCard from "./ui/ProfileCard";
@@ -222,11 +371,18 @@ All components are designed to work with the Perin design system and use CSS cus
    function App() {
      return (
        <div className="min-h-screen bg-[var(--background)]">
-         <ProfileCard
-           avatarUrl="/avatar.jpg"
-           name="Your Name"
-           title="Your Title"
-         />
+         <GlassCard className="p-6 mb-8">
+           <h2>Welcome to Perin</h2>
+           <p>Experience the future of productivity</p>
+         </GlassCard>
+
+         <GlassPanel className="p-8 mb-8">
+           <ProfileCard
+             avatarUrl="/avatar.jpg"
+             name="Your Name"
+             title="Your Title"
+           />
+         </GlassPanel>
 
          <ElasticSlider defaultValue={50} maxValue={100} />
 
@@ -269,6 +425,15 @@ All components are designed to work with the Perin design system and use CSS cus
 
 // CSS variables
 <ElasticSlider className="[--slider-color:theme(colors.blue.500)]" />
+
+// Glass component customization
+<Glass
+  variant="colored"
+  glow={true}
+  glowColor="secondary"
+  backdropBlur="xl"
+  className="custom-glass-styles"
+/>
 ```
 
 ### Animation
@@ -279,6 +444,13 @@ All components are designed to work with the Perin design system and use CSS cus
 
 // Disable animations
 <ProfileCard enableTilt={false} />
+
+// Glass component animations
+<Glass
+  interactive={true}
+  hoverEffect={true}
+  className="transition-all duration-500"
+/>
 ```
 
 ## 📱 Mobile Support
@@ -286,6 +458,7 @@ All components are designed to work with the Perin design system and use CSS cus
 - **Dock**: Responsive with touch support
 - **ElasticSlider**: Touch-friendly with haptic feedback
 - **ProfileCard**: Optional mobile tilt effects
+- **Glass**: Responsive with touch-friendly interactions
 
 ## 🐛 Troubleshooting
 
@@ -303,9 +476,15 @@ All components are designed to work with the Perin design system and use CSS cus
    - Verify Tailwind CSS is properly configured
 
 3. **Performance issues**
+
    - Reduce animation complexity on mobile
    - Use `will-change` CSS property for heavy animations
    - Consider disabling animations on low-end devices
+
+4. **Glass component issues**
+   - Ensure backdrop-filter is supported in your browser
+   - Check that the parent container has a background
+   - Verify CSS custom properties are properly defined
 
 ## 📄 License
 

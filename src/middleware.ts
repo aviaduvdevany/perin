@@ -14,7 +14,11 @@ const isProtectedRoute = (path: string) => {
 };
 
 const isAuthRoute = (path: string) => {
-  return authRoutes.includes(path);
+  return authRoutes.some((route) => path.startsWith(route));
+};
+
+const isApiRoute = (path: string) => {
+  return path.startsWith("/api/");
 };
 
 export default withAuth(
@@ -25,28 +29,30 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Protect all routes under /api except auth routes
-        if (isPublicRoute(req.nextUrl.pathname)) {
-          // Allow auth routes
-          if (isAuthRoute(req.nextUrl.pathname)) {
-            return true;
-          }
+        const path = req.nextUrl.pathname;
 
-          // Allow health check
-          if (req.nextUrl.pathname === "/api/health") {
-            return true;
-          }
+        // Allow public routes (like health check)
+        if (isPublicRoute(path)) {
+          return true;
+        }
 
-          // Require authentication for other API routes
+        // Allow auth routes
+        if (isAuthRoute(path)) {
+          return true;
+        }
+
+        // Require authentication for all other API routes
+        if (isApiRoute(path)) {
           return !!token;
         }
 
-        // Protect dashboard and other protected pages
-        if (isProtectedRoute(req.nextUrl.pathname)) {
+        // Require authentication for protected pages
+        if (isProtectedRoute(path)) {
           return !!token;
         }
 
-        return false;
+        // Allow all other routes (like home page, etc.)
+        return true;
       },
     },
   }

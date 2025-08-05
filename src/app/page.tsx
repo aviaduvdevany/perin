@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
+import { GlassCard, GlassPanel } from "@/components/ui/Glass";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -79,7 +80,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+            <GlassCard className="p-8 text-center group hover:scale-105 transition-transform duration-300">
               <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
@@ -102,9 +103,9 @@ export default function Home() {
                 Built with NextAuth.js for enterprise-grade security and
                 seamless user experience
               </p>
-            </div>
+            </GlassCard>
 
-            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+            <GlassCard className="p-8 text-center group hover:scale-105 transition-transform duration-300">
               <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
@@ -127,9 +128,9 @@ export default function Home() {
                 PostgreSQL with type-safe queries and intelligent error handling
                 for reliable performance
               </p>
-            </div>
+            </GlassCard>
 
-            <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
+            <GlassCard className="p-8 text-center group hover:scale-105 transition-transform duration-300">
               <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
@@ -152,7 +153,7 @@ export default function Home() {
                 Modern, responsive design with glass effects and smooth
                 animations for an immersive experience
               </p>
-            </div>
+            </GlassCard>
           </div>
         </div>
       </section>
