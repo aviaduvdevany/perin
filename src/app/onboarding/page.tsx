@@ -109,6 +109,21 @@ export default function OnboardingPage() {
     calendar_connected: false,
   });
 
+  // Check URL parameters for connection status
+  React.useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const gmailStatus = urlParams.get("gmail");
+    const calendarStatus = urlParams.get("calendar");
+
+    if (gmailStatus === "connected") {
+      setOnboardingData((prev) => ({ ...prev, gmail_connected: true }));
+    }
+
+    if (calendarStatus === "connected") {
+      setOnboardingData((prev) => ({ ...prev, calendar_connected: true }));
+    }
+  }, []);
+
   const [gmailConnecting, setGmailConnecting] = useState(false);
 
   const updateData = (field: keyof OnboardingData, value: string | boolean) => {
@@ -434,31 +449,48 @@ export default function OnboardingPage() {
                   </p>
                 </div>
 
-                <motion.button
-                  onClick={connectGmail}
-                  disabled={gmailConnecting}
-                  className="w-full bg-gradient-to-r from-[#4B5DFF] to-[#7C3AED] text-white py-3 px-6 rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#4B5DFF]/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {gmailConnecting ? (
-                    <div className="flex items-center justify-center">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                      Connecting...
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center">
-                      <svg
-                        className="w-5 h-5 mr-2"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
-                      </svg>
-                      Connect Gmail
-                    </div>
-                  )}
-                </motion.button>
+                {onboardingData.gmail_connected ? (
+                  <div className="w-full bg-green-600 text-white py-3 px-6 rounded-2xl font-semibold flex items-center justify-center">
+                    <svg
+                      className="w-5 h-5 mr-2"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Gmail Connected
+                  </div>
+                ) : (
+                  <motion.button
+                    onClick={connectGmail}
+                    disabled={gmailConnecting}
+                    className="w-full bg-gradient-to-r from-[#4B5DFF] to-[#7C3AED] text-white py-3 px-6 rounded-2xl font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-[#4B5DFF]/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    {gmailConnecting ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                        Connecting...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+                        </svg>
+                        Connect Gmail
+                      </div>
+                    )}
+                  </motion.button>
+                )}
 
                 <p className="text-xs text-gray-500 mt-4">
                   You can skip this step and connect later from your dashboard
@@ -512,50 +544,67 @@ export default function OnboardingPage() {
                     </div>
                   </div>
 
-                  <motion.button
-                    onClick={connectCalendar}
-                    disabled={calendarConnecting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-6 rounded-xl transition-all duration-300 font-medium"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    {calendarConnecting ? (
-                      <div className="flex items-center justify-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
+                  {onboardingData.calendar_connected ? (
+                    <div className="w-full bg-green-600 text-white py-3 px-6 rounded-xl font-medium flex items-center justify-center">
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                      Calendar Connected
+                    </div>
+                  ) : (
+                    <motion.button
+                      onClick={connectCalendar}
+                      disabled={calendarConnecting}
+                      className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-6 rounded-xl transition-all duration-300 font-medium"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {calendarConnecting ? (
+                        <div className="flex items-center justify-center">
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Connecting...
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center">
+                          <svg
+                            className="w-5 h-5 mr-2"
                             fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        Connecting...
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center">
-                        <svg
-                          className="w-5 h-5 mr-2"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        Connect Calendar
-                      </div>
-                    )}
-                  </motion.button>
+                            viewBox="0 0 24 24"
+                          >
+                            <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          Connect Calendar
+                        </div>
+                      )}
+                    </motion.button>
+                  )}
 
                   <p className="text-xs text-gray-500 mt-4">
                     You can skip this step and connect later from your dashboard
@@ -684,6 +733,14 @@ export default function OnboardingPage() {
                     <span className="text-gray-400">Gmail Connected:</span>
                     <span className="text-white">
                       {onboardingData.gmail_connected ? "✅ Yes" : "⏭️ Skipped"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Calendar Connected:</span>
+                    <span className="text-white">
+                      {onboardingData.calendar_connected
+                        ? "✅ Yes"
+                        : "⏭️ Skipped"}
                     </span>
                   </div>
                 </div>

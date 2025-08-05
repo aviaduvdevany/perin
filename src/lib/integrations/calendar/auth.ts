@@ -8,13 +8,20 @@ export const initializeGoogleCalendarAuth = (): OAuth2Client => {
   if (!oauth2Client) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    const redirectUri =
-      process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-      process.env.GOOGLE_REDIRECT_URI;
+    
+    // Use calendar-specific redirect URI or fallback to a default
+    const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 
+      "http://localhost:3000/api/integrations/calendar/callback";
 
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (!clientId || !clientSecret) {
       throw new Error("Google Calendar OAuth2 configuration is missing");
     }
+
+    console.log("Calendar OAuth2 Configuration:", {
+      clientId: clientId ? "Set" : "Missing",
+      clientSecret: clientSecret ? "Set" : "Missing", 
+      redirectUri
+    });
 
     oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
   }

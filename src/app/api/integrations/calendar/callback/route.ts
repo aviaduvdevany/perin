@@ -8,23 +8,32 @@ import { ErrorResponses } from "../../../../../lib/utils/error-handlers";
 
 export async function GET(request: NextRequest) {
   try {
+    console.log("Calendar callback received:", request.url);
+
     // Check authentication
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) {
+      console.error("No user ID found in session");
       return ErrorResponses.unauthorized("Authentication required");
     }
+
+    console.log("User ID:", userId);
 
     // Get authorization code from query parameters
     const { searchParams } = new URL(request.url);
     const code = searchParams.get("code");
+
+    console.log("Authorization code received:", code ? "Yes" : "No");
 
     if (!code) {
       return ErrorResponses.badRequest("Authorization code is required");
     }
 
     // Exchange code for tokens
+    console.log("Exchanging code for tokens...");
     const tokens = await exchangeCodeForCalendarTokens(code);
+    console.log("Tokens received:", tokens.access_token ? "Yes" : "No");
 
     if (!tokens.access_token) {
       return ErrorResponses.internalServerError(
@@ -53,15 +62,18 @@ export async function GET(request: NextRequest) {
         token_type: tokens.token_type,
       }
     );
+    console.log("Integration stored:", integration ? "Yes" : "No");
 
-    // Redirect to success page or dashboard
+    // Redirect back to onboarding to continue the flow
     return Response.redirect(
-      new URL("/dashboard?calendar=connected", request.url)
+      new URL("/onboarding?calendar=connected", request.url)
     );
   } catch (error) {
     console.error("Error in calendar callback:", error);
-    // Redirect to error page
-    return Response.redirect(new URL("/dashboard?calendar=error", request.url));
+    // Redirect back to onboarding with error
+    return Response.redirect(
+      new URL("/onboarding?calendar=error", request.url)
+    );
   }
 }
 
