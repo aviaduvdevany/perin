@@ -1,6 +1,22 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
+const publicRoutes = ["/api/health"];
+const protectedRoutes = ["/dashboard", "/onboarding"];
+const authRoutes = ["/api/auth/"];
+
+const isPublicRoute = (path: string) => {
+  return publicRoutes.includes(path);
+};
+
+const isProtectedRoute = (path: string) => {
+  return protectedRoutes.includes(path);
+};
+
+const isAuthRoute = (path: string) => {
+  return authRoutes.includes(path);
+};
+
 export default withAuth(
   function middleware() {
     // Add custom middleware logic here if needed
@@ -10,9 +26,9 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Protect all routes under /api except auth routes
-        if (req.nextUrl.pathname.startsWith("/api/")) {
+        if (isPublicRoute(req.nextUrl.pathname)) {
           // Allow auth routes
-          if (req.nextUrl.pathname.startsWith("/api/auth/")) {
+          if (isAuthRoute(req.nextUrl.pathname)) {
             return true;
           }
 
@@ -26,16 +42,16 @@ export default withAuth(
         }
 
         // Protect dashboard and other protected pages
-        if (req.nextUrl.pathname.startsWith("/dashboard")) {
+        if (isProtectedRoute(req.nextUrl.pathname)) {
           return !!token;
         }
 
-        return true;
+        return false;
       },
     },
   }
 );
 
 export const config = {
-  matcher: ["/api/:path*", "/dashboard/:path*"],
+  matcher: ["/api/:path*", "/dashboard/:path*", "/onboarding/:path*"],
 };

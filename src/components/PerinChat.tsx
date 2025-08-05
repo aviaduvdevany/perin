@@ -96,9 +96,9 @@ export function PerinChat() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="w-16 h-16 bg-[var(--primary)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 bg-[var(--accent-primary)]/20 rounded-2xl flex items-center justify-center mx-auto mb-4 glow-primary">
             <svg
-              className="w-8 h-8 text-[var(--primary)]"
+              className="w-8 h-8 text-[var(--accent-primary)]"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -123,12 +123,12 @@ export function PerinChat() {
     <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
       {/* Minimal Header - Only visible when there are messages */}
       {messages.length > 0 && (
-        <div className="flex items-center p-4 border-b border-[var(--card-border)] bg-[var(--card-background)]/50 backdrop-blur-sm">
-          <div className="w-8 h-8 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-lg flex items-center justify-center mr-3">
+        <div className="flex items-center p-4 border-b border-[var(--card-border)] glassmorphism">
+          <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center mr-3 glow-primary">
             <span className="text-white font-bold text-sm">P</span>
           </div>
           <div>
-            <h3 className="font-semibold text-[var(--foreground)] text-sm">
+            <h3 className="font-semibold text-[var(--cta-text)] text-sm">
               Perin
             </h3>
             <p className="text-xs text-[var(--foreground-muted)]">
@@ -136,7 +136,7 @@ export function PerinChat() {
             </p>
           </div>
           <div className="ml-auto">
-            <div className="w-2 h-2 bg-[var(--success)] rounded-full animate-pulse" />
+            <div className="w-2 h-2 status-online rounded-full animate-pulse-subtle" />
           </div>
         </div>
       )}
@@ -154,10 +154,10 @@ export function PerinChat() {
                 className="mx-auto"
               />
             </div>
-            <h2 className="text-xl font-bold text-[var(--foreground)] mb-3">
+            <h2 className="heading-sm text-[var(--cta-text)] mb-3">
               Ready to help
             </h2>
-            <p className="text-sm text-[var(--foreground-muted)]/70">
+            <p className="body-sm text-[var(--foreground-muted)]/70">
               Ask me anything about scheduling, coordination, or assistance
             </p>
           </div>
@@ -176,8 +176,8 @@ export function PerinChat() {
             <motion.div
               className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
                 message.role === "user"
-                  ? "bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] text-white shadow-lg"
-                  : "bg-[var(--card-background)]/60 backdrop-blur-sm border border-[var(--card-border)]/30 text-[var(--foreground)] shadow-sm"
+                  ? "bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
+                  : "glassmorphism text-[var(--cta-text)] shadow-sm"
               }`}
               whileHover={{ scale: 1.02 }}
               transition={{ duration: 0.2 }}
@@ -210,14 +210,14 @@ export function PerinChat() {
             transition={{ duration: 0.3 }}
           >
             <motion.div
-              className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-[var(--card-background)]/60 backdrop-blur-sm border border-[var(--card-border)]/30 text-[var(--foreground)] shadow-sm"
+              className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl glassmorphism text-[var(--cta-text)] shadow-sm"
               animate={{ scale: [1, 1.01, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
               <p className="text-sm whitespace-pre-wrap leading-relaxed">
                 {streamingMessage}
                 <motion.span
-                  className="inline-block w-2 h-4 bg-[var(--primary)] ml-1"
+                  className="inline-block w-2 h-4 bg-[var(--accent-primary)] ml-1"
                   animate={{ opacity: [1, 0.3, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
                 />

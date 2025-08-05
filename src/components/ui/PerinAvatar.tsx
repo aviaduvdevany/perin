@@ -30,9 +30,10 @@ export default function PerinAvatar({
   // Personality-based color schemes
   const personalityColors = {
     friendly: {
-      primary: "from-[var(--primary)] to-[var(--accent)]",
-      secondary: "from-[var(--accent)]/20 to-[var(--primary)]/20",
-      glow: "rgba(132, 0, 255, 0.3)",
+      primary: "from-[var(--accent-primary)] to-[var(--accent-secondary)]",
+      secondary:
+        "from-[var(--accent-secondary)]/20 to-[var(--accent-primary)]/20",
+      glow: "rgba(76, 91, 255, 0.3)",
     },
     professional: {
       primary: "from-slate-600 to-slate-800",
@@ -127,7 +128,7 @@ export default function PerinAvatar({
           <AnimatePresence>
             {isOnline && (
               <motion.div
-                className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white"
+                className="absolute -top-1 -right-1 w-3 h-3 status-online rounded-full border border-white"
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
@@ -176,9 +177,7 @@ export default function PerinAvatar({
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
       >
-        <h3 className="font-semibold text-[var(--foreground)] text-sm">
-          {name}
-        </h3>
+        <h3 className="font-semibold text-[var(--cta-text)] text-sm">{name}</h3>
         <p className="text-xs text-[var(--foreground-muted)]">
           {statusMessages[status]}
         </p>

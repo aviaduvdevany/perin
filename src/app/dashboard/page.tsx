@@ -21,7 +21,7 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[var(--background)] flex items-center justify-center">
+      <div className="min-h-screen bg-[var(--background-primary)] flex items-center justify-center">
         <motion.div
           className="text-center"
           initial={{ opacity: 0, scale: 0.9 }}
@@ -29,7 +29,7 @@ export default function DashboardPage() {
           transition={{ duration: 0.5 }}
         >
           <motion.div
-            className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-4"
+            className="w-8 h-8 border-2 border-[var(--accent-primary)] border-t-transparent rounded-full mx-auto mb-4"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           />
@@ -46,7 +46,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="h-[calc(100vh-64px)] bg-[var(--background)] flex flex-col">
+    <div className="h-[calc(100vh-64px)] bg-[var(--background-primary)] flex flex-col">
       {/* Main Content - Full Screen Chat */}
       <main className="flex-1">
         <motion.div

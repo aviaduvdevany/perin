@@ -1,92 +1,121 @@
 {
-    "designSystem": {
-      "name": "Perin UI",
-      "theme": "Futuristic Calm with Emotional Tech Warmth",
-      "colors": {
-        "primary": "#4B5DFF", 
-        "primaryForeground": "oklch(0.205 0 0)",
-        "secondary": "oklch(0.269 0 0)",
-        "secondaryForeground": "oklch(0.985 0 0)",
-        "accent": "#FF9A8B",
-        "accentForeground": "oklch(0.985 0 0)",
-        "background": "#0E101C",  
-        "foreground": "#F8F9FC", 
-        "cardBackground": "oklch(0.205 0 0)",
-        "cardForeground": "oklch(0.985 0 0)",
-        "popoverBackground": "oklch(0.269 0 0)",
-        "popoverForeground": "oklch(0.985 0 0)"
-      },
-      "typography": {
-        "headingFont": "Satoshi, sans-serif",
-        "bodyFont": "Inter, sans-serif",
-        "fontWeight": {
-          "heading": "800",
-          "body": "400"
-        },
-        "fontSize": {
-          "hero": "4rem",
-          "h1": "2.5rem",
-          "h2": "1.875rem",
-          "h3": "1.5rem",
-          "body": "1rem",
-          "small": "0.875rem"
-        },
-        "letterSpacing": "tight",
-        "lineHeight": "1.4"
-      },
-      "layout": {
-        "spacing": {
-          "padding": "2rem",
-          "gap": "1.5rem"
-        },
-        "maxWidth": "1200px",
-        "grid": {
-          "columns": 12,
-          "gutter": "24px"
-        },
-        "borderRadius": "1rem",
-        "elevation": {
-          "card": "0 4px 30px rgba(0, 0, 0, 0.3)",
-          "button": "0 2px 15px rgba(0, 0, 0, 0.2)"
-        }
-      },
-      "buttons": {
-        "style": "gradient",
-        "borderRadius": "9999px",
-        "padding": "0.75rem 1.5rem",
-        "fontWeight": "600",
-        "shadow": true,
-        "hoverEffect": "light-glow"
-      },
-      "components": {
-        "cards": {
-          "background": "linear-gradient(145deg, #1D2239, #0E101C)",
-          "glassEffect": true,
-          "borderRadius": "1.5rem",
-          "shadow": "inset 0 0 0.5rem rgba(255, 255, 255, 0.05)"
-        },
-        "icons": {
-          "style": "rounded-line",
-          "weight": "light",
-          "stroke": "1.5px",
-          "color": "currentColor"
-        },
-        "animations": {
-          "transitions": "all 0.3s ease",
-          "hoverScale": "1.05",
-          "buttonPress": "scale(0.97)"
-        }
-      },
-      "imagery": {
-        "style": "3D abstract",
-        "tone": "soft-glow neon",
-        "forms": "rounded isometric blocks",
-        "usage": "symbolic of intelligence, modularity, flow"
-      },
-      "voice": {
-        "microcopy": "Calm, direct, emotionally intelligent",
-        "cta": ["Try it now", "Delegate smarter", "Meet your Perin"]
-      }
+  "colors": {
+    "backgroundPrimary": "#0A0A0A",
+    "backgroundSecondary": "#111216",
+    "accentPrimary": "#4C5BFF",
+    "accentSecondary": "#FF7300",
+    "ctaText": "#FFFFFF",
+    "success": "#00FFC2",
+    "error": "#FF4B4B",
+    "glowGradients": [
+      "linear-gradient(135deg, #4C5BFF, #9C27B0)",
+      "linear-gradient(135deg, #FF7300, #FFC107)"
+    ]
+  },
+  "typography": {
+    "fontFamily": "Inter, sans-serif",
+    "fontSizes": {
+      "headline": "64px",
+      "subHeadline": "32px",
+      "paragraph": "16px",
+      "paragraphLarge": "20px",
+      "caption": "14px",
+      "label": "12px"
+    },
+    "fontWeights": {
+      "regular": 400,
+      "medium": 500,
+      "semiBold": 600,
+      "bold": 700
+    },
+    "lineHeights": {
+      "default": 1.5,
+      "relaxed": 1.8
+    },
+    "letterSpacing": {
+      "default": "-0.01em"
     }
-  }
-  
+  },
+  "layout": {
+    "maxWidth": "1280px",
+    "sectionPadding": "80px",
+    "cardPadding": "24px",
+    "borderRadius": "16px",
+    "gridColumns": 12,
+    "breakpoints": {
+      "mobile": "0px",
+      "tablet": "768px",
+      "desktop": "1024px"
+    }
+  },
+  "components": {
+    "navbar": {
+      "background": "transparent",
+      "blur": true,
+      "textColor": "#FFFFFF",
+      "hoverEffect": "underline or glow"
+    },
+    "hero": {
+      "fullHeight": true,
+      "backgroundEffect": "flare animation",
+      "alignment": "center"
+    },
+    "card": {
+      "background": "glassmorphism",
+      "borderRadius": "16px",
+      "hoverEffect": "glow"
+    },
+    "button": {
+      "shape": "pill",
+      "background": "dark glass",
+      "textColor": "#FFFFFF",
+      "hoverEffect": "neon border"
+    },
+    "media": {
+      "videoShadow": true,
+      "rounded": true
+    },
+    "avatar": {
+      "shape": "circle",
+      "shadow": "soft"
+    }
+  },
+  "effects": {
+    "glassmorphism": {
+      "backdropBlur": "8px",
+      "backgroundOpacity": 0.2
+    },
+    "glow": {
+      "intensity": "medium",
+      "color": "accentPrimary"
+    },
+    "hover": {
+      "transition": "0.3s ease",
+      "brightness": 1.2
+    },
+    "motion": {
+      "scrollFadeIn": true,
+      "parallax": true,
+      "microAnimations": true
+    }
+  },
+  "icons": {
+    "style": "thin-line",
+    "size": "24px to 32px",
+    "cornerRadius": "soft-rounded"
+  },
+  "media": {
+    "teamImageStyle": "clean with white lighting",
+    "codeSnippetTheme": "dark terminal with syntax highlighting",
+    "logoStyle": "monochromatic or grayscale"
+  },
+  "aiPromptKeywords": [
+    "futuristic ui",
+    "neon glow interface",
+    "glassmorphism",
+    "cinematic light effects",
+    "dark theme modern SaaS",
+    "glowing gradient flares",
+    "high contrast text layout"
+  ]
+}

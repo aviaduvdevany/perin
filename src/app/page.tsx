@@ -8,25 +8,26 @@ export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--background)] via-[var(--background-secondary)] to-[var(--background)] relative overflow-hidden">
-      {/* Background Effects */}
+    <div className="min-h-screen bg-[var(--background-primary)] relative overflow-hidden">
+      {/* Background Effects - Enhanced with design system colors */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-40 right-20 w-72 h-72 bg-[var(--accent)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
-        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-2000"></div>
+        <div className="absolute top-20 left-20 w-72 h-72 bg-[var(--accent-primary)] rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
+        <div className="absolute top-40 right-20 w-72 h-72 bg-[var(--accent-secondary)] rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse delay-1000"></div>
+        <div className="absolute -bottom-8 left-40 w-72 h-72 bg-[var(--accent-primary)] rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse delay-2000"></div>
+
+        {/* Additional subtle glow effects */}
+        <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[var(--accent-primary)] rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[var(--accent-secondary)] rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float delay-1000"></div>
       </div>
 
       {/* Hero Section */}
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
         <div className="max-w-4xl mx-auto space-y-8">
-          <h1 className="text-5xl md:text-7xl font-bold text-[var(--foreground)] leading-tight">
-            Meet Your{" "}
-            <span className="bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] bg-clip-text text-transparent">
-              Perin
-            </span>
+          <h1 className="heading-xl text-[var(--cta-text)] leading-tight">
+            Meet Your <span className="gradient-text-primary">Perin</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">
+          <p className="body-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">
             Your AI-powered productivity assistant. Delegate smarter, work
             seamlessly, and unlock your full potential with intelligent
             automation.
@@ -38,7 +39,7 @@ export default function Home() {
                 {isAuthenticated ? (
                   <Link
                     href="/dashboard"
-                    className="btn-gradient text-lg px-8 py-4 glow"
+                    className="btn-gradient text-lg px-8 py-4 glow-primary"
                   >
                     Go to Dashboard
                   </Link>
@@ -46,13 +47,13 @@ export default function Home() {
                   <>
                     <Link
                       href="/auth/signin"
-                      className="btn-gradient text-lg px-8 py-4 glow"
+                      className="btn-gradient text-lg px-8 py-4 glow-primary"
                     >
                       Sign In
                     </Link>
                     <Link
                       href="/auth/signup"
-                      className="px-8 py-4 text-lg font-semibold text-[var(--foreground)] border-2 border-[var(--primary)] rounded-full hover:bg-[var(--primary)]/10 transition-all duration-300"
+                      className="px-8 py-4 text-lg font-semibold text-[var(--cta-text)] border-2 border-[var(--accent-primary)] rounded-full hover:bg-[var(--accent-primary)]/10 transition-all duration-300 hover:glow-primary"
                     >
                       Sign Up
                     </Link>
@@ -68,10 +69,10 @@ export default function Home() {
       <section id="features" className="relative z-10 py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-[var(--foreground)] mb-6">
+            <h2 className="heading-lg text-[var(--cta-text)] mb-6">
               Why Choose Perin?
             </h2>
-            <p className="text-xl text-[var(--foreground-muted)] max-w-2xl mx-auto">
+            <p className="body-lg text-[var(--foreground-muted)] max-w-2xl mx-auto">
               Experience the future of productivity with our cutting-edge AI
               technology
             </p>
@@ -79,7 +80,7 @@ export default function Home() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
-              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
                   fill="none"
@@ -94,17 +95,17 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+              <h3 className="heading-sm text-[var(--cta-text)] mb-4">
                 Secure Authentication
               </h3>
-              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+              <p className="body-md text-[var(--foreground-subtle)] leading-relaxed">
                 Built with NextAuth.js for enterprise-grade security and
                 seamless user experience
               </p>
             </div>
 
             <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
-              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
                   fill="none"
@@ -119,17 +120,17 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+              <h3 className="heading-sm text-[var(--cta-text)] mb-4">
                 Intelligent Database
               </h3>
-              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+              <p className="body-md text-[var(--foreground-subtle)] leading-relaxed">
                 PostgreSQL with type-safe queries and intelligent error handling
                 for reliable performance
               </p>
             </div>
 
             <div className="card p-8 text-center group hover:scale-105 transition-transform duration-300">
-              <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform glow-primary">
                 <svg
                   className="w-8 h-8 text-white"
                   fill="none"
@@ -144,10 +145,10 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-[var(--foreground)] mb-4">
+              <h3 className="heading-sm text-[var(--cta-text)] mb-4">
                 Futuristic UI
               </h3>
-              <p className="text-[var(--foreground-subtle)] leading-relaxed">
+              <p className="body-md text-[var(--foreground-subtle)] leading-relaxed">
                 Modern, responsive design with glass effects and smooth
                 animations for an immersive experience
               </p>
@@ -157,13 +158,13 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 py-12 px-8 border-t border-[var(--background-secondary)]">
+      <footer className="relative z-10 py-12 px-8 border-t border-[var(--card-border)]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           <div className="flex items-center space-x-2 mb-4 md:mb-0">
-            <div className="w-8 h-8 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center glow-primary">
               <span className="text-white font-bold text-sm">P</span>
             </div>
-            <span className="text-lg font-bold text-[var(--foreground)]">
+            <span className="text-lg font-bold text-[var(--cta-text)]">
               Perin
             </span>
           </div>
@@ -171,7 +172,7 @@ export default function Home() {
           <div className="flex gap-6">
             <Link
               href="/api/health"
-              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent)] transition-colors"
+              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent-secondary)] transition-colors"
             >
               <Image
                 src="/file.svg"
@@ -186,7 +187,7 @@ export default function Home() {
               href="https://nextjs.org/docs"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent)] transition-colors"
+              className="flex items-center gap-2 text-[var(--foreground-subtle)] hover:text-[var(--accent-secondary)] transition-colors"
             >
               <Image
                 src="/window.svg"

@@ -45,7 +45,7 @@ export function FloatingInput({
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
           placeholder={placeholder}
-          className="flex-1 p-4 bg-[var(--card-background)]/90 backdrop-blur-md border border-[var(--card-border)]/50 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]/30 shadow-2xl scrollbar-ultra-thin"
+          className="flex-1 p-4 glassmorphism-strong border border-[var(--card-border)]/50 rounded-2xl resize-none text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 shadow-2xl scrollbar-ultra-thin text-[var(--cta-text)] placeholder-[var(--foreground-muted)]"
           rows={1}
           disabled={isLoading || disabled}
           whileFocus={{ scale: 1.02 }}
@@ -54,7 +54,7 @@ export function FloatingInput({
         <motion.button
           onClick={handleSendMessage}
           disabled={!inputMessage.trim() || isLoading || disabled}
-          className="px-6 py-4 bg-[var(--primary)] text-white rounded-2xl hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-2xl hover:shadow-3xl"
+          className="px-6 py-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white rounded-2xl hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-2xl glow-primary"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ duration: 0.2 }}

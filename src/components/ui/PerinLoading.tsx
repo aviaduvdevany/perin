@@ -15,8 +15,6 @@ export function PerinLoading({ className = "" }: PerinLoadingProps) {
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
     >
-  
-
       {/* Visual Status Indicators */}
       <div className="flex flex-col items-center space-y-6">
         {/* Pulsing Ring */}
@@ -30,7 +28,7 @@ export function PerinLoading({ className = "" }: PerinLoadingProps) {
           }}
         >
           <motion.div
-            className="w-16 h-16 rounded-full border-2 border-[var(--primary)]/30"
+            className="w-16 h-16 rounded-full border-2 border-[var(--accent-primary)]/30"
             animate={{
               scale: [1, 1.2, 1],
               opacity: [0.3, 0.6, 0.3],
@@ -42,7 +40,7 @@ export function PerinLoading({ className = "" }: PerinLoadingProps) {
             }}
           />
           <motion.div
-            className="absolute inset-0 w-16 h-16 rounded-full border-2 border-[var(--accent)]/40"
+            className="absolute inset-0 w-16 h-16 rounded-full border-2 border-[var(--accent-secondary)]/40"
             animate={{
               scale: [1, 1.4, 1],
               opacity: [0.2, 0.4, 0.2],
@@ -61,7 +59,7 @@ export function PerinLoading({ className = "" }: PerinLoadingProps) {
           {[0, 1, 2, 3].map((index) => (
             <motion.div
               key={index}
-              className="absolute w-1.5 h-1.5 bg-gradient-to-r from-[var(--primary)] to-[var(--accent)] rounded-full"
+              className="absolute w-1.5 h-1.5 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-full"
               style={{
                 left: `${25 * index}%`,
                 top: "50%",

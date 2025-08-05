@@ -31,7 +31,7 @@ export function Logo({
       {/* Logo Icon */}
       <div
         className={cn(
-          "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] shadow-lg",
+          "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-lg glow-primary",
           sizeClasses[size],
           animated &&
             "transition-all duration-300 hover:scale-110 hover:shadow-xl"
@@ -41,7 +41,7 @@ export function Logo({
 
         {/* Animated glow effect */}
         {animated && (
-          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-accent)] opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-50" />
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-50" />
         )}
       </div>
 
@@ -49,7 +49,7 @@ export function Logo({
       {showText && (
         <span
           className={cn(
-            "font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] bg-clip-text text-transparent",
+            "font-bold gradient-text-primary",
             textSizeClasses[size],
             animated && "transition-all duration-300"
           )}

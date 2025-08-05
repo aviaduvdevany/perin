@@ -42,7 +42,7 @@ export function Navbar() {
   const isActive = (href: string) => pathname === href;
 
   return (
-    <nav className="sticky top-0 z-50 w-full border-b border-[var(--color-border)] bg-[var(--color-background)]/80 backdrop-blur-xl">
+    <nav className="sticky top-0 z-50 w-full border-b border-[var(--card-border)] glassmorphism-strong">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
@@ -64,9 +64,10 @@ export function Navbar() {
                         <NavigationMenuLink
                           className={cn(
                             navigationMenuTriggerStyle(),
-                            "flex items-center gap-2",
-                            isActive(item.href) &&
-                              "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
+                            "flex items-center gap-2 transition-all duration-300",
+                            isActive(item.href)
+                              ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] glow-primary"
+                              : "text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]"
                           )}
                         >
                           <item.icon className="h-4 w-4" />
@@ -89,7 +90,7 @@ export function Navbar() {
                         variant="ghost"
                         size="sm"
                         onClick={() => logout()}
-                        className="flex items-center gap-2 text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
+                        className="flex items-center gap-2 text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all duration-300"
                       >
                         <LogOut className="h-4 w-4" />
                         Sign Out
@@ -97,7 +98,7 @@ export function Navbar() {
                       <Button
                         variant="default"
                         size="sm"
-                        className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:shadow-lg hover:shadow-[var(--color-primary)]/25"
+                        className="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 transition-all duration-300 glow-primary"
                       >
                         <User className="h-4 w-4 mr-2" />
                         Profile
@@ -109,7 +110,7 @@ export function Navbar() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
+                          className="text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)] transition-all duration-300"
                         >
                           Sign In
                         </Button>
@@ -118,7 +119,7 @@ export function Navbar() {
                         <Button
                           variant="default"
                           size="sm"
-                          className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white hover:shadow-lg hover:shadow-[var(--color-primary)]/25"
+                          className="bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 transition-all duration-300 glow-primary"
                         >
                           Sign Up
                         </Button>
@@ -136,7 +137,7 @@ export function Navbar() {
               variant="ghost"
               size="sm"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10"
+              className="text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 transition-all duration-300"
             >
               {isMobileMenuOpen ? (
                 <X className="h-5 w-5" />
@@ -149,7 +150,7 @@ export function Navbar() {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden">
+          <div className="md:hidden glassmorphism border-t border-[var(--card-border)]">
             <div className="space-y-1 pb-3 pt-2">
               {navigationItems.map((item) => {
                 // Skip auth-required items if not authenticated
@@ -160,10 +161,10 @@ export function Navbar() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-300",
                       isActive(item.href)
-                        ? "bg-[var(--color-accent)]/10 text-[var(--color-accent)]"
-                        : "text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10 hover:text-[var(--color-accent)]"
+                        ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] glow-primary"
+                        : "text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]"
                     )}
                     onClick={() => setIsMobileMenuOpen(false)}
                   >
@@ -175,14 +176,14 @@ export function Navbar() {
             </div>
 
             {/* Mobile Auth Buttons */}
-            <div className="border-t border-[var(--color-border)] pt-4 pb-3">
+            <div className="border-t border-[var(--card-border)] pt-4 pb-3">
               {!isLoading && (
                 <>
                   {isAuthenticated ? (
                     <div className="space-y-2">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10"
+                        className="w-full justify-start text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 transition-all duration-300"
                         onClick={() => logout()}
                       >
                         <LogOut className="h-4 w-4 mr-2" />
@@ -190,7 +191,7 @@ export function Navbar() {
                       </Button>
                       <Button
                         variant="default"
-                        className="w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white"
+                        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white glow-primary"
                       >
                         <User className="h-4 w-4 mr-2" />
                         Profile
@@ -201,7 +202,7 @@ export function Navbar() {
                       <Link href="/auth/signin" className="block">
                         <Button
                           variant="ghost"
-                          className="w-full justify-start text-[var(--color-foreground)] hover:bg-[var(--color-accent)]/10"
+                          className="w-full justify-start text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 transition-all duration-300"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
                           Sign In
@@ -210,7 +211,7 @@ export function Navbar() {
                       <Link href="/auth/signup" className="block">
                         <Button
                           variant="default"
-                          className="w-full bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-accent)] text-white"
+                          className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white glow-primary"
                           onClick={() => setIsMobileMenuOpen(false)}
                         >
                           Sign Up

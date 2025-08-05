@@ -31,20 +31,20 @@ export default function SignInPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[var(--background)] via-[var(--background-secondary)] to-[var(--background)] flex items-center justify-center p-8 relative overflow-hidden">
+    <div className="min-h-screen bg-[var(--background-primary)] flex items-center justify-center p-8 relative overflow-hidden">
       {/* Background Effects */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-72 h-72 bg-[var(--primary)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-72 h-72 bg-[var(--accent)] rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse delay-1000"></div>
+        <div className="absolute top-20 left-20 w-72 h-72 bg-[var(--accent-primary)] rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse"></div>
+        <div className="absolute bottom-20 right-20 w-72 h-72 bg-[var(--accent-secondary)] rounded-full mix-blend-multiply filter blur-xl opacity-10 animate-pulse delay-1000"></div>
       </div>
 
       {/* Navigation */}
       <nav className="absolute top-8 left-8">
         <Link href="/" className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center glow-primary">
             <span className="text-white font-bold text-sm">P</span>
           </div>
-          <span className="text-lg font-bold text-[var(--foreground)]">
+          <span className="text-lg font-bold text-[var(--cta-text)]">
             Perin
           </span>
         </Link>
@@ -53,7 +53,7 @@ export default function SignInPage() {
       <div className="relative z-10 w-full max-w-md">
         <div className="card p-8 space-y-8">
           <div className="text-center">
-            <div className="w-16 h-16 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-2xl flex items-center justify-center mx-auto mb-6 glow-primary">
               <svg
                 className="w-8 h-8 text-white"
                 fill="none"
@@ -68,7 +68,7 @@ export default function SignInPage() {
                 />
               </svg>
             </div>
-            <h2 className="text-3xl font-bold text-[var(--foreground)] mb-2">
+            <h2 className="heading-lg text-[var(--cta-text)] mb-2">
               Welcome Back
             </h2>
             <p className="text-[var(--foreground-muted)]">
@@ -80,7 +80,7 @@ export default function SignInPage() {
             <div className="space-y-2">
               <label
                 htmlFor="email"
-                className="block text-sm font-semibold text-[var(--foreground)]"
+                className="block text-sm font-semibold text-[var(--cta-text)]"
               >
                 Email Address
               </label>
@@ -90,7 +90,7 @@ export default function SignInPage() {
                 type="email"
                 autoComplete="email"
                 required
-                className="input-field w-full px-4 py-3"
+                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -100,7 +100,7 @@ export default function SignInPage() {
             <div className="space-y-2">
               <label
                 htmlFor="password"
-                className="block text-sm font-semibold text-[var(--foreground)]"
+                className="block text-sm font-semibold text-[var(--cta-text)]"
               >
                 Password
               </label>
@@ -110,7 +110,7 @@ export default function SignInPage() {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="input-field w-full px-4 py-3"
+                className="w-full px-4 py-3 glassmorphism border border-[var(--card-border)] rounded-xl text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/20 focus:border-[var(--accent-primary)]/30 transition-all duration-300"
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -144,7 +144,7 @@ export default function SignInPage() {
               Don&apos;t have an account?{" "}
               <Link
                 href="/auth/signup"
-                className="text-[var(--accent)] hover:text-[var(--accent-light)] font-semibold transition-colors"
+                className="text-[var(--accent-secondary)] hover:text-[var(--accent-primary)] font-semibold transition-colors"
               >
                 Sign up
               </Link>
