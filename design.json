@@ -1,16 +1,137 @@
 {
-  "colors": {
-    "backgroundPrimary": "#0A0A0A",
-    "backgroundSecondary": "#111216",
-    "accentPrimary": "#4C5BFF",
-    "accentSecondary": "#FF7300",
-    "ctaText": "#FFFFFF",
-    "success": "#00FFC2",
-    "error": "#FF4B4B",
-    "glowGradients": [
-      "linear-gradient(135deg, #4C5BFF, #9C27B0)",
-      "linear-gradient(135deg, #FF7300, #FFC107)"
-    ]
+  "themes": {
+    "dark": {
+      "colors": {
+        "backgroundPrimary": "#0A0A0A",
+        "backgroundSecondary": "#111216",
+        "accentPrimary": "#4C5BFF",
+        "accentSecondary": "#FF7300",
+        "ctaText": "#FFFFFF",
+        "success": "#00FFC2",
+        "error": "#FF4B4B",
+        "glowGradients": [
+          "linear-gradient(135deg, #4C5BFF, #9C27B0)",
+          "linear-gradient(135deg, #FF7300, #FFC107)"
+        ]
+      },
+      "components": {
+        "navbar": {
+          "background": "transparent",
+          "blur": true,
+          "textColor": "#FFFFFF",
+          "hoverEffect": "underline or glow"
+        },
+        "hero": {
+          "fullHeight": true,
+          "backgroundEffect": "flare animation",
+          "alignment": "center"
+        },
+        "card": {
+          "background": "glassmorphism",
+          "borderRadius": "16px",
+          "hoverEffect": "glow"
+        },
+        "button": {
+          "shape": "pill",
+          "background": "dark glass",
+          "textColor": "#FFFFFF",
+          "hoverEffect": "neon border"
+        },
+        "media": {
+          "videoShadow": true,
+          "rounded": true
+        },
+        "avatar": {
+          "shape": "circle",
+          "shadow": "soft"
+        }
+      },
+      "effects": {
+        "glassmorphism": {
+          "backdropBlur": "8px",
+          "backgroundOpacity": 0.2
+        },
+        "glow": {
+          "intensity": "medium",
+          "color": "accentPrimary"
+        },
+        "hover": {
+          "transition": "0.3s ease",
+          "brightness": 1.2
+        },
+        "motion": {
+          "scrollFadeIn": true,
+          "parallax": true,
+          "microAnimations": true
+        }
+      }
+    },
+    "light": {
+      "colors": {
+        "backgroundPrimary": "#F8F9FC",
+        "backgroundSecondary": "#FFFFFF",
+        "accentPrimary": "#4C5BFF",
+        "accentSecondary": "#FF7300",
+        "ctaText": "#0A0A0A",
+        "success": "#00C896",
+        "error": "#E53E3E",
+        "glowGradients": [
+          "linear-gradient(135deg, #4C5BFF, #9C27B0)",
+          "linear-gradient(135deg, #FF7300, #FFC107)"
+        ]
+      },
+      "components": {
+        "navbar": {
+          "background": "transparent",
+          "blur": true,
+          "textColor": "#0A0A0A",
+          "hoverEffect": "underline or glow"
+        },
+        "hero": {
+          "fullHeight": true,
+          "backgroundEffect": "subtle flare",
+          "alignment": "center"
+        },
+        "card": {
+          "background": "light glassmorphism",
+          "borderRadius": "16px",
+          "hoverEffect": "subtle glow"
+        },
+        "button": {
+          "shape": "pill",
+          "background": "light glass",
+          "textColor": "#0A0A0A",
+          "hoverEffect": "subtle border"
+        },
+        "media": {
+          "videoShadow": true,
+          "rounded": true
+        },
+        "avatar": {
+          "shape": "circle",
+          "shadow": "soft"
+        }
+      },
+      "effects": {
+        "glassmorphism": {
+          "backdropBlur": "8px",
+          "backgroundOpacity": 0.1
+        },
+        "glow": {
+          "intensity": "low",
+          "color": "accentPrimary"
+        },
+        "hover": {
+          "transition": "0.3s ease",
+          "brightness": 1.1
+        },
+        "motion": {
+          "scrollFadeIn": true,
+          "parallax": true,
+          "microAnimations": true
+        }
+      }
+    }
   },
   "typography": {
     "fontFamily": "Inter, sans-serif",
@@ -46,57 +167,6 @@
       "mobile": "0px",
       "tablet": "768px",
       "desktop": "1024px"
-    }
-  },
-  "components": {
-    "navbar": {
-      "background": "transparent",
-      "blur": true,
-      "textColor": "#FFFFFF",
-      "hoverEffect": "underline or glow"
-    },
-    "hero": {
-      "fullHeight": true,
-      "backgroundEffect": "flare animation",
-      "alignment": "center"
-    },
-    "card": {
-      "background": "glassmorphism",
-      "borderRadius": "16px",
-      "hoverEffect": "glow"
-    },
-    "button": {
-      "shape": "pill",
-      "background": "dark glass",
-      "textColor": "#FFFFFF",
-      "hoverEffect": "neon border"
-    },
-    "media": {
-      "videoShadow": true,
-      "rounded": true
-    },
-    "avatar": {
-      "shape": "circle",
-      "shadow": "soft"
-    }
-  },
-  "effects": {
-    "glassmorphism": {
-      "backdropBlur": "8px",
-      "backgroundOpacity": 0.2
-    },
-    "glow": {
-      "intensity": "medium",
-      "color": "accentPrimary"
-    },
-    "hover": {
-      "transition": "0.3s ease",
-      "brightness": 1.2
-    },
-    "motion": {
-      "scrollFadeIn": true,
-      "parallax": true,
-      "microAnimations": true
     }
   },
   "icons": {

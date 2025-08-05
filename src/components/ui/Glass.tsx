@@ -36,19 +36,19 @@ export function Glass({
   interactive = false,
   ...props
 }: GlassProps) {
-  // Variant configurations
+  // Variant configurations - Theme-aware
   const variants = {
     default: {
-      background: "rgba(17, 18, 22, 0.6)",
-      border: "rgba(255, 255, 255, 0.1)",
+      background: "var(--card-background)",
+      border: "var(--card-border)",
     },
     strong: {
-      background: "rgba(17, 18, 22, 0.8)",
-      border: "rgba(255, 255, 255, 0.15)",
+      background: "var(--card)",
+      border: "var(--border)",
     },
     subtle: {
-      background: "rgba(17, 18, 22, 0.3)",
-      border: "rgba(255, 255, 255, 0.05)",
+      background: "rgba(var(--card-border-rgb), 0.05)",
+      border: "rgba(var(--card-border-rgb), 0.1)",
     },
     frosted: {
       background: "rgba(255, 255, 255, 0.1)",

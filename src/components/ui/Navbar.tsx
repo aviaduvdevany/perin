@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "./Logo";
 import { Glass } from "./Glass";
+import { ThemeToggle } from "./ThemeToggle";
 import {
   NavigationMenu,
   NavigationMenuItem,
@@ -15,7 +16,15 @@ import {
   navigationMenuTriggerStyle,
 } from "./navigation-menu";
 import { Button } from "./button";
-import { Home, LayoutDashboard, User, LogOut, Menu, X } from "lucide-react";
+import {
+  Home,
+  LayoutDashboard,
+  User,
+  LogOut,
+  Menu,
+  X,
+  Palette,
+} from "lucide-react";
 
 export function Navbar() {
   const { isAuthenticated, isLoading, logout } = useAuth();
@@ -35,6 +44,12 @@ export function Navbar() {
       icon: LayoutDashboard,
       description: "Your productivity hub",
       requiresAuth: true,
+    },
+    {
+      name: "Theme Demo",
+      href: "/theme-demo",
+      icon: Palette,
+      description: "Theme system showcase",
     },
   ];
 
@@ -65,25 +80,27 @@ export function Navbar() {
 
                   return (
                     <NavigationMenuItem key={item.name}>
-                      <Link href={item.href} passHref>
-                        <NavigationMenuLink
-                          className={cn(
-                            navigationMenuTriggerStyle(),
-                            "flex items-center gap-2 transition-all duration-300",
-                            isActive(item.href)
-                              ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] glow-primary"
-                              : "text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]"
-                          )}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          {item.name}
-                        </NavigationMenuLink>
-                      </Link>
+                      <NavigationMenuLink
+                        href={item.href}
+                        className={cn(
+                          navigationMenuTriggerStyle(),
+                          "flex items-center gap-2 transition-all duration-300",
+                          isActive(item.href)
+                            ? "bg-[var(--accent-primary)]/10 text-[var(--accent-primary)] glow-primary"
+                            : "text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]"
+                        )}
+                      >
+                        <item.icon className="h-4 w-4" />
+                        {item.name}
+                      </NavigationMenuLink>
                     </NavigationMenuItem>
                   );
                 })}
               </NavigationMenuList>
             </NavigationMenu>
+
+            {/* Theme Toggle */}
+            <ThemeToggle size="md" />
 
             {/* Auth Buttons */}
             <div className="flex items-center space-x-3">
@@ -183,6 +200,13 @@ export function Navbar() {
                   </Link>
                 );
               })}
+            </div>
+
+            {/* Mobile Theme Toggle */}
+            <div className="border-t border-[var(--card-border)] pt-4 pb-3">
+              <div className="px-3 py-2 flex justify-center">
+                <ThemeToggle size="md" />
+              </div>
             </div>
 
             {/* Mobile Auth Buttons */}

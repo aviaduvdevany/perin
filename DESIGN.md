@@ -8,8 +8,9 @@
 
 ---
 
-### 2. **Color Palette**
+### 2. **Color Palette & Theme System**
 
+#### **Dark Theme**
 * **Primary Background**: #0A0A0A (Jet Black)
 * **Secondary Background**: #111216, with radial gradients and glows.
 * **Primary Accent**: #4C5BFF (Indigo Blue Glow)
@@ -18,6 +19,22 @@
 * **Success/Positive Accent**: #00FFC2
 * **Error/Negative Accent**: #FF4B4B
 * **Flares & Lights**: Blue-Purple-Rose-Orange neon gradients
+
+#### **Light Theme**
+* **Primary Background**: #F8F9FC (Light Gray)
+* **Secondary Background**: #FFFFFF (Pure White)
+* **Primary Accent**: #4C5BFF (Indigo Blue - Same as dark)
+* **Secondary Accent**: #FF7300 (Orange - Same as dark)
+* **Call-To-Action**: #0A0A0A text on light buttons with subtle borders
+* **Success/Positive Accent**: #00C896 (Darker green for better contrast)
+* **Error/Negative Accent**: #E53E3E (Darker red for better contrast)
+* **Effects**: Subtle glows and soft shadows
+
+#### **Theme Switching**
+* **System Theme**: Automatically follows user's OS preference
+* **Manual Override**: Users can choose light, dark, or system
+* **Smooth Transitions**: 300ms color transitions for all theme changes
+* **Persistent Storage**: Theme preference saved in localStorage
 
 ---
 
