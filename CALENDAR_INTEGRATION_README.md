@@ -679,6 +679,8 @@ NEXTAUTH_SECRET=your-secret-key-here
 NEXTAUTH_URL=http://localhost:3000
 ```
 
+**⚠️ Important Note:** The `GOOGLE_CALENDAR_REDIRECT_URI` is **required** for calendar integration. If not set, the system will fall back to the Gmail redirect URI, which will cause the OAuth flow to fail.
+
 ### Production Configuration
 
 ```bash
@@ -927,6 +929,24 @@ await delay(1000); // Wait 1 second before retry
 - Add your email as a test user in Google Cloud Console
 - Check that the app is in "Testing" mode and you're a test user
 
+#### 6. "Calendar not connected" Error
+
+**Cause**: OAuth2 flow redirecting to wrong callback URL
+**Solution**:
+
+- Ensure `GOOGLE_CALENDAR_REDIRECT_URI` is set in `.env.local`
+- Check that the redirect URI in Google Cloud Console matches exactly
+- Verify the callback is redirecting to `/onboarding?calendar=connected` not `/dashboard`
+
+#### 7. Integration Not Stored in Database
+
+**Cause**: Database operation failing or callback not completing
+**Solution**:
+
+- Check server logs for database errors
+- Verify database connection and `user_integrations` table exists
+- Ensure user is authenticated during the OAuth callback
+
 ### Debug Mode
 
 Enable debug logging for Calendar operations:
@@ -992,6 +1012,7 @@ if (process.env.DEBUG_CALENDAR) {
 - **v1.3.0**: Added comprehensive documentation
 - **v1.4.0**: Integrated with service layer architecture
 - **v1.5.0**: Enhanced smart context loading and performance
+- **v1.6.0**: Fixed OAuth2 redirect URI configuration and onboarding flow integration
 
 ---
 

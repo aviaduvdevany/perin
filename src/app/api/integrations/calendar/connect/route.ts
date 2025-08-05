@@ -1,11 +1,10 @@
-import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import { generateCalendarAuthUrl } from "@/lib/integrations/calendar/auth";
 import { ErrorResponses } from "@/lib/utils/error-handlers";
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
