@@ -416,15 +416,15 @@ body {
   }
 }
 
-/* Light theme - Clean and modern aesthetic */
+/* Light theme - Simplified for the futuristic dark aesthetic */
 .light {
   --background-primary: #f8f9fc;
   --background-secondary: #ffffff;
   --accent-primary: #4c5bff;
   --accent-secondary: #ff7300;
   --cta-text: #0a0a0a;
-  --success: #00c896;
-  --error: #e53e3e;
+  --success: #00ffc2;
+  --error: #ff4b4b;
 
   --background: var(--background-primary);
   --foreground: var(--cta-text);
@@ -449,9 +449,6 @@ body {
   --card-border: rgba(10, 10, 10, 0.1);
   --foreground-muted: rgba(10, 10, 10, 0.7);
   --foreground-subtle: rgba(10, 10, 10, 0.5);
-
-  /* Light theme specific adjustments */
-  --card-border-rgb: 10, 10, 10;
 }
 
 .dark {
@@ -486,9 +483,6 @@ body {
   --card-border: rgba(255, 255, 255, 0.1);
   --foreground-muted: rgba(255, 255, 255, 0.7);
   --foreground-subtle: rgba(255, 255, 255, 0.5);
-
-  /* Dark theme specific adjustments */
-  --card-border-rgb: 255, 255, 255;
 }
 
 @layer base {

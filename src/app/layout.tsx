@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Navbar } from "@/components/ui/Navbar";
 
 export const metadata: Metadata = {
@@ -24,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -38,12 +37,10 @@ export default function RootLayout({
         />
       </head>
       <body className="antialiased">
-        <ThemeProvider>
-          <SessionProvider>
-            <Navbar />
-            <main>{children}</main>
-          </SessionProvider>
-        </ThemeProvider>
+        <SessionProvider>
+          <Navbar />
+          <main>{children}</main>
+        </SessionProvider>
       </body>
     </html>
   );
