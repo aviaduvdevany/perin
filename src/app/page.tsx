@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { GlassCard, GlassPanel } from "@/components/ui/Glass";
+import Hero from "@/components/homepage/Hero";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -22,49 +23,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <main className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] px-8 text-center">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <h1 className="heading-xl text-[var(--cta-text)] leading-tight">
-            Meet Your <span className="gradient-text-primary">Perin</span>
-          </h1>
-
-          <p className="body-lg text-[var(--foreground-muted)] max-w-2xl mx-auto leading-relaxed">
-            Your AI-powered productivity assistant. Delegate smarter, work
-            seamlessly, and unlock your full potential with intelligent
-            automation.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-            {!isLoading && (
-              <>
-                {isAuthenticated ? (
-                  <Link
-                    href="/dashboard"
-                    className="btn-gradient text-lg px-8 py-4 glow-primary"
-                  >
-                    Go to Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/auth/signin"
-                      className="btn-gradient text-lg px-8 py-4 glow-primary"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/auth/signup"
-                      className="px-8 py-4 text-lg font-semibold text-[var(--cta-text)] border-2 border-[var(--accent-primary)] rounded-full hover:bg-[var(--accent-primary)]/10 transition-all duration-300 hover:glow-primary"
-                    >
-                      Sign Up
-                    </Link>
-                  </>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </main>
+      <Hero isLoading={isLoading} isAuthenticated={isAuthenticated} />
 
       {/* Features Section */}
       <section id="features" className="relative z-10 py-20 px-8">
