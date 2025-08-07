@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { connectCalendarService } from "../../app/services/integrations";
+import { connectIntegrationService } from "../../app/services/integrations";
 
 interface CalendarIntegrationProps {
   className?: string;
@@ -21,7 +21,7 @@ export default function CalendarIntegration({
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      const response = await connectCalendarService();
+      const response = await connectIntegrationService('calendar');
       const { authUrl } = response;
 
       if (authUrl) {

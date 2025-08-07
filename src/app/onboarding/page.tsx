@@ -5,10 +5,7 @@ import { motion } from "framer-motion";
 import Stepper, { Step } from "@/components/ui/Stepper";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import {
-  connectGmailService,
-  connectCalendarService,
-} from "@/app/services/integrations";
+import { connectIntegrationService } from "@/app/services/integrations";
 import { updateUserProfileService } from "@/app/services/users";
 
 interface OnboardingData {
@@ -143,7 +140,7 @@ export default function OnboardingPage() {
   const connectGmail = async () => {
     setGmailConnecting(true);
     try {
-      const response = await connectGmailService();
+      const response = await connectIntegrationService("gmail");
       console.log("Gmail connect response:", response);
 
       const { authUrl } = response;
@@ -166,7 +163,7 @@ export default function OnboardingPage() {
   const connectCalendar = async () => {
     setCalendarConnecting(true);
     try {
-      const response = await connectCalendarService();
+      const response = await connectIntegrationService("calendar");
       console.log("Calendar connect response:", response);
 
       const { authUrl } = response;

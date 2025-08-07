@@ -98,6 +98,7 @@ export interface LangGraphChatState {
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
   };
+  // Legacy context fields for backward compatibility
   emailContext: {
     recentEmails?: Array<{
       from: string;
@@ -133,6 +134,8 @@ export interface LangGraphChatState {
     } | null;
     hasUpcomingEvents?: boolean;
   };
+  // New unified integrations field
+  integrations?: Record<string, unknown>;
 }
 
 // Gmail integration API types

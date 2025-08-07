@@ -1,7 +1,6 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
-import { gmailNode } from "./nodes/gmail-node";
-import { calendarNode } from "./nodes/calendar-node";
+import { multiIntegrationNode } from "./nodes/integration-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import type { ChatMessage, PerinChatResponse } from "@/types/ai";
 
@@ -46,17 +45,16 @@ export const executePerinChatWithLangGraph = async (
           const memoryResult = await memoryNode(initialState);
           const stateWithMemory = { ...initialState, ...memoryResult };
 
-          // Step 2: Load Gmail context (if relevant)
-          const gmailResult = await gmailNode(stateWithMemory);
-          const stateWithGmail = { ...stateWithMemory, ...gmailResult };
+          // Step 2: Load all relevant integration contexts
+          const integrationResult = await multiIntegrationNode(stateWithMemory);
+          const stateWithIntegrations = {
+            ...stateWithMemory,
+            ...integrationResult,
+          };
 
-          // Step 3: Load Calendar context (if relevant)
-          const calendarResult = await calendarNode(stateWithGmail);
-          const stateWithCalendar = { ...stateWithGmail, ...calendarResult };
-
-          // Step 4: Call OpenAI with real-time streaming
+          // Step 3: Call OpenAI with real-time streaming and error handling
           const openaiClient = initializeOpenAI();
-          const systemPrompt = buildSystemPrompt(stateWithCalendar);
+          const systemPrompt = buildSystemPrompt(stateWithIntegrations);
 
           // Prepare messages with system prompt
           const messagesWithSystem: ChatMessage[] = [
@@ -64,17 +62,28 @@ export const executePerinChatWithLangGraph = async (
             ...messages,
           ];
 
-          // Execute OpenAI chat completion with streaming
-          const response = await openaiClient.chat.completions.create({
-            model: "gpt-4",
-            messages: messagesWithSystem.map((msg) => ({
-              role: msg.role,
-              content: msg.content,
-            })),
-            stream: true,
-            temperature: 0.7,
-            max_tokens: 1000,
-          });
+          // Import error handling utilities
+          const { withRetry, fallbackToSimpleResponse } = await import(
+            "@/lib/ai/resilience/error-handler"
+          );
+
+          // Execute OpenAI chat completion with streaming and retry logic
+          const response = await withRetry(
+            async () => {
+              return await openaiClient.chat.completions.create({
+                model: "gpt-4",
+                messages: messagesWithSystem.map((msg) => ({
+                  role: msg.role,
+                  content: msg.content,
+                })),
+                stream: true,
+                temperature: 0.7,
+                max_tokens: 1000,
+              });
+            },
+            `langgraph-openai-${userId}`,
+            { maxRetries: 3, baseDelayMs: 1000, circuitBreaker: true }
+          );
 
           // Stream chunks as they arrive
           for await (const chunk of response) {
@@ -87,7 +96,25 @@ export const executePerinChatWithLangGraph = async (
           controller.close();
         } catch (error) {
           console.error("Error in streaming chat execution:", error);
-          controller.error(error);
+
+          try {
+            // Provide graceful fallback response
+            const { fallbackToSimpleResponse } = await import(
+              "@/lib/ai/resilience/error-handler"
+            );
+            const lastUserMessage =
+              messages.findLast((msg) => msg.role === "user")?.content || "";
+            const fallbackResponse = await fallbackToSimpleResponse(
+              lastUserMessage
+            );
+
+            // Stream the fallback response
+            controller.enqueue(new TextEncoder().encode(fallbackResponse));
+            controller.close();
+          } catch (fallbackError) {
+            console.error("Error in fallback response:", fallbackError);
+            controller.error(error);
+          }
         }
       },
     });

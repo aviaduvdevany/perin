@@ -1,31 +1,50 @@
 import internalApiRequest from "./internalApi";
 import { HTTPMethod } from "@/types/api";
 import type { CreateEventRequest } from "@/types/calendar";
+import type { IntegrationType } from "@/types/integrations";
 
-export const connectGmailService = async () => {
+/**
+ * Unified integration connection service
+ */
+export const connectIntegrationService = async (type: IntegrationType) => {
   try {
     const response = await internalApiRequest(
-      "integrations/gmail/connect",
-      HTTPMethod.POST
+      "integrations/connect",
+      HTTPMethod.POST,
+      { type }
     );
     return response;
   } catch (error) {
-    console.error("Error connecting Gmail:", error);
+    console.error(`Error connecting ${type}:`, error);
     throw error;
   }
 };
 
-export const connectCalendarService = async () => {
+/**
+ * Get available integrations
+ */
+export const getAvailableIntegrationsService = async () => {
   try {
     const response = await internalApiRequest(
-      "integrations/calendar/connect",
-      HTTPMethod.POST
+      "integrations/connect",
+      HTTPMethod.GET
     );
     return response;
   } catch (error) {
-    console.error("Error connecting Calendar:", error);
+    console.error("Error getting available integrations:", error);
     throw error;
   }
+};
+
+/**
+ * Legacy service functions for backward compatibility
+ */
+export const connectGmailService = async () => {
+  return connectIntegrationService('gmail');
+};
+
+export const connectCalendarService = async () => {
+  return connectIntegrationService('calendar');
 };
 
 export const fetchCalendarEventsService = async (params?: {

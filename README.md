@@ -37,11 +37,11 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 
 Perin is an AI-powered digital delegate that helps users manage emails, schedule meetings, and coordinate tasks. Built with Next.js, OpenAI GPT-4, and PostgreSQL, it features:
 
-- **Intelligent AI Assistant**: Context-aware conversations with persistent memory
-- **Gmail Integration**: OAuth2 authentication with smart email context loading
-- **LangGraph Workflow**: Multi-step reasoning and tool integration
-- **Service Layer Architecture**: Clean separation between UI and API layers
-- **Type Safety**: Full TypeScript coverage with NextAuth integration
+- **Intelligent AI Assistant**: Context-aware conversations with semantic memory management
+- **Unified Integrations**: Single framework for Gmail, Calendar, and future services
+- **Production-Ready Error Handling**: Retry logic, circuit breakers, and graceful degradation
+- **LangGraph Workflow**: Multi-step reasoning with parallel integration loading
+- **Functional Programming**: Clean, composable architecture with type safety
 
 ## 🏗️ Architecture
 
@@ -54,12 +54,12 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
 ├─────────────────────────────────────────────────────────────┤
-│  Routes: /api/ai/chat, /api/integrations/gmail/*, /api/integrations/calendar/* │
+│  Routes: /api/ai/*, /api/integrations/* (unified endpoints)     │
 │  Authentication: NextAuth.js with PostgreSQL              │
 ├─────────────────────────────────────────────────────────────┤
 │                  Business Logic Layer                       │
 ├─────────────────────────────────────────────────────────────┤
-│  LangGraph Workflow: Memory → Gmail → Calendar → OpenAI → Response │
+│  LangGraph Workflow: Memory → Integrations → OpenAI → Response (with error handling) │
 │  Smart Queries: Direct database execution with type safety │
 ├─────────────────────────────────────────────────────────────┤
 │                  Database Layer (PostgreSQL)               │
@@ -78,19 +78,13 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 - **Dynamic Prompts**: Personalized system prompts based on user preferences
 - **Intent Classification**: Smart routing for different types of requests
 
-### 📧 Gmail Integration
+### 🔗 Unified Integration System
 
-- **OAuth2 Authentication**: Secure Gmail API access
-- **Smart Context Loading**: Only loads emails when conversationally relevant
-- **Email Analysis**: Summarize, categorize, and respond to emails
-- **Token Management**: Automatic refresh and secure storage
-
-### 📅 Calendar Integration
-
-- **OAuth2 Authentication**: Secure Google Calendar API access
-- **Smart Context Loading**: Only loads calendar data when conversationally relevant
-- **Event Management**: Read events, create appointments, and check availability
-- **Token Management**: Automatic refresh and secure storage
+- **Single Framework**: Handles Gmail, Calendar, Slack, Notion, and future services
+- **Smart Context Loading**: Only loads relevant data based on conversation context
+- **Parallel Processing**: Multiple integrations loaded simultaneously
+- **OAuth2 Management**: Centralized token handling with automatic refresh
+- **Type-Safe**: Full TypeScript coverage with proper error handling
 
 ### 🧠 LangGraph Workflow
 
@@ -101,19 +95,17 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 
 ### 🛡️ Security & Performance
 
-- **Type Safety**: Full TypeScript coverage
-- **Authentication**: NextAuth.js with JWT tokens
-- **Database Security**: Parameterized queries, connection pooling
-- **Error Handling**: Graceful error recovery and logging
+- **Production-Ready Error Handling**: Retry logic, circuit breakers, graceful degradation
+- **Database Resilience**: Connection pooling, query retries, proper timeouts
+- **Rate Limiting**: Per-user API limits with security headers
+- **Type Safety**: Full TypeScript coverage with functional programming principles
+- **Authentication**: NextAuth.js with secure session management
 
 ## 📚 Documentation
 
 ### Core Documentation
 
-- **[AI Integration](./AI_INTEGRATION_README.md)** - OpenAI integration, memory management, and streaming
-- **[Gmail Integration](./GMAIL_INTEGRATION_README.md)** - OAuth2 flow, email context, and API endpoints
-- **[Calendar Integration](./CALENDAR_INTEGRATION_README.md)** - OAuth2 flow, calendar management, and API endpoints
-- **[LangGraph Integration](./LANGGRAPH_INTEGRATION_README.md)** - Workflow orchestration and multi-step reasoning
+- **[AI Integration](./AI_INTEGRATION_README.md)** - Complete AI system with unified integrations, error handling, and memory management
 - **[Authentication](./AUTH_README.md)** - NextAuth.js setup, user management, and security
 
 ### Development Documentation
@@ -147,8 +139,7 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 
 ### Integrations
 
-- **Gmail API** - Email management and context
-- **Google Calendar API** - Calendar management and scheduling
+- **Unified Integrations** - Gmail, Calendar, and future services through single framework
 - **Google OAuth2** - Secure authentication
 - **Vercel** - Deployment and hosting
 
@@ -201,13 +192,9 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
    NEXTAUTH_SECRET=your-secret-key
    NEXTAUTH_URL=http://localhost:3000
 
-   # Gmail Integration
+      # Google OAuth2 (for Gmail and Calendar integrations)
    GOOGLE_CLIENT_ID=your-google-client-id
    GOOGLE_CLIENT_SECRET=your-google-client-secret
-   GOOGLE_REDIRECT_URI=http://localhost:3000/api/integrations/gmail/callback
-   
-   # Calendar Integration
-   GOOGLE_CALENDAR_REDIRECT_URI=http://localhost:3000/api/integrations/calendar/callback
    ```
 
 4. **Set up the database**
@@ -314,8 +301,7 @@ npm run test:watch
 ```bash
 # Update URLs for production domain
 NEXTAUTH_URL=https://your-domain.com
-GOOGLE_REDIRECT_URI=https://your-domain.com/api/integrations/gmail/callback
-GOOGLE_CALENDAR_REDIRECT_URI=https://your-domain.com/api/integrations/calendar/callback
+# Redirect URIs are handled automatically by the unified system
 NEXT_PUBLIC_API_URL=https://your-domain.com
 ```
 
@@ -354,6 +340,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **v1.4.0**: Implemented service layer architecture
 - **v1.5.0**: Enhanced documentation and type safety
 - **v1.6.0**: Fixed calendar integration OAuth2 flow and onboarding integration
+- **v2.0.0**: Complete unified integration system with functional error handling
 
 ---
 

@@ -27,6 +27,7 @@ export const buildSystemPrompt = (state: LangGraphChatState): string => {
     user,
     emailContext,
     calendarContext,
+    integrations,
   } = state;
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
@@ -101,7 +102,17 @@ Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}`
       : "No recent calendar context available"
   }
 
-Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.`;
+Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.
+
+${
+  integrations
+    ? `Additional Integration Contexts: ${JSON.stringify(
+        integrations,
+        null,
+        2
+      )}`
+    : ""
+}`;
 
   return basePrompt;
 };
@@ -126,17 +137,27 @@ export const openaiNode = async (
       ...state.messages,
     ];
 
-    // Execute OpenAI chat completion
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-4",
-      messages: messages.map((msg) => ({
-        role: msg.role,
-        content: msg.content,
-      })),
-      stream: true,
-      temperature: 0.7,
-      max_tokens: 1000,
-    });
+    // Execute OpenAI chat completion with retry and circuit breaker
+    const { withRetry, fallbackToSimpleResponse } = await import(
+      "@/lib/ai/resilience/error-handler"
+    );
+
+    const response = await withRetry(
+      async () => {
+        return await openaiClient.chat.completions.create({
+          model: "gpt-4",
+          messages: messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+          })),
+          stream: true,
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+      },
+      `openai-chat-${state.userId}`,
+      { maxRetries: 3, baseDelayMs: 1000, circuitBreaker: true }
+    );
 
     // Collect streaming response
     let fullResponse = "";
@@ -158,8 +179,19 @@ export const openaiNode = async (
     };
   } catch (error) {
     console.error("Error in OpenAI node:", error);
+
+    // Provide graceful degradation
+    const { fallbackToSimpleResponse } = await import(
+      "@/lib/ai/resilience/error-handler"
+    );
+    const lastUserMessage =
+      state.messages.findLast((msg) => msg.role === "user")?.content || "";
+    const fallbackResponse = await fallbackToSimpleResponse(lastUserMessage);
+
     return {
-      currentStep: "openai_error",
+      currentStep: "openai_error_with_fallback",
+      openaiResponse: fallbackResponse,
+      streamChunks: [fallbackResponse],
       error: error instanceof Error ? error.message : "OpenAI API call failed",
     };
   }
