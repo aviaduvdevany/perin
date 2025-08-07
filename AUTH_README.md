@@ -24,7 +24,7 @@ The authentication system is built with a layered architecture:
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (React/Next.js)                │
 ├─────────────────────────────────────────────────────────────┤
-│  Pages: /auth/signin, /auth/signup, /dashboard             │
+│  Pages: /auth/signin, /auth/signup, /chat             │
 │  Components: SessionProvider, useAuth hook                 │
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
@@ -287,8 +287,8 @@ export default withAuth(
           return !!token;
         }
 
-        // Protect dashboard routes
-        if (req.nextUrl.pathname.startsWith("/dashboard")) {
+        // Protect chat routes
+        if (req.nextUrl.pathname.startsWith("/chat")) {
           return !!token;
         }
 
@@ -306,7 +306,7 @@ export default withAuth(
 | `/api/auth/*`  | Public           | Authentication endpoints |
 | `/api/health`  | Public           | Health check             |
 | `/api/users/*` | Authenticated    | User management          |
-| `/dashboard/*` | Authenticated    | Dashboard pages          |
+| `/chat/*` | Authenticated    | Chat pages          |
 | `/auth/*`      | Public           | Auth pages               |
 
 ## 🎨 Frontend Components
@@ -373,7 +373,7 @@ export function useAuth() {
 - Link to sign in page
 - Client-side validation
 
-#### Dashboard Page (`/dashboard`)
+#### Chat Page (`/chat`)
 
 - Protected route requiring authentication
 - User information display
@@ -596,7 +596,7 @@ function MyComponent() {
   const handleLogin = async () => {
     const result = await login("user@example.com", "password123");
     if (result.success) {
-      // Redirect to dashboard
+      // Redirect to chat
     }
   };
 
@@ -765,7 +765,7 @@ src/
 │   ├── auth/
 │   │   ├── signin/page.tsx               # Sign in page
 │   │   └── signup/page.tsx               # Sign up page
-│   ├── dashboard/page.tsx                # Protected dashboard
+│   ├── chat/page.tsx                # Protected chat interface
 │   └── page.tsx                          # Home page
 ├── components/
 │   └── providers/

@@ -23,7 +23,7 @@ export default function SignInPage() {
     const result = await login(email, password);
 
     if (result.success) {
-      router.push("/dashboard");
+      router.push("/chat");
     } else {
       setError(result.error || "Login failed");
     }

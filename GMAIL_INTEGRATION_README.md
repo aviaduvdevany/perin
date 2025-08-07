@@ -175,7 +175,7 @@ curl -X POST http://localhost:3000/api/integrations/gmail/connect \
 - `code` - Authorization code from Google
 - `scope` - Granted OAuth2 scopes
 
-**Response**: Redirects to dashboard with success/error status
+**Response**: Redirects to chat with success/error status
 
 **Example URL**:
 

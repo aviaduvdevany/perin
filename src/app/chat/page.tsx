@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { PerinChat } from "@/components/PerinChat";
 
-export default function DashboardPage() {
+export default function ChatPage() {
   const { session, isAuthenticated, isLoading, logout } = useAuth();
   const router = useRouter();
   const [perinStatus, setPerinStatus] = useState<

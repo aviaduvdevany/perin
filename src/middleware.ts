@@ -2,7 +2,7 @@ import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
 
 const publicRoutes = ["/api/health"];
-const protectedRoutes = ["/dashboard", "/onboarding"];
+const protectedRoutes = ["/chat", "/onboarding"];
 const authRoutes = ["/api/auth/"];
 
 const isPublicRoute = (path: string) => {
@@ -59,5 +59,5 @@ export default withAuth(
 );
 
 export const config = {
-  matcher: ["/api/:path*", "/dashboard/:path*", "/onboarding/:path*"],
+  matcher: ["/api/:path*", "/chat/:path*", "/onboarding/:path*"],
 };

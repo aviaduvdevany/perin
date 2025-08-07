@@ -1,15 +1,11 @@
 import React from "react";
+import Link from "next/link";
 import { Button } from "../ui/button";
 import { ArrowRight } from "lucide-react";
 import Squares from "../backgrounds/Squares";
 import PerinMessage from "./PerinMessage";
 
 export default function Hero({
-  isLoading,
-  isAuthenticated,
-}: {
-  isLoading: boolean;
-  isAuthenticated: boolean;
 }) {
   return (
     <main className="relative z-10 flex flex-col justify-center min-h-[90vh] max-w-[76rem] mx-auto gap-4">
@@ -28,24 +24,11 @@ export default function Hero({
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 pt-8">
-          {!isLoading && (
-            <>
-              {isAuthenticated ? (
-                <Button className="text-sm w-60 h-10 bg-gray-50/90 uppercase rounded-xl border-1 border-orange-300/80 cursor-pointer">
-                  Go to Dashboard <ArrowRight className="w-4 h-4" />
-                </Button>
-              ) : (
-                <>
-                  <Button className="text-sm px-8 py-4 glow-primary uppercase">
-                    Sign In
-                  </Button>
-                  <Button className="text-sm px-8 py-4 glow-primary uppercase">
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </>
-          )}
+          <Link href="/chat">
+            <Button className="text-sm w-60 h-10 bg-gray-50/90 uppercase rounded-xl border-1 border-orange-300/80 cursor-pointer">
+              Go to Chat <ArrowRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="flex w-full justify-center">

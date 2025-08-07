@@ -180,7 +180,7 @@ curl -X POST http://localhost:3000/api/integrations/calendar/connect \
 - `code` - Authorization code from Google
 - `scope` - Granted OAuth2 scopes
 
-**Response**: Redirects to dashboard with success/error status
+**Response**: Redirects to chat with success/error status
 
 **Example URL**:
 
@@ -936,7 +936,7 @@ await delay(1000); // Wait 1 second before retry
 
 - Ensure `GOOGLE_CALENDAR_REDIRECT_URI` is set in `.env.local`
 - Check that the redirect URI in Google Cloud Console matches exactly
-- Verify the callback is redirecting to `/onboarding?calendar=connected` not `/dashboard`
+- Verify the callback is redirecting to `/onboarding?calendar=connected` not `/chat`
 
 #### 7. Integration Not Stored in Database
 

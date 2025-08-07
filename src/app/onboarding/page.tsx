@@ -197,7 +197,7 @@ export default function OnboardingPage() {
       });
 
       if (response) {
-        router.push("/dashboard");
+        router.push("/chat");
       }
     } catch (error) {
       console.error("Error completing onboarding:", error);

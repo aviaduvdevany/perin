@@ -49,7 +49,7 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 ┌─────────────────────────────────────────────────────────────┐
 │                    Frontend (React/Next.js)                │
 ├─────────────────────────────────────────────────────────────┤
-│  Components: PerinChat, Dashboard, Onboarding             │
+│  Components: PerinChat, Chat, Onboarding             │
 │  Service Layer: users.ts, integrations.ts, ai.ts          │
 ├─────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                     │
@@ -236,7 +236,7 @@ src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
 │   ├── auth/              # Authentication pages
-│   ├── dashboard/         # Protected dashboard
+│   ├── chat/             # Protected chat interface
 │   ├── onboarding/        # User onboarding flow
 │   └── services/          # Service layer (API abstraction)
 ├── components/            # Reusable React components

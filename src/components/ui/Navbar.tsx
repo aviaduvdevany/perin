@@ -30,8 +30,8 @@ export function Navbar() {
       description: "Welcome to Perin",
     },
     {
-      name: "Dashboard",
-      href: "/dashboard",
+      name: "Chat",
+      href: "/chat",
       icon: LayoutDashboard,
       description: "Your productivity hub",
       requiresAuth: true,

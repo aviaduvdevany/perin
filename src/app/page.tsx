@@ -23,7 +23,7 @@ export default function Home() {
       </div>
 
       {/* Hero Section */}
-      <Hero isLoading={isLoading} isAuthenticated={isAuthenticated} />
+      <Hero />
 
       {/* Features Section */}
       <section id="features" className="relative z-10 py-20 px-8">
