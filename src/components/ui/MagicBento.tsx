@@ -8,6 +8,8 @@ export interface BentoCardProps {
   label?: string;
   textAutoHide?: boolean;
   disableAnimations?: boolean;
+  imageUrl?: string;
+  imageAlt?: string;
 }
 
 export interface BentoProps {
@@ -32,39 +34,56 @@ const MOBILE_BREAKPOINT = 768;
 const cardData: BentoCardProps[] = [
   {
     color: "#060010",
-    title: "Analytics",
-    description: "Track user behavior",
-    label: "Insights",
-  },
-  {
-    color: "#060010",
-    title: "Dashboard",
-    description: "Centralized data view",
-    label: "Overview",
-  },
-  {
-    color: "#060010",
-    title: "Collaboration",
-    description: "Work together seamlessly",
-    label: "Teamwork",
-  },
-  {
-    color: "#060010",
-    title: "Automation",
-    description: "Streamline workflows",
+    title: "Keyboard shortcuts",
+    description: "Work efficiently with instant access to common actions.",
     label: "Efficiency",
+    imageUrl: "/keyboard-bg.jpg", // You'll need to add this image
+    imageAlt: "Keyboard with glowing keys",
   },
   {
     color: "#060010",
-    title: "Integration",
-    description: "Connect favorite tools",
-    label: "Connectivity",
+    title: "Team Planner",
+    description:
+      "Keep track of the bigger picture by viewing all individual tasks in one centralized team calendar.",
+    label: "Collaboration",
+    imageUrl: "/team-planner-bg.jpg", // You'll need to add this image
+    imageAlt: "Team planning interface",
   },
   {
     color: "#060010",
-    title: "Security",
-    description: "Enterprise-grade protection",
-    label: "Protection",
+    title: "Time-blocking",
+    description:
+      "Transform daily tasks into structured time blocks for focused productivity.",
+    label: "Productivity",
+    imageUrl: "/time-blocking-bg.jpg", // You'll need to add this image
+    imageAlt: "Time blocking calendar",
+  },
+  {
+    color: "#060010",
+    title: "Notifications",
+    description:
+      "Keep up to date with any changes by receiving instant notifications.",
+    label: "Updates",
+    imageUrl: "/notifications-bg.jpg", // You'll need to add this image
+    imageAlt: "Notification bell with badge",
+  },
+  {
+    color: "#060010",
+    title: "Notifications",
+    description:
+      "Keep up to date with any changes by receiving instant notifications.",
+    label: "Updates",
+    imageUrl: "/notifications-bg.jpg", // You'll need to add this image
+    imageAlt: "Notification bell with badge",
+  },
+  {
+    color: "#060010",
+    title: "Notifications",
+    description:
+      "Keep up to date with any changes by receiving instant notifications.",
+    label: "Updates",
+    imageUrl: "/notifications-bg.jpg", // You'll need to add this image
+    imageAlt: "Notification bell with badge",
   },
 ];
 
@@ -489,8 +508,8 @@ const GlobalSpotlight: React.FC<{
         minDistance <= proximity
           ? 0.8
           : minDistance <= fadeDistance
-            ? ((fadeDistance - minDistance) / (fadeDistance - proximity)) * 0.8
-            : 0;
+          ? ((fadeDistance - minDistance) / (fadeDistance - proximity)) * 0.8
+          : 0;
 
       gsap.to(spotlightRef.current, {
         opacity: targetOpacity,
@@ -531,7 +550,7 @@ const BentoCardGrid: React.FC<{
   gridRef?: React.RefObject<HTMLDivElement | null>;
 }> = ({ children, gridRef }) => (
   <div
-    className="bento-section grid gap-2 p-3 max-w-[54rem] select-none relative"
+    className="bento-section w-full h-full select-none relative"
     style={{ fontSize: "clamp(1rem, 0.9rem + 0.5vw, 1.5rem)" }}
     ref={gridRef}
   >
@@ -746,12 +765,16 @@ const MagicBento: React.FC<BentoProps> = ({
                   </div>
                   <div className="card__content flex flex-col relative text-white">
                     <h3
-                      className={`card__title font-normal text-base m-0 mb-1 ${textAutoHide ? "text-clamp-1" : ""}`}
+                      className={`card__title font-normal text-base m-0 mb-1 ${
+                        textAutoHide ? "text-clamp-1" : ""
+                      }`}
                     >
                       {card.title}
                     </h3>
                     <p
-                      className={`card__description text-xs leading-5 opacity-90 ${textAutoHide ? "text-clamp-2" : ""}`}
+                      className={`card__description text-xs leading-5 opacity-90 ${
+                        textAutoHide ? "text-clamp-2" : ""
+                      }`}
                     >
                       {card.description}
                     </p>
@@ -880,12 +903,16 @@ const MagicBento: React.FC<BentoProps> = ({
                 </div>
                 <div className="card__content flex flex-col relative text-white">
                   <h3
-                    className={`card__title font-normal text-base m-0 mb-1 ${textAutoHide ? "text-clamp-1" : ""}`}
+                    className={`card__title font-normal text-base m-0 mb-1 ${
+                      textAutoHide ? "text-clamp-1" : ""
+                    }`}
                   >
                     {card.title}
                   </h3>
                   <p
-                    className={`card__description text-xs leading-5 opacity-90 ${textAutoHide ? "text-clamp-2" : ""}`}
+                    className={`card__description text-xs leading-5 opacity-90 ${
+                      textAutoHide ? "text-clamp-2" : ""
+                    }`}
                   >
                     {card.description}
                   </p>

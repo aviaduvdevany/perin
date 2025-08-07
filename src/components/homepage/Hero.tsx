@@ -8,7 +8,7 @@ import PerinMessage from "./PerinMessage";
 export default function Hero({
 }) {
   return (
-    <main className="relative z-10 flex flex-col justify-center min-h-[90vh] max-w-[76rem] mx-auto gap-4">
+    <main className="relative z-10 flex flex-col justify-center min-h-screen max-w-[76rem] mx-auto gap-4">
       <div className="absolute inset-0 -z-10">
         <Squares speed={0.005} squareSize={20} direction="diagonal" />
       </div>
