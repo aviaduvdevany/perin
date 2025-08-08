@@ -266,6 +266,27 @@ export const setSessionConfirmedIfUnconfirmed = async (
   return result.rows[0] || null;
 };
 
+// Background cleanup helpers
+export const expireAgentSessions = async (): Promise<number> => {
+  const sql = `
+    UPDATE ${AGENT_SESSIONS_TABLE}
+    SET status = 'expired', updated_at = now()
+    WHERE ttl_expires_at < now()
+      AND status NOT IN ('confirmed','canceled','expired','error')
+  `;
+  const result = await query(sql);
+  return result.rowCount || 0;
+};
+
+export const purgeOldIdempotencyKeys = async (olderThanDays: number = 7): Promise<number> => {
+  const sql = `
+    DELETE FROM ${IDEMPOTENCY_KEYS_TABLE}
+    WHERE created_at < (now() - ($1::text || ' days')::interval)
+  `;
+  const result = await query(sql, [olderThanDays.toString()]);
+  return result.rowCount || 0;
+};
+
 // Audit Logs (simple helper)
 export const createAuditLog = async (
   userId: string,

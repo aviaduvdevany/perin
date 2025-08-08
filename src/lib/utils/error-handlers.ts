@@ -51,6 +51,9 @@ export const ErrorResponses = {
       "TOO_MANY_REQUESTS"
     ),
 
+  conflict: (message?: string) =>
+    createErrorResponse(message || "Conflict", 409, "CONFLICT"),
+
   internalServerError: (message?: string) =>
     createErrorResponse(
       message || COPY.ERRORS.GENERIC,

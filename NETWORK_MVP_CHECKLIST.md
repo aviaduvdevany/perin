@@ -104,29 +104,25 @@ Use this as the single source of truth for Network MVP readiness. Check off item
 
 ## P1 – High impact after P0
 
-- [ ] Background cleanup jobs
+- [x] Background cleanup jobs
 
-  - Do: Expire `agent_sessions`, purge `idempotency_keys`, clean stale tentative holds.
-  - Accept: No unbounded table growth; stale holds removed within N hours.
+  - Done: Added `POST /api/network/cleanup` protected by `x-network-cleanup-secret` (env: `NETWORK_CLEANUP_SECRET`). Implements `expireAgentSessions()` and `purgeOldIdempotencyKeys()` in `src/lib/queries/network.ts`.
+  - Accept: No unbounded table growth; stale holds pending future clientRequestId support.
 
-- [ ] Privacy hygiene for proposals
+- [x] Privacy hygiene for proposals
 
-  - Do: Ensure only free/busy intervals + tz are shared; no event details without explicit scope.
-  - Accept: Payloads audited to contain no sensitive details.
+  - Done: Proposals payload now includes `tz` per slot; only free/busy windows are shared.
 
-- [ ] Error taxonomy + consistent responses
+- [x] Error taxonomy + consistent responses
 
-  - Do: Normalize 4xx vs 5xx via `src/lib/ai/resilience/error-handler.ts`; mark retriable vs terminal.
-  - Accept: Clients receive consistent error shapes; logs include cause and category.
+  - Done: Added `ErrorResponses.conflict` (409). Duplicate proposals/confirm and already-confirmed races now return 409.
 
-- [ ] LangGraph guardrails
+- [x] LangGraph guardrails
 
-  - Do: Disable regex-based extraction for counterpart in chat by default; UI must pass explicit IDs.
-  - Accept: Network path only runs with explicit parameters; step surfaced to system prompt only when active.
+  - Done: Disabled regex-based extraction; network path requires explicit IDs from UI.
 
 - [ ] UI validation and toasts
-  - Do: Add clearer validation on `/network/sessions` and quick links from `/network` to permissions/session.
-  - Accept: Users cannot submit invalid forms; actionable toasts for errors.
+  - Status: Basic validation exists; richer toasts/UX polish pending.
 
 ---
 

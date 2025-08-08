@@ -16,18 +16,11 @@ function extractNetworkParams(messages: ChatMessage[]): {
   conversationText: string;
 } {
   const text = messages.map((m) => m.content).join("\n");
-  const last = messages
-    .slice()
-    .reverse()
-    .find((m) => m.role === "user");
-  const content = last?.content || "";
-  const counterpartMatch = content.match(/counterpart[:=]\s*([\w-]+)/i);
-  const connectionMatch = content.match(/connection[:=]\s*([\w-]+)/i);
-  const durationMatch = content.match(/duration[:=]\s*(\d{1,3})/i);
+  // Guardrails: do not attempt to parse IDs from free text; require explicit IDs via UI
   return {
-    counterpartUserId: counterpartMatch?.[1],
-    connectionId: connectionMatch?.[1],
-    durationMins: durationMatch ? parseInt(durationMatch[1], 10) : undefined,
+    counterpartUserId: undefined,
+    connectionId: undefined,
+    durationMins: undefined,
     conversationText: text.slice(-1000),
   };
 }
