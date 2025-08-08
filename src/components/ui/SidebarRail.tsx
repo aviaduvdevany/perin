@@ -7,17 +7,24 @@ import { useLocalStorage } from "@/hooks/useLocalStorage";
 interface SidebarRailProps {
   onOpenProfile: () => void;
   className?: string;
+  size?: "md" | "lg";
 }
 
 export default function SidebarRail({
   onOpenProfile,
   className = "",
+  size = "md",
 }: SidebarRailProps) {
   const [expanded, setExpanded] = useLocalStorage<boolean>(
     "chat.sidebar.expanded",
     false
   );
   const [hovered, setHovered] = useState(false);
+
+  const collapsedWidth = size === "lg" ? "w-[72px]" : "w-[56px]";
+  const expandedWidth = size === "lg" ? "w-60" : "w-48";
+  const itemPad = size === "lg" ? "px-4 py-3" : "px-3 py-2";
+  const iconSize = size === "lg" ? "text-2xl" : "text-lg";
 
   const Item = ({
     icon,
@@ -29,11 +36,11 @@ export default function SidebarRail({
     onClick: () => void;
   }) => (
     <button
-      className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[var(--cta-text)] hover:bg-white/5 border border-transparent hover:border-[var(--card-border)] transition-colors"
+      className={`w-full flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/5 border border-transparent hover:border-[var(--card-border)] transition-colors`}
       onClick={onClick}
       aria-label={label}
     >
-      <span className="text-lg" aria-hidden>
+      <span className={`${iconSize}`} aria-hidden>
         {icon}
       </span>
       {(expanded || hovered) && (
@@ -50,13 +57,13 @@ export default function SidebarRail({
 
   return (
     <div
-      className={`h-full flex flex-col justify-between ${className}`}
+      className={`h-auto flex flex-col justify-between ${className}`}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <div
         className={`border border-[var(--card-border)] bg-[var(--card-background)] rounded-2xl p-2 ${
-          expanded ? "w-48" : "w-[56px]"
+          expanded ? expandedWidth : collapsedWidth
         } transition-[width] duration-200`}
       >
         <div className="space-y-1">

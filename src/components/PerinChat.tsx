@@ -9,10 +9,12 @@ import { FloatingInput } from "./ui/FloatingInput";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
+import { useChatUI } from "@/components/providers/ChatUIProvider";
 
 export function PerinChat() {
   const { data: session } = useSession();
   const { sendMessage, isChatLoading, chatError } = usePerinAI();
+  const { collapseTodayAfterFirstMessage } = useChatUI();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState("");
@@ -33,6 +35,8 @@ export function PerinChat() {
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isChatLoading) return;
 
+    const isFirstUserMessage = messages.length === 0;
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       role: "user",
@@ -42,6 +46,10 @@ export function PerinChat() {
     setMessages((prev) => [...prev, userMessage]);
     setStreamingMessage("");
     setPerinStatus("thinking");
+
+    if (isFirstUserMessage) {
+      collapseTodayAfterFirstMessage();
+    }
 
     try {
       const currentMessages = [...messages, userMessage];
@@ -65,7 +73,6 @@ export function PerinChat() {
           setStreamingMessage(fullResponse);
         }
 
-        // Add the complete assistant message
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}-${Math.random()
             .toString(36)
@@ -82,7 +89,6 @@ export function PerinChat() {
       console.error("Error sending message:", error);
       setPerinStatus("idle");
 
-      // Add error message to chat
       const errorMessage: ChatMessage = {
         id: `error-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         role: "assistant",
@@ -122,7 +128,6 @@ export function PerinChat() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
-      {/* Minimal Header - Only visible when there are messages */}
       {messages.length > 0 && (
         <Glass
           variant="default"
@@ -147,7 +152,6 @@ export function PerinChat() {
         </Glass>
       )}
 
-      {/* Messages - Full screen area */}
       <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4 scrollbar-ultra-thin">
         {messages.length === 0 && (
           <div className="text-center text-[var(--foreground-muted)] py-20">
@@ -204,7 +208,6 @@ export function PerinChat() {
           </motion.div>
         ))}
 
-        {/* Immersive Loading State */}
         {isChatLoading && !streamingMessage && (
           <motion.div
             className="flex justify-center w-full"
@@ -216,7 +219,6 @@ export function PerinChat() {
           </motion.div>
         )}
 
-        {/* Streaming message with enhanced styling */}
         {streamingMessage && (
           <motion.div
             className="flex justify-start"
@@ -258,7 +260,6 @@ export function PerinChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Floating Input Component */}
       <FloatingInput
         onSendMessage={handleSendMessage}
         isLoading={isChatLoading}
