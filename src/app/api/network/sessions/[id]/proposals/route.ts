@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { getUserIdFromSession } from "@/lib/utils/session-helpers";
+import { extractSessionIdFromUrl, getUserIdFromSession } from "@/lib/utils/session-helpers";
 import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
@@ -9,6 +9,8 @@ import { generateMutualProposals } from "@/lib/network/scheduling";
 import { ProposalsSchema, safeParse } from "@/app/api/network/schemas";
 import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import { rateLimit } from "@/lib/utils/rate-limit";
+
+
 
 // POST /api/network/sessions/:id/proposals - Generate and send proposals from initiator to counterpart
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -26,8 +28,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return ErrorResponses.tooManyRequests("Rate limit exceeded");
   }
 
-  const params = await request.json();
-  const sessionId = params.id as string;
+  const sessionId = extractSessionIdFromUrl(request.url);
+  if (!sessionId) return ErrorResponses.badRequest("Invalid session id");
+
   const sess = await networkQueries.getAgentSessionById(sessionId);
   if (!sess) return ErrorResponses.notFound("Session not found");
   if (
@@ -105,7 +108,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Post a proposal message in the session and notify recipient
   const message = await networkQueries.createAgentMessage({
-    session_id: params.id,
+    session_id: sessionId,
     from_user_id: userId,
     to_user_id: counterpartId,
     type: "proposal",
