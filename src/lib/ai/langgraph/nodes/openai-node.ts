@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { LangGraphChatState } from "@/types/ai";
 import type { ChatMessage } from "@/types/ai";
+import { fallbackToSimpleResponse, withRetry } from "@/lib/ai/resilience/error-handler";
 
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;
@@ -138,10 +139,6 @@ export const openaiNode = async (
     ];
 
     // Execute OpenAI chat completion with retry and circuit breaker
-    const { withRetry, fallbackToSimpleResponse } = await import(
-      "@/lib/ai/resilience/error-handler"
-    );
-
     const response = await withRetry(
       async () => {
         return await openaiClient.chat.completions.create({
@@ -181,9 +178,6 @@ export const openaiNode = async (
     console.error("Error in OpenAI node:", error);
 
     // Provide graceful degradation
-    const { fallbackToSimpleResponse } = await import(
-      "@/lib/ai/resilience/error-handler"
-    );
     const lastUserMessage =
       state.messages.findLast((msg) => msg.role === "user")?.content || "";
     const fallbackResponse = await fallbackToSimpleResponse(lastUserMessage);

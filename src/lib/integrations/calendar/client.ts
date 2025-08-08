@@ -1,5 +1,7 @@
 import { createCalendarClient, refreshCalendarToken } from "./auth";
 import type { CalendarEvent, CreateEventRequest } from "@/types/calendar";
+import { calendar_v3 } from "googleapis";
+import { getUserIntegration, updateIntegrationTokens } from "@/lib/queries/integrations";
 
 /**
  * Fetch recent calendar events for a user
@@ -11,7 +13,6 @@ export const fetchRecentEvents = async (
 ): Promise<CalendarEvent[]> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -29,9 +30,6 @@ export const fetchRecentEvents = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"  
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,
@@ -98,7 +96,6 @@ export const createCalendarEvent = async (
 ): Promise<CalendarEvent> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -116,9 +113,6 @@ export const createCalendarEvent = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,
@@ -129,8 +123,8 @@ export const createCalendarEvent = async (
     // Create calendar client
     const calendar = createCalendarClient(accessToken);
 
-    // Prepare event data for Google Calendar API
-    const googleEvent = {
+    // Prepare event data for Google Calendar API (typed)
+    const googleEvent: calendar_v3.Schema$Event = {
       summary: eventData.summary,
       description: eventData.description,
       location: eventData.location,
@@ -149,20 +143,18 @@ export const createCalendarEvent = async (
       reminders: {
         useDefault: false,
         overrides: [
-          { method: "email", minutes: 24 * 60 }, // 1 day before
-          { method: "popup", minutes: 30 }, // 30 minutes before
+          { method: "email", minutes: 24 * 60 },
+          { method: "popup", minutes: 30 },
         ],
       },
     };
 
     // Create event
-    const response = await calendar.events.insert({
+    const { data: event } = await calendar.events.insert({
       calendarId: "primary",
       requestBody: googleEvent,
       sendUpdates: "all", // Send invitations to attendees
     });
-
-    const event = response.data;
 
     return {
       id: event.id!,
@@ -193,6 +185,41 @@ export const createCalendarEvent = async (
 };
 
 /**
+ * Delete a calendar event
+ */
+export const deleteCalendarEvent = async (
+  userId: string,
+  eventId: string
+): Promise<boolean> => {
+  try {
+    const integration = await getUserIntegration(userId, "calendar");
+    if (!integration || !integration.is_active) {
+      throw new Error("Calendar integration not found or inactive");
+    }
+
+    let accessToken = integration.access_token;
+    const now = new Date();
+    const expiresAt = new Date(integration.token_expires_at);
+    if (now >= expiresAt && integration.refresh_token) {
+      const newTokens = await refreshCalendarToken(integration.refresh_token);
+      accessToken = newTokens.access_token;
+      await updateIntegrationTokens(
+        integration.id,
+        newTokens.access_token,
+        newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
+      );
+    }
+
+    const calendar = createCalendarClient(accessToken);
+    await calendar.events.delete({ calendarId: "primary", eventId });
+    return true;
+  } catch (error) {
+    console.error("Error deleting calendar event:", error);
+    return false;
+  }
+};
+
+/**
  * Get user's calendar availability for a time range
  */
 export const getCalendarAvailability = async (
@@ -202,7 +229,6 @@ export const getCalendarAvailability = async (
 ): Promise<{ busy: Array<{ start: string; end: string }> }> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -220,9 +246,6 @@ export const getCalendarAvailability = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,

@@ -56,7 +56,13 @@ export function ChatUIProvider({
       setProfileOpen,
       collapseTodayAfterFirstMessage,
     }),
-    [todayOpen, setTodayOpen, profileOpen]
+    [
+      todayOpen,
+      setTodayOpen,
+      profileOpen,
+      setProfileOpen,
+      collapseTodayAfterFirstMessage,
+    ]
   );
 
   return (

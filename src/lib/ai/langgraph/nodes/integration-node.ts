@@ -7,6 +7,7 @@ import {
   loadRelevantContexts,
 } from "@/lib/integrations/service";
 import { detectIntegrationContext } from "@/lib/integrations/registry";
+import { withRetry } from "@/lib/ai/resilience/error-handler";
 
 /**
  * Generic Integration Node for LangGraph
@@ -40,8 +41,6 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
 
       // Smart context loading - only load if contextually relevant
       if (detection.isRelevant) {
-        const { withRetry } = await import("@/lib/ai/resilience/error-handler");
-
         const context = await withRetry(
           async () => {
             return await loadIntegrationContext(state.userId, integrationType);

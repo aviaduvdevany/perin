@@ -44,6 +44,16 @@ export const ErrorResponses = {
   notFound: (message?: string) =>
     createErrorResponse(message || COPY.ERRORS.NOT_FOUND, 404, "NOT_FOUND"),
 
+  tooManyRequests: (message?: string) =>
+    createErrorResponse(
+      message || "Too many requests",
+      429,
+      "TOO_MANY_REQUESTS"
+    ),
+
+  conflict: (message?: string) =>
+    createErrorResponse(message || "Conflict", 409, "CONFLICT"),
+
   internalServerError: (message?: string) =>
     createErrorResponse(
       message || COPY.ERRORS.GENERIC,
