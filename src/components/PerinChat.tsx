@@ -129,11 +129,12 @@ export function PerinChat() {
   return (
     <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
       {messages.length > 0 && (
-        <Glass
-          variant="default"
-          border={true}
-          glow={false}
-          className="flex items-center p-4 border-b border-[var(--card-border)]"
+        <div
+          className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"
+          style={{
+            background:
+              "linear-gradient(180deg, color-mix(in oklab, var(--accent-primary) 6%, transparent), transparent)",
+          }}
         >
           <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center mr-3 glow-primary">
             <span className="text-white font-bold text-sm">P</span>
@@ -149,7 +150,7 @@ export function PerinChat() {
           <div className="ml-auto">
             <div className="w-2 h-2 status-online rounded-full animate-pulse-subtle" />
           </div>
-        </Glass>
+        </div>
       )}
 
       <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4 scrollbar-ultra-thin">
@@ -167,7 +168,7 @@ export function PerinChat() {
             <h2 className="heading-sm text-[var(--cta-text)] mb-3">
               Ready to help
             </h2>
-            <p className="body-sm text-[var(--foreground-muted)]/70">
+            <p className="body-sm text-[var(--foreground-muted)]/80">
               Ask me anything about scheduling, coordination, or assistance
             </p>
           </div>

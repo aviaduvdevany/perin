@@ -35,7 +35,7 @@ export function FloatingInput({
 
   return (
     <motion.div
-      className="fixed bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-4xl px-6 z-50"
+      className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 w-full max-w-[min(92vw,48rem)] px-4 z-50"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -56,7 +56,7 @@ export function FloatingInput({
         <motion.button
           onClick={handleSendMessage}
           disabled={!inputMessage.trim() || isLoading || disabled}
-          className="px-6 py-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white rounded-2xl hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-2xl glow-primary"
+          className="px-5 py-4 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white rounded-2xl hover:shadow-lg hover:shadow-[var(--accent-primary)]/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-2xl glow-primary"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           transition={{ duration: 0.2 }}

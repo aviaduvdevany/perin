@@ -36,7 +36,7 @@ export default function SidebarRail({
     onClick: () => void;
   }) => (
     <button
-      className={`w-full flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/5 border border-transparent hover:border-[var(--card-border)] transition-colors`}
+      className={`w-full flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
       onClick={onClick}
       aria-label={label}
     >
@@ -62,9 +62,13 @@ export default function SidebarRail({
       onMouseLeave={() => setHovered(false)}
     >
       <div
-        className={`border border-[var(--card-border)] bg-[var(--card-background)] rounded-2xl p-2 ${
+        className={`rounded-2xl p-2 ${
           expanded ? expandedWidth : collapsedWidth
-        } transition-[width] duration-200`}
+        } transition-[width] duration-200 border border-[var(--card-border)]`}
+        style={{
+          background:
+            "linear-gradient(180deg, color-mix(in oklab, var(--accent-primary) 10%, transparent), color-mix(in oklab, var(--accent-secondary) 10%, transparent))",
+        }}
       >
         <div className="space-y-1">
           <Item icon="👤" label="Profile" onClick={onOpenProfile} />

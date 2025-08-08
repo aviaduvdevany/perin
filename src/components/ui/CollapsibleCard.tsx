@@ -20,10 +20,18 @@ export default function CollapsibleCard({
   return (
     <div
       className={`rounded-2xl border border-[var(--card-border)] bg-[var(--card-background)] ${className}`}
+      style={{
+        boxShadow:
+          "0 8px 36px 0 color-mix(in oklab, var(--accent-primary) 12%, transparent)",
+      }}
     >
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--cta-text)]"
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium text-[var(--cta-text)] rounded-t-2xl"
+        style={{
+          background:
+            "linear-gradient(180deg, color-mix(in oklab, var(--accent-primary) 14%, transparent), transparent)",
+        }}
       >
         <span>{title}</span>
         <span className="text-[var(--foreground-muted)]">
