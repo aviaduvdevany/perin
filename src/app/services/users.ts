@@ -15,3 +15,13 @@ export const updateUserProfileService = async (data: UpdateUserData) => {
     throw error;
   }
 };
+
+export const getUserProfileService = async () => {
+  try {
+    const response = await internalApiRequest("users/profile", HTTPMethod.GET);
+    return response;
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    throw error;
+  }
+};

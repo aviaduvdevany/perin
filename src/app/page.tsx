@@ -3,15 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { GlassCard, GlassPanel } from "@/components/ui/Glass";
 import Hero from "@/components/homepage/Hero";
-import { BubbleBackground } from "@/components/animate-ui/backgrounds/bubble";
 import Features from "@/components/homepage/Features";
 import ShowOff from "@/components/homepage/ShowOff";
+import { Navbar } from "@/components/ui/Navbar";
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
-
   return (
     <div className="min-h-screen bg-[var(--background-primary)] relative overflow-hidden">
       {/* Background Effects - Enhanced with design system colors */}
@@ -24,7 +21,7 @@ export default function Home() {
         <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-[var(--accent-primary)] rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float"></div>
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-[var(--accent-secondary)] rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-float delay-1000"></div>
       </div>
-
+      <Navbar />
       <Hero />
       <ShowOff />
       <Features />
