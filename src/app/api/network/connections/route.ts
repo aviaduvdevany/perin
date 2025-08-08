@@ -5,11 +5,12 @@ import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import {
   ErrorResponses,
   withErrorHandler,
-  validateRequiredFields,
 } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { CreateConnectionRequest } from "@/types/network";
+import { CreateConnectionSchema, safeParse } from "../schemas";
+import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/connections - Create/invite a connection
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -17,16 +18,20 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const userId = getUserIdFromSession(session);
   if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-  const body = (await request.json()) as CreateConnectionRequest;
-  const validation = validateRequiredFields(
-    body as unknown as Record<string, unknown>,
-    ["targetUserId", "scopes"]
-  );
-  if (!validation.isValid) {
-    return ErrorResponses.badRequest(
-      `Missing required fields: ${validation.missingFields.join(", ")}`
-    );
+  // Rate limit
+  if (
+    !rateLimit(userId, "network:connections:create", {
+      tokensPerInterval: 5,
+      intervalMs: 60_000,
+    })
+  ) {
+    return ErrorResponses.tooManyRequests("Rate limit exceeded");
   }
+
+  const json = await request.json();
+  const parsed = safeParse(CreateConnectionSchema, json);
+  if (!parsed.success) return ErrorResponses.badRequest(parsed.error);
+  const body = parsed.data as CreateConnectionRequest;
 
   const existing = await networkQueries.getConnectionByUsers(
     userId,
@@ -70,12 +75,21 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   return NextResponse.json({ connection });
 });
 
-// GET /api/network/connections - List connections for current user
-export const GET = withErrorHandler(async () => {
+// GET /api/network/connections - List connections for current user (paginated)
+export const GET = withErrorHandler(async (request: NextRequest) => {
   const session = await getServerSession(authOptions);
   const userId = getUserIdFromSession(session);
   if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-  const connections = await networkQueries.listConnectionsForUser(userId);
-  return NextResponse.json({ connections });
+  const { searchParams } = new URL(request.url);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10), 50);
+  const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+  const offset = (page - 1) * limit;
+
+  const connections = await networkQueries.listConnectionsForUserPaginated(
+    userId,
+    limit,
+    offset
+  );
+  return NextResponse.json({ connections, page, limit });
 });

@@ -26,6 +26,12 @@ export const acceptConnectionService = async (
 export const listConnectionsService = async () =>
   internalApiRequest("network/connections", HTTPMethod.GET);
 
+export const getConnectionPermissionsService = async (connectionId: string) =>
+  internalApiRequest(
+    `network/connections/${connectionId}/permissions`,
+    HTTPMethod.GET
+  );
+
 export const updateConnectionPermissionsService = async (
   connectionId: string,
   payload: UpdateConnectionPermissionsRequest

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
@@ -7,12 +7,14 @@ import * as networkQueries from "@/lib/queries/network";
 
 // GET /api/network/sessions/:id - Get session details
 export const GET = withErrorHandler(
-  async (_request, { params }: { params: { id: string } }) => {
+  async (request: NextRequest) => {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-    const sess = await networkQueries.getAgentSessionById(params.id);
+    const params = await request.json();
+    const sessionId = params.id as string;
+    const sess = await networkQueries.getAgentSessionById(sessionId);
     if (!sess) return ErrorResponses.notFound("Session not found");
 
     // Check membership

@@ -10,15 +10,28 @@ import {
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { PostNetworkMessageRequest } from "@/types/network";
+import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions/:id/messages - Post a structured agent message
 export const POST = withErrorHandler(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
+  async (request: NextRequest) => {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-    const sess = await networkQueries.getAgentSessionById(params.id);
+    // Rate limit
+    if (
+      !rateLimit(userId, "network:sessions:messages", {
+        tokensPerInterval: 60,
+        intervalMs: 60_000,
+      })
+    ) {
+      return ErrorResponses.tooManyRequests("Rate limit exceeded");
+    }
+
+    const params = await request.json();
+    const sessionId = params.id as string;
+    const sess = await networkQueries.getAgentSessionById(sessionId);
     if (!sess) return ErrorResponses.notFound("Session not found");
 
     if (
@@ -39,8 +52,18 @@ export const POST = withErrorHandler(
       );
     }
 
+    // Optional idempotency for messages
+    const clientKey = (request.headers.get("Idempotency-Key") || "").trim();
+    if (clientKey) {
+      const ok = await networkQueries.registerIdempotencyKey(
+        clientKey,
+        "network.message"
+      );
+      if (!ok) return ErrorResponses.badRequest("Duplicate message request");
+    }
+
     const msg = await networkQueries.createAgentMessage({
-      session_id: params.id,
+      session_id: sessionId,
       from_user_id: userId,
       to_user_id: body.toUserId,
       type: body.type,
@@ -53,7 +76,7 @@ export const POST = withErrorHandler(
       "network.message.received",
       "New scheduling update",
       `You have a new ${body.type} in a scheduling session`,
-      { sessionId: params.id, messageId: msg.id }
+      { sessionId: sessionId, messageId: msg.id }
     );
 
     return NextResponse.json({ message: msg });
@@ -62,12 +85,14 @@ export const POST = withErrorHandler(
 
 // GET /api/network/sessions/:id/messages - Get transcript
 export const GET = withErrorHandler(
-  async (_request, { params }: { params: { id: string } }) => {
+  async (request: NextRequest) => {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-    const sess = await networkQueries.getAgentSessionById(params.id);
+    const params = await request.json();
+    const sessionId = params.id as string;
+    const sess = await networkQueries.getAgentSessionById(sessionId);
     if (!sess) return ErrorResponses.notFound("Session not found");
     if (
       sess.initiator_user_id !== userId &&
@@ -76,7 +101,19 @@ export const GET = withErrorHandler(
       return ErrorResponses.unauthorized("Not part of this session");
     }
 
-    const messages = await networkQueries.listAgentMessages(params.id);
-    return NextResponse.json({ messages });
+    const { searchParams } = new URL(request.url);
+    const limit = Math.min(
+      parseInt(searchParams.get("limit") || "50", 10),
+      100
+    );
+    const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
+    const offset = (page - 1) * limit;
+
+    const messages = await networkQueries.listAgentMessagesPaginated(
+      sessionId,
+      limit,
+      offset
+    );
+    return NextResponse.json({ messages, page, limit });
   }
 );

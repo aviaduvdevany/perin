@@ -2,23 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
-import {
-  ErrorResponses,
-  withErrorHandler,
-  validateRequiredFields,
-} from "@/lib/utils/error-handlers";
+import { ErrorResponses } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { AcceptConnectionRequest } from "@/types/network";
+import { AcceptConnectionSchema, safeParse } from "@/app/api/network/schemas";
+import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/connections/:id/accept - Accept and grant permissions
-export const POST = withErrorHandler(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
+export async function POST(request: NextRequest) {
+  try {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-    const connectionId = params.id;
+    const params = await request.json();
+
+    // Rate limit
+    if (
+      !rateLimit(userId, "network:connections:accept", {
+        tokensPerInterval: 10,
+        intervalMs: 60_000,
+      })
+    ) {
+      return ErrorResponses.tooManyRequests("Rate limit exceeded");
+    }
+
+    const connectionId = params.id as string;
     const connection = await networkQueries.getConnectionById(connectionId);
     if (!connection) return ErrorResponses.notFound("Connection not found");
 
@@ -29,16 +39,10 @@ export const POST = withErrorHandler(
       );
     }
 
-    const body = (await request.json()) as AcceptConnectionRequest;
-    const validation = validateRequiredFields(
-      body as unknown as Record<string, unknown>,
-      ["scopes"]
-    );
-    if (!validation.isValid) {
-      return ErrorResponses.badRequest(
-        `Missing required fields: ${validation.missingFields.join(", ")}`
-      );
-    }
+    const json = await request.json();
+    const parsed = safeParse(AcceptConnectionSchema, json);
+    if (!parsed.success) return ErrorResponses.badRequest(parsed.error);
+    const body = parsed.data as AcceptConnectionRequest;
 
     await networkQueries.upsertConnectionPermissions(
       connectionId,
@@ -60,5 +64,8 @@ export const POST = withErrorHandler(
     );
 
     return NextResponse.json({ connection: activated });
+  } catch (error) {
+    console.error("/connections/:id/accept error", error);
+    return ErrorResponses.internalServerError();
   }
-);
+}

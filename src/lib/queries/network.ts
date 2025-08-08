@@ -84,6 +84,21 @@ export const listConnectionsForUser = async (
   return result.rows;
 };
 
+export const listConnectionsForUserPaginated = async (
+  userId: string,
+  limit: number,
+  offset: number
+): Promise<UserConnection[]> => {
+  const sql = `
+    SELECT * FROM ${USER_CONNECTIONS_TABLE}
+    WHERE requester_user_id = $1 OR target_user_id = $1
+    ORDER BY updated_at DESC
+    LIMIT $2 OFFSET $3
+  `;
+  const result = await query(sql, [userId, limit, offset]);
+  return result.rows;
+};
+
 // Permissions
 export const upsertConnectionPermissions = async (
   connectionId: string,
@@ -219,6 +234,36 @@ export const listAgentMessages = async (
   `;
   const result = await query(sql, [sessionId]);
   return result.rows;
+};
+
+export const listAgentMessagesPaginated = async (
+  sessionId: string,
+  limit: number,
+  offset: number
+): Promise<AgentMessage[]> => {
+  const sql = `
+    SELECT * FROM ${AGENT_MESSAGES_TABLE}
+    WHERE session_id = $1
+    ORDER BY created_at ASC
+    LIMIT $2 OFFSET $3
+  `;
+  const result = await query(sql, [sessionId, limit, offset]);
+  return result.rows;
+};
+
+// Concurrency-safe confirm: set status confirmed only if not yet confirmed
+export const setSessionConfirmedIfUnconfirmed = async (
+  id: string,
+  outcome: AgentSessionOutcome
+): Promise<AgentSession | null> => {
+  const sql = `
+    UPDATE ${AGENT_SESSIONS_TABLE}
+    SET status = 'confirmed', outcome = $2, updated_at = now()
+    WHERE id = $1 AND status <> 'confirmed'
+    RETURNING *
+  `;
+  const result = await query(sql, [id, JSON.stringify(outcome)]);
+  return result.rows[0] || null;
 };
 
 // Audit Logs (simple helper)

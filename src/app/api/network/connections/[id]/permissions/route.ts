@@ -8,14 +8,45 @@ import type {
   ConnectionConstraints,
   UpdateConnectionPermissionsRequest,
 } from "@/types/network";
+import {
+  UpdateConnectionPermissionsSchema,
+  safeParse,
+} from "@/app/api/network/schemas";
 
-// PUT /api/network/connections/:id/permissions - Update connection scopes/constraints
-export const PUT = withErrorHandler(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
+// GET /api/network/connections/:id/permissions - Get current connection permissions
+export const GET = withErrorHandler(
+  async (request: NextRequest) => {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
+    const params = await request.json();
+    const connectionId = params.id;
+    const connection = await networkQueries.getConnectionById(connectionId);
+    if (!connection) return ErrorResponses.notFound("Connection not found");
+
+    if (
+      connection.requester_user_id !== userId &&
+      connection.target_user_id !== userId
+    ) {
+      return ErrorResponses.unauthorized("Not part of this connection");
+    }
+
+    const permissions = await networkQueries.getConnectionPermissions(
+      connectionId
+    );
+    return NextResponse.json({ permissions });
+  }
+);
+
+// PUT /api/network/connections/:id/permissions - Update connection scopes/constraints
+export const PUT = withErrorHandler(
+  async (request: NextRequest) => {
+    const session = await getServerSession(authOptions);
+    const userId = getUserIdFromSession(session);
+    if (!userId) return ErrorResponses.unauthorized("Authentication required");
+
+    const params = await request.json();
     const connectionId = params.id;
     const connection = await networkQueries.getConnectionById(connectionId);
     if (!connection) return ErrorResponses.notFound("Connection not found");
@@ -28,7 +59,10 @@ export const PUT = withErrorHandler(
       return ErrorResponses.unauthorized("Not part of this connection");
     }
 
-    const body = (await request.json()) as UpdateConnectionPermissionsRequest;
+    const json = await request.json();
+    const parsed = safeParse(UpdateConnectionPermissionsSchema, json);
+    if (!parsed.success) return ErrorResponses.badRequest(parsed.error);
+    const body = parsed.data as UpdateConnectionPermissionsRequest;
 
     const existing = await networkQueries.getConnectionPermissions(
       connectionId

@@ -5,11 +5,15 @@ import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import {
   ErrorResponses,
   withErrorHandler,
-  validateRequiredFields,
 } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { StartNetworkSessionRequest } from "@/types/network";
+import {
+  StartNetworkSessionSchema,
+  safeParse,
+} from "@/app/api/network/schemas";
+import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions - Start a negotiation/scheduling session
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -17,16 +21,20 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const userId = getUserIdFromSession(session);
   if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-  const body = (await request.json()) as StartNetworkSessionRequest;
-  const validation = validateRequiredFields(
-    body as unknown as Record<string, unknown>,
-    ["type", "counterpartUserId", "connectionId"]
-  );
-  if (!validation.isValid) {
-    return ErrorResponses.badRequest(
-      `Missing required fields: ${validation.missingFields.join(", ")}`
-    );
+  // Rate limit
+  if (
+    !rateLimit(userId, "network:sessions:start", {
+      tokensPerInterval: 10,
+      intervalMs: 60_000,
+    })
+  ) {
+    return ErrorResponses.tooManyRequests("Rate limit exceeded");
   }
+
+  const json = await request.json();
+  const parsed = safeParse(StartNetworkSessionSchema, json);
+  if (!parsed.success) return ErrorResponses.badRequest(parsed.error);
+  const body = parsed.data as StartNetworkSessionRequest;
 
   // Validate membership
   const connection = await networkQueries.getConnectionById(body.connectionId);
@@ -36,6 +44,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     connection.target_user_id !== userId
   ) {
     return ErrorResponses.unauthorized("Not part of this connection");
+  }
+  if (connection.status !== "active") {
+    return ErrorResponses.badRequest("Connection not active");
   }
 
   const now = Date.now();

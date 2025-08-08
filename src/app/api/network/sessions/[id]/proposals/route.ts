@@ -5,20 +5,34 @@ import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import {
   ErrorResponses,
   withErrorHandler,
-  validateRequiredFields,
 } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import { generateMutualProposals } from "@/lib/network/scheduling";
+import { ProposalsSchema, safeParse } from "@/app/api/network/schemas";
+import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
+import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions/:id/proposals - Generate and send proposals from initiator to counterpart
 export const POST = withErrorHandler(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
+  async (request: NextRequest) => {
     const session = await getServerSession(authOptions);
     const userId = getUserIdFromSession(session);
     if (!userId) return ErrorResponses.unauthorized("Authentication required");
 
-    const sess = await networkQueries.getAgentSessionById(params.id);
+    // Rate limit
+    if (
+      !rateLimit(userId, "network:sessions:proposals", {
+        tokensPerInterval: 20,
+        intervalMs: 60_000,
+      })
+    ) {
+      return ErrorResponses.tooManyRequests("Rate limit exceeded");
+    }
+
+    const params = await request.json();
+    const sessionId = params.id as string;
+    const sess = await networkQueries.getAgentSessionById(sessionId);
     if (!sess) return ErrorResponses.notFound("Session not found");
     if (
       sess.initiator_user_id !== userId &&
@@ -27,13 +41,16 @@ export const POST = withErrorHandler(
       return ErrorResponses.unauthorized("Not part of this session");
     }
 
-    const body = await request.json();
-    const validation = validateRequiredFields(body, ["durationMins"]);
-    if (!validation.isValid) {
-      return ErrorResponses.badRequest(
-        `Missing required fields: ${validation.missingFields.join(", ")}`
-      );
+    try {
+      ensureSessionNotExpired(sess.ttl_expires_at);
+    } catch (e) {
+      return ErrorResponses.badRequest("Session expired");
     }
+
+    const json = await request.json();
+    const parsed = safeParse(ProposalsSchema, json);
+    if (!parsed.success) return ErrorResponses.badRequest(parsed.error);
+    const body = parsed.data;
 
     const connection = await networkQueries.getConnectionById(
       sess.connection_id
@@ -53,6 +70,21 @@ export const POST = withErrorHandler(
       return ErrorResponses.unauthorized(
         "Insufficient scopes to propose times"
       );
+    }
+
+    // Idempotency guard
+    const clientKey = (request.headers.get("Idempotency-Key") || "").trim();
+    const idemKey =
+      clientKey ||
+      `proposals:${sessionId}:${body.durationMins}:${body.earliest || ""}:${
+        body.latest || ""
+      }`;
+    const registered = await networkQueries.registerIdempotencyKey(
+      idemKey,
+      "network.proposals"
+    );
+    if (!registered) {
+      return ErrorResponses.badRequest("Duplicate proposals request");
     }
 
     const constraints = permissions?.constraints || {};
@@ -76,7 +108,7 @@ export const POST = withErrorHandler(
 
     // Post a proposal message in the session and notify recipient
     const message = await networkQueries.createAgentMessage({
-      session_id: params.id,
+      session_id: sessionId,
       from_user_id: userId,
       to_user_id: counterpartId,
       type: "proposal",
@@ -88,11 +120,11 @@ export const POST = withErrorHandler(
       "network.message.received",
       "New time proposals",
       `You received ${proposals.length} time proposals`,
-      { sessionId: params.id, messageId: message.id }
+      { sessionId: sessionId, messageId: message.id }
     );
 
     // Update session status to negotiating
-    const updated = await networkQueries.updateAgentSession(params.id, {
+    const updated = await networkQueries.updateAgentSession(sessionId, {
       status: "negotiating",
     });
 
