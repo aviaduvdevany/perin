@@ -3,6 +3,7 @@ import { memoryNode } from "./nodes/memory-node";
 import { multiIntegrationNode } from "./nodes/integration-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import type { ChatMessage, PerinChatResponse } from "@/types/ai";
+import { fallbackToSimpleResponse, withRetry } from "../resilience/error-handler";
 
 /**
  * Main LangGraph chat execution function
@@ -62,11 +63,6 @@ export const executePerinChatWithLangGraph = async (
             ...messages,
           ];
 
-          // Import error handling utilities
-          const { withRetry, fallbackToSimpleResponse } = await import(
-            "@/lib/ai/resilience/error-handler"
-          );
-
           // Execute OpenAI chat completion with streaming and retry logic
           const response = await withRetry(
             async () => {
@@ -99,9 +95,6 @@ export const executePerinChatWithLangGraph = async (
 
           try {
             // Provide graceful fallback response
-            const { fallbackToSimpleResponse } = await import(
-              "@/lib/ai/resilience/error-handler"
-            );
             const lastUserMessage =
               messages.findLast((msg) => msg.role === "user")?.content || "";
             const fallbackResponse = await fallbackToSimpleResponse(

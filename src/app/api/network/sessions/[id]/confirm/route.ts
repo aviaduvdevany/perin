@@ -61,6 +61,16 @@ export const POST = withErrorHandler(
     const initiatorId = sess.initiator_user_id;
     const counterpartId = sess.counterpart_user_id;
 
+    // Idempotency guard
+    const idemKey = `confirm:${params.id}:${body.start}:${body.end}`;
+    const registered = await networkQueries.registerIdempotencyKey(
+      idemKey,
+      "network.confirm"
+    );
+    if (!registered) {
+      return ErrorResponses.badRequest("Duplicate confirm request");
+    }
+
     // Create tentative on both calendars
     let eventA: { id: string } | null = null;
     let eventB: { id: string } | null = null;
@@ -115,6 +125,32 @@ export const POST = withErrorHandler(
           },
         },
       });
+
+      // Audit log
+      await Promise.all([
+        networkQueries.createAuditLog(
+          userId,
+          "network.meeting.confirm",
+          "session",
+          params.id,
+          {
+            start: body.start,
+            end: body.end,
+            eventId: eventA.id,
+          }
+        ),
+        networkQueries.createAuditLog(
+          userId === initiatorId ? counterpartId : initiatorId,
+          "network.meeting.confirm",
+          "session",
+          params.id,
+          {
+            start: body.start,
+            end: body.end,
+            eventId: eventB.id,
+          }
+        ),
+      ]);
 
       // Notify both users
       await Promise.all([

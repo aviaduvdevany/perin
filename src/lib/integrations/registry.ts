@@ -3,6 +3,8 @@ import type {
   IntegrationRegistryEntry,
   ContextDetectionResult,
 } from "@/types/integrations";
+import { fetchRecentEmails } from "@/lib/integrations/gmail/client";
+import { fetchRecentEvents } from "@/lib/integrations/calendar/client";
 
 // Gmail integration data types
 export interface GmailData {
@@ -34,7 +36,6 @@ const gmailContextLoader = async (
 ): Promise<GmailData[]> => {
   try {
     // Import the Gmail client to fetch emails
-    const { fetchRecentEmails } = await import("../integrations/gmail/client");
     const emails = await fetchRecentEmails(userId, 5);
 
     return emails.map((email) => ({
@@ -58,9 +59,6 @@ const calendarContextLoader = async (
 ): Promise<CalendarData[]> => {
   try {
     // Import the Calendar client to fetch events
-    const { fetchRecentEvents } = await import(
-      "../integrations/calendar/client"
-    );
     const events = await fetchRecentEvents(userId, 7, 5); // 7 days, max 5 events
 
     return events.map((event) => ({

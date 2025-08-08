@@ -1,6 +1,7 @@
 import { createCalendarClient, refreshCalendarToken } from "./auth";
 import type { CalendarEvent, CreateEventRequest } from "@/types/calendar";
 import { calendar_v3 } from "googleapis";
+import { getUserIntegration, updateIntegrationTokens } from "@/lib/queries/integrations";
 
 /**
  * Fetch recent calendar events for a user
@@ -12,7 +13,6 @@ export const fetchRecentEvents = async (
 ): Promise<CalendarEvent[]> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -30,9 +30,6 @@ export const fetchRecentEvents = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,
@@ -99,7 +96,6 @@ export const createCalendarEvent = async (
 ): Promise<CalendarEvent> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -117,9 +113,6 @@ export const createCalendarEvent = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,
@@ -199,7 +192,6 @@ export const deleteCalendarEvent = async (
   eventId: string
 ): Promise<boolean> => {
   try {
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
     if (!integration || !integration.is_active) {
       throw new Error("Calendar integration not found or inactive");
@@ -211,9 +203,6 @@ export const deleteCalendarEvent = async (
     if (now >= expiresAt && integration.refresh_token) {
       const newTokens = await refreshCalendarToken(integration.refresh_token);
       accessToken = newTokens.access_token;
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,
@@ -240,7 +229,6 @@ export const getCalendarAvailability = async (
 ): Promise<{ busy: Array<{ start: string; end: string }> }> => {
   try {
     // Get user's calendar integration
-    const { getUserIntegration } = await import("@/lib/queries/integrations");
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
@@ -258,9 +246,6 @@ export const getCalendarAvailability = async (
       accessToken = newTokens.access_token;
 
       // Update tokens in database
-      const { updateIntegrationTokens } = await import(
-        "@/lib/queries/integrations"
-      );
       await updateIntegrationTokens(
         integration.id,
         newTokens.access_token,

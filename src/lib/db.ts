@@ -1,4 +1,5 @@
 import { Pool } from "pg";
+import { withRetry } from "@/lib/ai/resilience/error-handler";
 
 // Database connection configuration with production-ready settings
 const pool = new Pool({
@@ -26,8 +27,6 @@ export default pool;
 
 // Export a query helper with error handling
 export const query = async (text: string, params?: unknown[]) => {
-  const { withRetry } = await import("@/lib/ai/resilience/error-handler");
-  
   return withRetry(
     async () => {
       return await pool.query(text, params);

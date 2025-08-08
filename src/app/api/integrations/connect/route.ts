@@ -4,6 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { connectIntegration } from "@/lib/integrations/service";
 import { isIntegrationSupported } from "@/lib/integrations/registry";
 import type { IntegrationType } from "@/types/integrations";
+import {
+  getAvailableIntegrationTypes,
+  INTEGRATION_REGISTRY,
+} from "@/lib/integrations/registry";
 
 /**
  * Unified integration connection endpoint
@@ -51,10 +55,6 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const { getAvailableIntegrationTypes, INTEGRATION_REGISTRY } = await import(
-      "@/lib/integrations/registry"
-    );
-
     const availableTypes = getAvailableIntegrationTypes();
     const integrations = availableTypes.map((type) => ({
       type,
