@@ -16,8 +16,14 @@ export interface NegotiationInput {
  * - Extracts simple durations like "30 min", "1 hour", "90 minutes".
  * - We intentionally avoid aggressive date parsing to prefer explicit user confirmation.
  */
-function extractSchedulingHints(text: string): {
+function extractSchedulingHints(
+  text: string,
+  userTz?: string
+): {
   durationMins?: number;
+  earliest?: string;
+  latest?: string;
+  tz?: string;
 } {
   const lower = text.toLowerCase();
 
@@ -33,10 +39,94 @@ function extractSchedulingHints(text: string): {
         ? qty
         : // treat any hour unit as hours
           qty * 60;
-    return { durationMins: Math.max(5, Math.min(240, minutes)) };
+    const range = extractSimpleTimeRange(lower, userTz);
+    return { durationMins: Math.max(5, Math.min(240, minutes)), ...range };
   }
 
-  return {};
+  // Try to extract a simple time range even without duration
+  const rangeOnly = extractSimpleTimeRange(lower, userTz);
+  return { ...rangeOnly };
+}
+
+function extractSimpleTimeRange(
+  text: string,
+  userTz?: string
+): { earliest?: string; latest?: string; tz?: string } {
+  // Support phrases like "on sunday between 13:00 and 17:00" or "sunday 1pm-5pm"
+  const dayNames = [
+    "sunday",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+  ];
+  const dayIdx = dayNames.findIndex((d) => text.includes(d));
+
+  // Match time range
+  const timeRe =
+    /(?:(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)\s*(?:-|to|and|\u2013|\u2014|\s+to\s+)\s*(?:(\d{1,2})(?::(\d{2}))?\s*(am|pm)?)/;
+  const m = text.match(timeRe);
+  if (dayIdx === -1 || !m) return {};
+
+  const [_, h1s, m1s, ap1, h2s, m2s, ap2] = m;
+  const h1 = parseInt(h1s, 10);
+  const min1 = m1s ? parseInt(m1s, 10) : 0;
+  const h2 = parseInt(h2s, 10);
+  const min2 = m2s ? parseInt(m2s, 10) : 0;
+
+  function to24(h: number, ap?: string | null): number {
+    if (!ap) return h; // already 24h
+    const a = ap.toLowerCase();
+    if (a === "am") return h % 12;
+    if (a === "pm") return (h % 12) + 12;
+    return h;
+  }
+
+  const th1 = to24(h1, ap1);
+  const th2 = to24(h2, ap2);
+
+  // Compute the next occurrence of the specified weekday
+  const now = new Date();
+  const today = now.getDay();
+  let delta = dayIdx - today;
+  if (delta <= 0) delta += 7;
+
+  const target = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() + delta,
+    0,
+    0,
+    0,
+    0
+  );
+
+  const earliest = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+    th1,
+    min1,
+    0,
+    0
+  );
+  const latest = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+    th2,
+    min2,
+    0,
+    0
+  );
+
+  return {
+    earliest: earliest.toISOString(),
+    latest: latest.toISOString(),
+    tz: userTz || "UTC",
+  };
 }
 
 /**
@@ -116,19 +206,20 @@ async function resolveCounterpart(
     return { cand, score };
   });
 
-  const maxScore = Math.max(...scored.map((s) => s.score), 0);
-  const filtered = scored
-    .filter((s) => s.score >= Math.max(3, maxScore))
+  // Prefer best single match; if tie for top, ask user to choose
+  scored.sort((a, b) => b.score - a.score);
+  if (scored.length === 0 || scored[0].score === 0) {
+    return { candidates: candidates.slice(0, 5) };
+  }
+  const top = scored[0];
+  const second = scored[1];
+  if (!second || top.score - second.score >= 2) {
+    return { chosen: top.cand };
+  }
+  const tiedTop = scored
+    .filter((s) => s.score === top.score)
     .map((s) => s.cand);
-
-  if (filtered.length === 1) {
-    return { chosen: filtered[0] };
-  }
-  if (filtered.length > 1) {
-    return { candidates: filtered.slice(0, 5) };
-  }
-  // No confident filter; return all as candidates for explicit choice
-  return { candidates: candidates.slice(0, 5) };
+  return { candidates: tiedTop.slice(0, 5) };
 }
 
 export const networkNegotiationNode = async (
@@ -137,8 +228,16 @@ export const networkNegotiationNode = async (
 ): Promise<Partial<LangGraphChatState>> => {
   try {
     // Extract simple scheduling hints from the user's message
-    const { durationMins: hintedDuration } = extractSchedulingHints(
-      state.conversationContext || ""
+    const {
+      durationMins: hintedDuration,
+      earliest,
+      latest,
+      tz,
+    } = extractSchedulingHints(
+      state.conversationContext || "",
+      state.user && typeof state.user.timezone === "string"
+        ? state.user.timezone
+        : undefined
     );
 
     // Resolve counterpart by name if not explicitly provided
@@ -238,11 +337,9 @@ export const networkNegotiationNode = async (
         userAId: state.userId,
         userBId: counterpartId,
         durationMins: effectiveDuration,
-        tz:
-          (state.user &&
-            typeof state.user.timezone === "string" &&
-            state.user.timezone) ||
-          undefined,
+        tz,
+        earliest,
+        latest,
         constraintsA: permissions?.constraints || {},
         constraintsB: permissions?.constraints || {},
         limit: 5,
@@ -266,6 +363,15 @@ export const networkNegotiationNode = async (
           durationMins: effectiveDuration,
         },
       });
+
+      // Mirror session started notification as in API route for parity
+      await notif.createNotification(
+        counterpartId,
+        "network.session.started",
+        "New scheduling session",
+        `User ${state.userId} started a scheduling session with you`,
+        { sessionId: session.id, connectionId: connectionId }
+      );
 
       await notif.createNotification(
         counterpartId,
