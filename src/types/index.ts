@@ -3,6 +3,8 @@ export * from "./ai";
 export * from "./database";
 export * from "./api";
 export * from "./calendar";
+export * from "./network";
+export * from "./notifications";
 
 // Re-export NextAuth types for convenience
 export type { Session, User } from "next-auth";
