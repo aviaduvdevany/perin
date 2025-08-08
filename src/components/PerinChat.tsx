@@ -127,13 +127,13 @@ export function PerinChat() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto">
+    <div className="relative flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto px-0">
       {messages.length > 0 && (
         <div
           className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"
           style={{
             background:
-              "linear-gradient(180deg, color-mix(in oklab, var(--accent-primary) 6%, transparent), transparent)",
+              "linear-gradient(180deg, color-mix(in oklab, var(--accent-secondary) 12%, transparent), transparent)",
           }}
         >
           <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center mr-3 glow-primary">
@@ -153,7 +153,8 @@ export function PerinChat() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto p-4 pb-32 space-y-4 scrollbar-ultra-thin">
+      {/* Scroll only inside messages */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-32 space-y-4 scrollbar-ultra-thin">
         {messages.length === 0 && (
           <div className="text-center text-[var(--foreground-muted)] py-20">
             <div className="mb-8">
@@ -186,7 +187,7 @@ export function PerinChat() {
           >
             {message.role === "user" ? (
               <motion.div
-                className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
+                className="max-w-[85%] lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
               >
@@ -199,7 +200,7 @@ export function PerinChat() {
                 variant="default"
                 border={true}
                 glow={false}
-                className="max-w-xs lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
+                className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
               >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
                   {message.content}
@@ -231,7 +232,7 @@ export function PerinChat() {
               variant="default"
               border={true}
               glow={false}
-              className="max-w-xs lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
+              className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
             >
               <motion.div
                 animate={{ scale: [1, 1.01, 1] }}
@@ -252,7 +253,7 @@ export function PerinChat() {
 
         {chatError && (
           <div className="flex justify-center">
-            <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl status-error">
+            <div className="max-w-[85%] lg:max-w-md px-4 py-3 rounded-2xl status-error">
               <p className="text-sm">Error: {chatError}</p>
             </div>
           </div>
