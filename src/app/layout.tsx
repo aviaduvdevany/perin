@@ -44,6 +44,7 @@ export default function RootLayout({
       <body className="antialiased">
         <SessionProvider>
           <NotificationsProvider>
+            <Navbar />
             <main>{children}</main>
           </NotificationsProvider>
         </SessionProvider>

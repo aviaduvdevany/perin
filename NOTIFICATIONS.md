@@ -74,7 +74,7 @@ Event Sources (Network, Calendar, AI) → Notification Orchestrator
       → Delivery Tracker (per-channel status, retries)
         → Persistence (notifications, deliveries, devices, prefs)
           → Digest Aggregator (scheduled)
-``` 
+```
 
 ## Data Model (incremental)
 
@@ -276,6 +276,119 @@ Checkpoints:
     - `Unread` vs `Read`
     - `Resolved` vs `Unresolved` (badge or filter). Reading does not auto-resolve.
 
+## Current Implementation — Phase 1 Progress
+
+Done in code (as of this commit):
+
+- Data and Types
+
+  - `notifications` table extended (requiresAction, isResolved, resolvedAt, actionDeadlineAt, actionRef) — SQL provided and assumed applied.
+  - Types updated in `src/types/notifications.ts` to include new fields and additional `type` literals (calendar/assistant/system) plus device, preferences, deliveries.
+
+- Queries (`src/lib/queries/notifications.ts`)
+
+  - `createNotification`, `listNotifications`, `markNotificationRead` (existing, kept)
+  - `listUnresolvedNotifications(userId, requiresActionOnly)`
+  - `markNotificationResolved(id, userId)`
+  - `updateNotificationActionability(id, userId, fields)`
+  - `upsertNotificationDevice(userId, platform, playerId, deviceInfo?)`
+  - `getNotificationPreferences(userId)`, `upsertNotificationPreferences(userId, prefs)`
+  - `getActiveDevicesForUser(userId)`
+  - `insertNotificationDelivery(notificationId, channel, status, providerMessageId?, error?)`
+
+- API (App Router)
+
+  - `GET /api/notifications?unread=true|false&unresolved=true|false&requiresAction=true|false`
+  - `POST /api/notifications/:id/read` (supports id from path or body)
+  - `POST /api/notifications/:id/resolve`
+  - `POST /api/notifications/devices/register`
+  - `GET /api/notifications/preferences`
+  - `PUT /api/notifications/preferences`
+  - `POST /api/notifications/dispatch` (internal-only; secured via `x-internal-key`)
+
+- Service layer (`src/app/services/notifications.ts`)
+
+  - `listNotificationsService(unreadOnly?)`
+  - `markNotificationReadService(id)`
+  - `resolveNotificationService(id)`
+  - `listUnresolvedNotificationsService(requiresActionOnly?)`
+  - `registerNotificationDeviceService(platform, playerId, deviceInfo?)`
+  - `getNotificationPreferencesService()` / `updateNotificationPreferencesService(prefs)`
+
+- Delivery (minimal router for Phase 1)
+
+  - `src/lib/notifications/onesignal.ts` — server-side send to OneSignal REST.
+  - Dispatch route attempts Web Push to active web devices and logs `notification_deliveries` (`sent`/`failed`).
+
+- OneSignal Web SDK v16 (client)
+
+  - Script: `https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js` loaded in `src/app/layout.tsx`.
+  - Provider: `src/components/providers/NotificationsProvider.tsx` uses OneSignalDeferred, prompts, and registers web subscription via `POST /api/notifications/devices/register`.
+  - Workers: `public/OneSignalSDKWorker.js`, `public/OneSignalSDKUpdaterWorker.js` import v16 SW.
+  - Env: `NEXT_PUBLIC_ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY` required.
+
+- In‑app UI
+
+  - `src/components/ui/NotificationBell.tsx` — shows list, unread count badge, mark‑as‑read; labels actionable unresolved items.
+  - Integrated into `src/components/ui/Navbar.tsx` for authenticated users.
+
+- Security
+  - Internal dispatch secured with `x-internal-key: ${NOTIFICATIONS_INTERNAL_KEY}`.
+
+What remains for Phase 1 acceptance (to do):
+
+- Policy engine: relevance filter, DnD + timezone enforcement, basic TTL and dedupe.
+- Preferences UI (DnD windows/timezone/channel toggles) and enforcement in dispatch policy.
+- Trigger sources wiring: emit dispatches from Network/Calendar/Assistant flows per events listed.
+- Unresolved UX: panel filter for unresolved, and explicit resolve action in UI (uses `resolveNotificationService`).
+- Observability: structured logs and simple metrics around sends/failures.
+
+Phase 2+ (deferred):
+
+- Digest scheduling endpoints and cron wiring; digest UI preview.
+- Email/SMS fallbacks; provider integration and delivery tracking.
+- Expanded notification types and richer actions; deep links.
+- Analytics dashboards and outcomes tracking.
+
+API quick reference (implemented):
+
+- `GET /api/notifications?unread=true|false&unresolved=true|false&requiresAction=true|false`
+- `POST /api/notifications/:id/read`
+- `POST /api/notifications/:id/resolve`
+- `POST /api/notifications/devices/register` { platform, playerId, deviceInfo? }
+- `GET /api/notifications/preferences`
+- `PUT /api/notifications/preferences` { timezone?, dnd?, channels?, digest? }
+- `POST /api/notifications/dispatch` { userId, type, title, body?, data?, requiresAction?, actionDeadlineAt?, actionRef? } — header: `x-internal-key`
+
+File pointers (updated):
+
+- API
+  - `src/app/api/notifications/route.ts`
+  - `src/app/api/notifications/[id]/read/route.ts`
+  - `src/app/api/notifications/[id]/resolve/route.ts`
+  - `src/app/api/notifications/devices/register/route.ts`
+  - `src/app/api/notifications/preferences/route.ts`
+  - `src/app/api/notifications/dispatch/route.ts`
+- Services
+  - `src/app/services/notifications.ts`
+- Queries
+  - `src/lib/queries/notifications.ts`
+- Providers & UI
+  - `src/components/providers/NotificationsProvider.tsx`
+  - `src/components/ui/NotificationBell.tsx`
+  - `src/components/ui/Navbar.tsx`
+- OneSignal
+  - `public/OneSignalSDKWorker.js`
+  - `public/OneSignalSDKUpdaterWorker.js`
+  - `src/lib/notifications/onesignal.ts`
+
+Environment:
+
+- Add to `.env.local` / deployment:
+  - `NEXT_PUBLIC_ONESIGNAL_APP_ID`
+  - `ONESIGNAL_REST_API_KEY`
+  - `NOTIFICATIONS_INTERNAL_KEY` — random secret used by internal dispatch
+
 ## Acceptance Criteria (Phase 1)
 
 - As a user, I can:
@@ -348,6 +461,7 @@ Checkpoints:
 ---
 
 ## sql to run in db
+
 ```sql
 -- 1) Extend notifications table
 ALTER TABLE notifications
