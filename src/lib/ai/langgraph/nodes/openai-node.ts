@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import type { LangGraphChatState } from "@/types/ai";
 import type { ChatMessage } from "@/types/ai";
-import { fallbackToSimpleResponse, withRetry } from "@/lib/ai/resilience/error-handler";
+import {
+  fallbackToSimpleResponse,
+  withRetry,
+} from "@/lib/ai/resilience/error-handler";
 
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;
@@ -104,6 +107,44 @@ Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}`
   }
 
 Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.
+
+Notifications Context:
+${(() => {
+  type ActionableNotif = {
+    id: string;
+    type: string;
+    title: string;
+    actionRef?: unknown;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { unresolvedActionable?: ActionableNotif[]; count?: number }
+    | undefined;
+  if (
+    !n ||
+    !Array.isArray(n.unresolvedActionable) ||
+    n.unresolvedActionable.length === 0
+  ) {
+    return "No actionable notifications.";
+  }
+  const lines = n.unresolvedActionable
+    .slice(0, 5)
+    .map((item: ActionableNotif, i: number) => {
+      const ref =
+        typeof item.actionRef === "object"
+          ? JSON.stringify(item.actionRef)
+          : String(item.actionRef ?? "");
+      return `${i + 1}. [${item.type}] ${item.title} (id=${
+        item.id
+      }) actionRef=${ref}`;
+    })
+    .join("\n");
+  const count =
+    typeof n.count === "number" ? n.count : n.unresolvedActionable.length;
+  return `You have ${count} unresolved actionable notifications. Top items:\n${lines}`;
+})()}
 
 ${
   integrations

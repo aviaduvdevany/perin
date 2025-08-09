@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { extractSessionIdFromUrl, getUserIdFromSession } from "@/lib/utils/session-helpers";
+import {
+  extractSessionIdFromUrl,
+  getUserIdFromSession,
+} from "@/lib/utils/session-helpers";
 import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
@@ -9,8 +12,6 @@ import { generateMutualProposals } from "@/lib/network/scheduling";
 import { ProposalsSchema, safeParse } from "@/app/api/network/schemas";
 import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import { rateLimit } from "@/lib/utils/rate-limit";
-
-
 
 // POST /api/network/sessions/:id/proposals - Generate and send proposals from initiator to counterpart
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -42,7 +43,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   try {
     ensureSessionNotExpired(sess.ttl_expires_at);
-  } catch (e) {
+  } catch {
     return ErrorResponses.badRequest("Session expired");
   }
 
@@ -122,6 +123,32 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     `You received ${proposals.length} time proposals`,
     { sessionId: sessionId, messageId: message.id }
   );
+
+  // Mark this proposals notification as actionable so Perin can surface it in chat
+  try {
+    const list = await notif.listUnresolvedNotifications(counterpartId, false);
+    const created = list.find(
+      (n) =>
+        n.type === "network.message.received" &&
+        n.data &&
+        typeof n.data === "object" &&
+        (n.data as { messageId?: string }).messageId === message.id
+    );
+    if (created) {
+      await notif.updateNotificationActionability(created.id, counterpartId, {
+        requires_action: true,
+        action_deadline_at: null,
+        action_ref: {
+          kind: "network.proposals",
+          sessionId,
+          messageId: message.id,
+        },
+      });
+    }
+  } catch {
+    // best-effort; non-fatal
+    console.warn("Failed to mark proposals notification actionable");
+  }
 
   // Update session status to negotiating
   const updated = await networkQueries.updateAgentSession(sessionId, {

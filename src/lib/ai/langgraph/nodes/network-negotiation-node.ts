@@ -381,6 +381,38 @@ export const networkNegotiationNode = async (
         { sessionId: session.id, messageId: message.id }
       );
 
+      // Mark this proposals notification as actionable with an action_ref
+      try {
+        const list = await notif.listUnresolvedNotifications(
+          counterpartId,
+          false
+        );
+        const created = list.find(
+          (n) =>
+            n.type === "network.message.received" &&
+            n.data &&
+            typeof n.data === "object" &&
+            (n.data as { messageId?: string }).messageId === message.id
+        );
+        if (created) {
+          await notif.updateNotificationActionability(
+            created.id,
+            counterpartId,
+            {
+              requires_action: true,
+              action_deadline_at: null,
+              action_ref: {
+                kind: "network.proposals",
+                sessionId: session.id,
+                messageId: message.id,
+              },
+            }
+          );
+        }
+      } catch (e) {
+        console.warn("Failed to mark proposals notification actionable", e);
+      }
+
       await networkQueries.updateAgentSession(session.id, {
         status: "negotiating",
       });
