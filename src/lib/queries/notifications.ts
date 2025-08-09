@@ -171,3 +171,37 @@ export const upsertNotificationPreferences = async (
   ]);
   return result.rows[0];
 };
+
+export const getActiveDevicesForUser = async (
+  userId: string
+): Promise<NotificationDevice[]> => {
+  const sql = `
+    SELECT * FROM ${DEVICES_TABLE}
+    WHERE user_id = $1 AND is_active = true
+  `;
+  const result = await query(sql, [userId]);
+  return result.rows;
+};
+
+export const insertNotificationDelivery = async (
+  notificationId: string,
+  channel: "mobile_push" | "web_push" | "email" | "sms" | "in_app",
+  status: "queued" | "sent" | "delivered" | "failed",
+  providerMessageId?: string | null,
+  error?: string | null
+) => {
+  const sql = `
+    INSERT INTO notification_deliveries
+      (notification_id, channel, status, provider_message_id, error, attempts, last_attempt_at)
+    VALUES ($1, $2, $3, $4, $5, 1, now())
+    RETURNING *
+  `;
+  const result = await query(sql, [
+    notificationId,
+    channel,
+    status,
+    providerMessageId ?? null,
+    error ?? null,
+  ]);
+  return result.rows[0];
+};

@@ -6,6 +6,7 @@ import {
 } from "@/lib/utils/error-handlers";
 import * as notifQueries from "@/lib/queries/notifications";
 import type { Notification } from "@/types/notifications";
+import { sendWebPushToSubscriptionIds } from "@/lib/notifications/onesignal";
 
 // Internal-only: POST /api/notifications/dispatch
 // Body: { userId, type, title, body?, data?, requiresAction?, actionDeadlineAt?, actionRef? }
@@ -68,7 +69,35 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  // TODO Phase 2: Policy engine + channel router + OneSignal send + deliveries tracking
+  // Minimal Phase 1: try web push via OneSignal and track delivery
+  const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
+  const apiKey = process.env.ONESIGNAL_REST_API_KEY;
+  if (appId && apiKey) {
+    const devices = await notifQueries.getActiveDevicesForUser(userId);
+    const webSubs = devices
+      .filter((d) => d.platform === "web" && d.onesignal_player_id)
+      .map((d) => d.onesignal_player_id);
+    if (webSubs.length) {
+      const result = await sendWebPushToSubscriptionIds({
+        appId,
+        restApiKey: apiKey,
+        subscriptionIds: webSubs,
+        title,
+        body: text ?? undefined,
+        url:
+          data && typeof data === "object" && data !== null && "url" in data
+            ? (Reflect.get(data as object, "url") as string)
+            : undefined,
+      });
+      await notifQueries.insertNotificationDelivery(
+        notification.id,
+        "web_push",
+        result.ok ? "sent" : "failed",
+        result.id ?? null,
+        result.error ?? null
+      );
+    }
+  }
 
   return NextResponse.json({ notification });
 });
