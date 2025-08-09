@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { Navbar } from "@/components/ui/Navbar";
+import { OneSignalProvider } from "@/components/providers/OneSignalProvider";
 
 export const metadata: Metadata = {
   title: "Perin - Your AI-powered productivity assistant",
@@ -38,7 +39,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <SessionProvider>
-          <main>{children}</main>
+          <OneSignalProvider>
+            <main>{children}</main>
+          </OneSignalProvider>
         </SessionProvider>
       </body>
     </html>

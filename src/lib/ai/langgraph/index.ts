@@ -1,6 +1,7 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
 import { multiIntegrationNode } from "./nodes/integration-node";
+import { notificationsNode } from "./nodes/notifications-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import type {
   ChatMessage,
@@ -79,6 +80,13 @@ export const executePerinChatWithLangGraph = async (
           state = {
             ...state,
             ...(integrationResult as Partial<LangGraphChatState>),
+          };
+
+          // Step 2.1: Load unresolved actionable notifications (limited)
+          const notificationsResult = await notificationsNode(state);
+          state = {
+            ...state,
+            ...(notificationsResult as Partial<LangGraphChatState>),
           };
 
           // Step 2.5: Network negotiation if scheduling intent

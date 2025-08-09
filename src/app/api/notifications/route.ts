@@ -13,12 +13,20 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
   const { searchParams } = new URL(request.url);
   const onlyUnread = searchParams.get("unread") === "true";
+  const unresolvedOnly = searchParams.get("unresolved") === "true";
+  const requiresActionOnly = searchParams.get("requiresAction") !== "false"; // default true
 
-  const notifications = await notifQueries.listNotifications(
-    userId,
-    onlyUnread
-  );
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  let notifications;
+  if (unresolvedOnly) {
+    notifications = await notifQueries.listUnresolvedNotifications(
+      userId,
+      requiresActionOnly
+    );
+  } else {
+    notifications = await notifQueries.listNotifications(userId, onlyUnread);
+  }
+
+  const unreadCount = notifications.filter((n: any) => !n.is_read).length;
 
   return NextResponse.json({ notifications, unreadCount });
 });

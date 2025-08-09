@@ -3,9 +3,9 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
-import * as notifQueries from "@/lib/queries/notifications";
+import { markNotificationResolved } from "@/lib/queries/notifications";
 
-// POST /api/notifications/:id/read
+// POST /api/notifications/:id/resolve
 export const POST = withErrorHandler(
   async (request: NextRequest, context: { params: { id?: string } }) => {
     const session = await getServerSession(authOptions);
@@ -22,7 +22,7 @@ export const POST = withErrorHandler(
     if (!notificationId)
       return ErrorResponses.badRequest("Missing notification id");
 
-    const ok = await notifQueries.markNotificationRead(notificationId, userId);
+    const ok = await markNotificationResolved(notificationId, userId);
     if (!ok) return ErrorResponses.notFound("Notification not found");
 
     return NextResponse.json({ ok: true });
