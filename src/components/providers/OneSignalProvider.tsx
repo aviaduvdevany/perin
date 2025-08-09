@@ -52,10 +52,17 @@ export function OneSignalProvider({ children }: OneSignalProviderProps) {
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
     if (!appId) return;
 
-    window.OneSignal = window.OneSignal || [];
-    window.OneSignal.push(function () {
-      window.OneSignal.init({ appId });
-    });
+    try {
+      if (Array.isArray(window.OneSignal)) {
+        (window.OneSignal as unknown as Array<() => void>).push(function () {
+          window.OneSignal?.init({ appId });
+        });
+      } else {
+        window.OneSignal.init({ appId });
+      }
+    } catch (e) {
+      console.error("OneSignal init error", e);
+    }
   }, [isReady]);
 
   const registerIfSubscribed = useCallback(async () => {
@@ -110,5 +117,3 @@ export function OneSignalProvider({ children }: OneSignalProviderProps) {
     </>
   );
 }
-
-
