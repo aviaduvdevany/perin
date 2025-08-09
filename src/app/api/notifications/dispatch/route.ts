@@ -10,6 +10,11 @@ import type { Notification } from "@/types/notifications";
 // Internal-only: POST /api/notifications/dispatch
 // Body: { userId, type, title, body?, data?, requiresAction?, actionDeadlineAt?, actionRef? }
 export const POST = withErrorHandler(async (request: NextRequest) => {
+  const internalKey = request.headers.get("x-internal-key");
+  if (!internalKey || internalKey !== process.env.NOTIFICATIONS_INTERNAL_KEY) {
+    return ErrorResponses.unauthorized("Invalid internal key");
+  }
+
   const body = await request.json();
   const { isValid, missingFields } = validateRequiredFields(body, [
     "userId",
