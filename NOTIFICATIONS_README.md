@@ -347,4 +347,83 @@ Checkpoints:
 
 ---
 
+## sql to run in db
+```sql
+-- 1) Extend notifications table
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS requires_action BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_resolved BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMPTZ NULL,
+  ADD COLUMN IF NOT EXISTS action_deadline_at TIMESTAMPTZ NULL,
+  ADD COLUMN IF NOT EXISTS action_ref JSONB NULL;
+
+-- Helpful indexes
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created_at
+  ON notifications (user_id, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+  ON notifications (user_id)
+  WHERE is_read = false;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unresolved
+  ON notifications (user_id)
+  WHERE is_resolved = false;
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_requires_action
+  ON notifications (user_id)
+  WHERE requires_action = true;
+
+-- 2) notification_devices
+CREATE TABLE IF NOT EXISTS notification_devices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  platform TEXT NOT NULL CHECK (platform IN ('web','ios','android')),
+  onesignal_player_id TEXT NOT NULL,
+  device_info JSONB NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  last_seen_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT uq_notification_device UNIQUE (user_id, platform, onesignal_player_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_devices_user_active
+  ON notification_devices (user_id, is_active);
+
+CREATE INDEX IF NOT EXISTS idx_notification_devices_player
+  ON notification_devices (onesignal_player_id);
+
+-- 3) notification_preferences
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  timezone TEXT NULL,
+  dnd JSONB NULL,
+  channels JSONB NULL,
+  digest JSONB NULL,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 4) notification_deliveries
+CREATE TABLE IF NOT EXISTS notification_deliveries (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  notification_id TEXT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+  channel TEXT NOT NULL CHECK (channel IN ('mobile_push','web_push','email','sms','in_app')),
+  status TEXT NOT NULL CHECK (status IN ('queued','sent','delivered','failed')),
+  provider_message_id TEXT NULL,
+  error TEXT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  last_attempt_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notification_deliveries_notification
+  ON notification_deliveries (notification_id);
+
+CREATE INDEX IF NOT EXISTS idx_notification_deliveries_status
+  ON notification_deliveries (status);
+
+CREATE INDEX IF NOT EXISTS idx_notification_deliveries_channel
+  ON notification_deliveries (channel);
+
+```
+
 This document is the single source of truth for the Notifications feature roadmap. Keep it updated as the implementation evolves.
