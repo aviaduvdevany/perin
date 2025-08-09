@@ -1,7 +1,11 @@
 import { query } from "@/lib/db";
-import type { Notification } from "@/types/notifications";
-
-const NOTIFICATIONS_TABLE = "notifications";
+import type {
+  Notification,
+  NotificationDevice,
+  NotificationDevicePlatform,
+  NotificationPreferences,
+} from "@/types/notifications";
+import { NOTIFICATIONS_TABLE, DEVICES_TABLE, PREFS_TABLE } from "@/lib/tables";
 
 export const createNotification = async (
   userId: string,
@@ -50,4 +54,120 @@ export const markNotificationRead = async (
   `;
   const result = await query(sql, [id, userId]);
   return (result.rowCount || 0) > 0;
+};
+
+export const updateNotificationActionability = async (
+  id: string,
+  userId: string,
+  fields: {
+    requires_action?: boolean;
+    action_deadline_at?: string | null;
+    action_ref?: Record<string, unknown> | null;
+  }
+): Promise<boolean> => {
+  const sql = `
+    UPDATE ${NOTIFICATIONS_TABLE}
+    SET
+      requires_action = COALESCE($3, requires_action),
+      action_deadline_at = COALESCE($4, action_deadline_at),
+      action_ref = COALESCE($5, action_ref)
+    WHERE id = $1 AND user_id = $2
+  `;
+  const result = await query(sql, [
+    id,
+    userId,
+    fields.requires_action ?? null,
+    fields.action_deadline_at ?? null,
+    fields.action_ref ? JSON.stringify(fields.action_ref) : null,
+  ]);
+  return (result.rowCount || 0) > 0;
+};
+
+export const listUnresolvedNotifications = async (
+  userId: string,
+  requiresActionOnly = true
+): Promise<Notification[]> => {
+  const sql = `
+    SELECT * FROM ${NOTIFICATIONS_TABLE}
+    WHERE user_id = $1
+      AND is_resolved = false
+      ${requiresActionOnly ? "AND requires_action = true" : ""}
+    ORDER BY created_at DESC
+    LIMIT 100
+  `;
+  const result = await query(sql, [userId]);
+  return result.rows;
+};
+
+export const markNotificationResolved = async (
+  id: string,
+  userId: string
+): Promise<boolean> => {
+  const sql = `
+    UPDATE ${NOTIFICATIONS_TABLE}
+    SET is_resolved = true, resolved_at = now()
+    WHERE id = $1 AND user_id = $2
+  `;
+  const result = await query(sql, [id, userId]);
+  return (result.rowCount || 0) > 0;
+};
+
+export const upsertNotificationDevice = async (
+  userId: string,
+  platform: NotificationDevicePlatform,
+  playerId: string,
+  deviceInfo?: Record<string, unknown> | null
+): Promise<NotificationDevice> => {
+  const sql = `
+    INSERT INTO ${DEVICES_TABLE} (user_id, platform, onesignal_player_id, device_info, is_active, last_seen_at)
+    VALUES ($1, $2, $3, $4, true, now())
+    ON CONFLICT (user_id, platform, onesignal_player_id)
+    DO UPDATE SET device_info = EXCLUDED.device_info, is_active = true, last_seen_at = now()
+    RETURNING *
+  `;
+  const result = await query(sql, [
+    userId,
+    platform,
+    playerId,
+    deviceInfo ? JSON.stringify(deviceInfo) : null,
+  ]);
+  return result.rows[0];
+};
+
+export const getNotificationPreferences = async (
+  userId: string
+): Promise<NotificationPreferences | null> => {
+  const sql = `
+    SELECT * FROM ${PREFS_TABLE}
+    WHERE user_id = $1
+    LIMIT 1
+  `;
+  const result = await query(sql, [userId]);
+  return result.rows[0] || null;
+};
+
+export const upsertNotificationPreferences = async (
+  userId: string,
+  prefs: Omit<NotificationPreferences, "user_id" | "updated_at">
+): Promise<NotificationPreferences> => {
+  const sql = `
+    INSERT INTO ${PREFS_TABLE} (user_id, timezone, dnd, channels, digest)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (user_id)
+    DO UPDATE SET
+      timezone = EXCLUDED.timezone,
+      dnd = EXCLUDED.dnd,
+      channels = EXCLUDED.channels,
+      digest = EXCLUDED.digest,
+      updated_at = now()
+    RETURNING *
+  `;
+  const result = await query(sql, [
+    userId,
+    prefs.timezone ?? null,
+    prefs.dnd ? JSON.stringify(prefs.dnd) : null,
+    prefs.channels ? JSON.stringify(prefs.channels) : null,
+    prefs.digest ? JSON.stringify(prefs.digest) : null,
+  ]);
+  return result.rows[0];
 };

@@ -1,0 +1,740 @@
+Web SDK reference
+
+Copy page
+
+Complete API reference for OneSignal Web SDK v16 with initialization, user management, push notifications, slidedown prompts, and debugging methods. Learn how to implement web push notifications, manage user subscriptions, and integrate email/SMS features.
+
+​
+Setup & debugging
+You may notice the need to wrap your OneSignal calls with OneSignalDeferred.push(async function() { ... })
+You can add as many methods into the function() as desired.
+The OneSignal SDK is loaded with the defer attribute on your page. For example:
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+This means the OneSignal code will execute after the HTML document has been fully parsed, preventing any blocking of the site by the OneSignal SDK. However, this presents a problem for page scripts that depend on the OneSignalDeferred variable existing. To resolve this, when you add OneSignal to your site, it should begin with:
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+This creates a OneSignalDeferred variable, and if OneSignal is already loaded, it’s then assigned to the loaded instance. Otherwise, the OneSignal variable equals an empty array - [].
+All arrays have a .push() function, so at this point, the OneSignalDeferred variable is simply an array of functions we’re pushing on to it. When the SDK finally loads, the SDK processes all the functions pushed so far and redefines .push().
+​
+init()
+Initializes the OneSignal SDK. This should be called in the <head> tag once on each page of your site. The ONESIGNAL_APP_ID can be found in Keys & IDs.
+If you want to delay initialization of the OneSignal SDK, we recommend using our Privacy methods.
+
+JavaScript
+
+Copy
+
+Ask AI
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: "ONESIGNAL_APP_ID",
+  });
+});
+Init options only work with Custom Code Setup. Otherwise, these are configured in the OneSignal dashboard.
+Parameter	Type	Description
+appId	String	Required: Your OneSignal App ID found in Keys & IDs.
+requiresUserPrivacyConsent	Boolean	Delays SDK initialization until the user provides privacy consent. Must call setConsentGiven() to complete setup.
+safari_web_id	String	The Safari Web ID for your uploaded Safari .p12 certificate. Web Quickstart.
+promptOptions	Object	Customize the permission prompts. Details below.
+notifyButton	Object	Enable and configure the Subscription Bell. Details below.
+welcomeNotification	Object	Customize or disable the welcome notification. Details below.
+persistNotification	Boolean	Chrome (desktop only) - true: notification persists until clicked, false: disappears after a short time. Firefox/Safari ignore this setting.
+webhooks	Object	Configure event callbacks. See Webhooks.
+autoResubscribe	Boolean	Recommended: Auto-resubscribes users who clear browser cache or migrate to OneSignal. Overrides dashboard setting if used in code.
+notificationClickHandlerMatch	String	"exact" (default): focuses tab with an exact URL match. "origin": focuses any tab with the same domain.
+notificationClickHandlerAction	String	"navigate" (default): navigates to launchURL. "focus": focuses existing tab (only used with "origin" match).
+serviceWorkerParam	Object	Set the scope of the service worker. Must be different from other service worker’s scope if applicable. Example:
+{ scope: "/myPath/myCustomScope/" }
+serviceWorkerPath	String	Set the location of the OneSignal service worker file. Example:
+"myPath/OneSignalSDKWorker.js"
+​
+promptOptions parameters
+Use promptOptions to localize or customize the user permission prompts. All fields are optional.
+Parameter	Type	Description
+slidedown	Object	Contains an array of prompts with configuration options.
+prompts	Array of Objects	An array of prompt configurations. Example:
+"slidedown": { "prompts": [{...}, {...}] }
+type	String	Prompt types:
+push – Slide Prompt (no categories)
+category – Slide Prompt with up to 10 categories
+email – Collect email only
+sms – Collect phone number only
+smsAndEmail – Collect both
+See Web Permission Prompts.
+autoPrompt	Boolean	
+true: show based on delay.
+false: prompt only shown manually via Slidedown API.
+delay	Object	Controls when auto-prompt is shown:
+{ pageViews: 3, timeDelay: 20 } = Show after 3rd pageview and 20s wait.
+text	Object	Custom text options:
+actionMessage (max 90 chars)
+acceptButton (max 15)
+cancelButton (max 15)
+emailLabel, smsLabel, confirmMessage
+updateMessage, positiveUpdateButton, negativeUpdateButton (used for updating categories or contact info)
+categories	Array of Objects	Only for type: category. Each object includes:
+tag: internal key
+label: user-visible name
+Example: [ {tag: "local_news", label: "Local News"} ]. See Data Tags.
+​
+notifyButton parameters
+Configure the Subscription Bell (notify button) shown on the page.
+Parameter	Type	Description
+enable	Boolean	Enables the Subscription Bell. Disabled by default.
+displayPredicate	Function	Custom function (or Promise) that returns true or false to show/hide the Bell. Evaluated once when shown.
+size	String	'small', 'medium', or 'large'. Shrinks to 'small' after subscription.
+position	String	'bottom-left' or 'bottom-right'.
+offset	Object	CSS pixel offsets: { bottom: '50px', left: '10px' }
+prenotify	Boolean	If true, shows a “1 unread” icon and custom hover text.
+showCredit	Boolean	Set to false to hide “Powered by OneSignal” in the popup.
+text	Object	Custom text for the bell UI.
+​
+welcomeNotification parameters
+Customize the welcome notification sent after first-time subscription.
+Parameter	Type	Description
+disable	Boolean	Disable welcome notification.
+message	String	Required: Notification message. Defaults to 'Thanks for subscribing!' if blank.
+title	String	Notification title. Defaults to site title. Use ' ' (space) to remove (not recommended).
+url	URL	Optional URL to open when the user clicks the notification. Typically not needed.
+Example:
+
+Example init for Custom Code Setup
+
+Copy
+
+Ask AI
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+window.OneSignalDeferred = window.OneSignalDeferred || [];
+OneSignalDeferred.push(async function(OneSignal) {
+  await OneSignal.init({
+    appId: "YOUR_APP_ID",
+    safari_web_id: "YOUR_SAFARI_WEB_ID",
+    notifyButton: {
+      enable: true,
+    },
+    promptOptions: {
+      slidedown: {
+        prompts: [{
+            type: "smsAndEmail",
+            autoPrompt: false,
+            text: {
+              emailLabel: "Insert Email Address",
+              smsLabel: "Insert Phone Number",
+              acceptButton: "Submit",
+              cancelButton: "No Thanks",
+              actionMessage: "Receive the latest news, updates and offers as they happen.",
+              updateMessage: "Update your push notification subscription preferences.",
+              confirmMessage: "Thank You!",
+              positiveUpdateButton: "Save Preferences",
+              negativeUpdateButton: "Cancel",
+            },
+            delay: {
+              pageViews: 1,
+              timeDelay: 20
+            },
+          },
+          {
+            type: "category",
+            autoPrompt: true,
+            text: {
+              actionMessage: "We'd like to show you notifications for the latest news and updates.",
+              acceptButton: "Allow",
+              cancelButton: "Cancel",
+
+              /* CATEGORY SLIDEDOWN SPECIFIC TEXT */
+              negativeUpdateButton: "Cancel",
+              positiveUpdateButton: "Save Preferences",
+              updateMessage: "Update your push notification subscription preferences.",
+            },
+            delay: {
+              pageViews: 3,
+              timeDelay: 20
+            },
+            categories: [{
+                tag: "politics",
+                label: "Politics"
+              },
+              {
+                tag: "local_news",
+                label: "Local News"
+              },
+              {
+                tag: "world_news",
+                label: "World News",
+              },
+              {
+                tag: "culture",
+                label: "Culture"
+              },
+            ]
+          }
+        ]
+      }
+    }
+  });
+});
+</script>
+​
+setLogLevel()
+Set the logging to print additional logs to the console. See Debugging with Browser DevTools for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Debug.setLogLevel(“trace”);
+Log levels:
+'trace'
+'debug'
+'info'
+'warn'
+'error'
+​
+User identity & properties
+When your users subscribe to push notifications on your website, OneSignal automatically creates a OneSignal ID (user-level) and a Subscription ID (device-level). You can associate multiple subscriptions (e.g., devices, emails, phone numbers) with a single user by calling login() with your unique user identifier.
+See Users and Aliases for more details.
+​
+login(external_id)
+Sets the user context to the provided external_id. Ensures that all Subscriptions and properties associated with this external_id are unified under a single onesignal_id. See Users for more details.
+Key behaviors:
+If the external_id already exists, the SDK switches to that user. Anonymous data collected before login is not merged and will be discarded.
+If the external_id does not exist, the local state will be saved under the current onesignal_id. Any data collected while the user was anonymous will be kept.
+SDK retries automatically on network failure or server error.
+Call this method each time the user opens the site or within the Subscription change listener to make sure the External ID is set and the subscription is linked to the user.
+
+JavaScript
+
+Login with Subscription Change
+
+Copy
+
+Ask AI
+OneSignalDeferred.push(async function(OneSignal) {
+   await OneSignal.login("external_id");
+});
+​
+logout()
+Unlinks the current user from the subscription.
+Removes the external_id from the current push subscription.
+Resets the OneSignal ID to a new anonymous user.
+Any new data (e.g tags, Subscriptions, session data, etc.) will now be set on the new anonymous user until they are identified with the login method.
+Use this when a user signs out of your app if you want to set the subscription to a new anonymous user.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignalDeferred.push(async function(OneSignal) {
+     await OneSignal.logout();
+  });
+​
+OneSignal.User.onesignalId
+Retrieve the current OneSignal ID. May be null if called before user state is initialized. Instead, use User State addObserver() to listen for user state changes.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.onesignalId
+​
+OneSignal.User.externalId
+Retrieve the current External ID. May be null if not set or called before user state is initialized. Instead, use User State addObserver() to listen for user state changes.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.externalId
+​
+addEventListener() User State
+Listen for changes in the user context (e.g., login, logout, ID assignment).
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignalDeferred.push(function() {
+    OneSignal.User.addEventListener('change', function (event) {
+      console.log('change', { event });
+    });
+  });
+​
+addAlias(), addAliases(), removeAlias(), removeAliases()
+Aliases are alternative identifiers (like usernames or CRM IDs).
+Set external_id with login() before adding aliases. Aliases added to subscriptions without external_id will not sync across multiple subscriptions.
+See Aliases for details.
+JavaScript
+
+Copy
+
+Ask AI
+  // Add a single alias
+  OneSignal.User.addAlias("ALIAS_LABEL", "ALIAS_ID");
+
+  // Add multiple aliases
+  OneSignal.User.addAliases({
+    ALIAS_LABEL_01: "ALIAS_ID_01",
+    ALIAS_LABEL_02: "ALIAS_ID_02",
+    ALIAS_LABEL_03: "ALIAS_ID_03",
+  });
+
+  // Remove a single alias
+  OneSignal.User.removeAlias("ALIAS_LABEL");
+
+  // Remove multiple aliases
+  OneSignal.User.removeAliases(["ALIAS_LABEL_01", "ALIAS_LABEL_02", "ALIAS_LABEL_03"]);
+​
+getLanguage(), setLanguage()
+Get and/or override the auto-detected language of the user. See Multi-language messaging for a list of available language codes.
+JavaScript
+
+Copy
+
+Ask AI
+  // Get the language of the currently logged-in user
+  OneSignal.User.getLanguage()
+
+  // Set the language of the currently logged-in user
+  OneSignal.User.setLanguage('en')
+​
+Custom events
+Trigger Journeys and Wait Until step activation via a custom event.
+Custom events are still in beta and require the following version of the SDK to be triggered from your site:
+Web SDK, available starting 160500
+A user should be logged in for custom events to be tracked.
+Track and send a custom event performed by the current user.
+name - Required. The name of the event as a string.
+properties - Optional. Key-value pairs to add to the event. The properties dictionary or map must be serializable into a valid JSON Object.
+The SDK automatically includes app-specific data into the properties payload under the reserved key os_sdk that will be available to consume. For example, to target events by device type, you would access os_data.device_type.
+json
+
+Copy
+
+Ask AI
+{ 
+  "os_sdk": {
+    "device_os": "138",
+    "type": "ChromePush",
+    "device_model": "MacIntel",
+    "sdk": "160500"
+  }
+}
+​
+trackEvent()
+JavaScript
+
+Copy
+
+Ask AI
+const properties = {
+  "promo_code": "NEW50",
+  "additional_data": {
+     "signed_up_with_email": true,
+     "products_viewed_count": 15,
+  }
+}
+window.OneSignal.User.trackEvent('started_free_trial', properties);
+
+// You can also track an event by name without additional properties associated
+window.OneSignal.User.trackEvent('my_event_name');
+​
+Data tags
+Tags are custom key : value pairs of string data you set on users based on events or user properties. See Data Tags for more details.
+​
+addTag(), addTags()
+Set a single or multiple tags on the current user.
+Values will be replaced if the key already exists.
+Exceeding your plan’s tag limit will cause the operations to fail silently.
+JavaScript
+
+Copy
+
+Ask AI
+  // Add a single tag
+  OneSignal.User.addTag('tag_key', 'tag_value');
+
+  // Add multiple tags
+  OneSignal.User.addTags({
+   KEY_01: "VALUE_01",
+   KEY_02: "VALUE_02",
+   KEY_03: "VALUE_03"
+  });
+​
+removeTag(), removeTags()
+Delete a single or multiple tags from the current user.
+JavaScript
+
+Copy
+
+Ask AI
+  // Delete a single tag
+  OneSignal.User.removeTag("KEY");
+
+  OneSignal.User.removeTags(['KEY_01', 'KEY_02', 'KEY_03']);
+​
+getTags()
+Returns the local copy of the user’s tags. Tags are updated from the server during login() or new app sessions.
+JavaScript
+
+Copy
+
+Ask AI
+  const tags = OneSignal.User.getTags()
+​
+Privacy
+​
+setConsentRequired()
+Enforces user consent before data collection begins. Must be called before initializing the SDK.
+This method is the same as adding the requiresUserPrivacyConsent: true to the init method.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.setConsentRequired(true);
+​
+setConsentGiven()
+Grants or revokes user consent for data collection. Without consent, no data is sent to OneSignal and no subscription is created.
+If setConsentRequired() or requiresUserPrivacyConsent is set to true, our SDK will not be fully enabled until setConsentGiven is called with true.
+If setConsentGiven is set to true and a Subscription is created, then later it is set to false, that Subscription will no longer receive updates. The current data for that Subscription remains unchanged until setConsentGiven is set to true again.
+If you want to delete the User and/or Subscription data, use our Delete user or Delete subscription APIs.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.setConsentGiven(true);
+​
+Subscriptions
+See Subscriptions for more details.
+​
+User.PushSubscription.id
+Returns the current push subscription ID. May return null if called too early. Its recommended to get this data within the subscription observer to react to changes.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.PushSubscription.id;
+​
+User.PushSubscription.token
+Returns the current push subscription token. May return null if called too early. Its recommended to get this data within the subscription observer to react to changes.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.PushSubscription.token;
+​
+addEventListener() push subscription changes
+Use this method to respond to push subscription changes like:
+The device receives a new push token from Google (FCM) or Apple (APNs)
+OneSignal assigns a subscription ID
+The optedIn value changes (e.g. called optIn() or optOut())
+The user toggles push permission in system settings, then opens the app
+When this happens, the SDK triggers the onPushSubscriptionChange event. Your listener receives a state object with the previous and current values so you can detect exactly what changed.
+To stop listening for updates, call the associated removeObserver() or removeEventListener() method.
+JavaScript
+
+Copy
+
+Ask AI
+  function pushSubscriptionChangeListener(event) {
+    console.log("event.previous.id", event.previous.id);
+    console.log("event.current.id", event.current.id);
+    console.log("event.previous.token", event.previous.token);
+    console.log("event.current.token", event.current.token);
+    console.log("event.previous.optedIn", event.previous.optedIn);
+    console.log("event.current.optedIn", event.current.optedIn);
+  }
+
+  OneSignalDeferred.push(function(OneSignal) {
+    OneSignal.User.PushSubscription.addEventListener("change", pushSubscriptionChangeListener);
+  });
+​
+optOut(), optIn(), optedIn
+Control the subscription status (subscribed or unsubscribed) of the current push Subscription. Use these methods to control the push subscription status on your site. Common use cases: 1) Prevent push from being sent to users that log out. 2) Implement a notification preference center within your site.
+optOut(): Sets the current push subscription status to unsubscribed (even if the user has a valid push token).
+optIn(): Does one of three actions:
+If the Subscription has a valid push token, it sets the current push subscription status to subscribed.
+If the Subscription does not have a valid push token, it attempts to display the push permission prompt.
+optedIn: Returns true if the current push subscription status is subscribed, otherwise false. If the push token is valid but optOut() was called, this will return false.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.PushSubscription.optOut();
+
+  OneSignal.User.PushSubscription.optIn();
+
+  var optedIn = OneSignal.User.PushSubscription.optedIn;
+​
+addEmail(), removeEmail()
+Adds or removes an email Subscription (email address) to/from the current user. Call addEmail after login() to set the correct user context. Compatible with Identity Verification.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.addEmail("example@email.com");
+
+  OneSignal.User.removeEmail("example@email.com");
+​
+addSms(), removeSms()
+Adds or removes an SMS Subscription (phone number) to/from the current user. Requires E.164 format. Call addSms after login() to set the correct user context. Compatible with Identity Verification.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.User.addSms("+15558675309");
+
+  OneSignal.User.removeSms("+15558675309");
+​
+Slidedown prompts
+Display the various slidedown prompts on your sites. See Web permission prompts for more details.
+If dismissed, future calls will be ignored for at least three days. Further declines will lengthen the time required to elapse before prompting the user again.
+To override back-off behavior, pass {force: true} to the method. However, to provide a good user experience, bind the action to a UI-initiated event like a button click.
+This does not replace the Native Browser Prompt required for subscription. You must obtain permissions using the native browser prompt.
+​
+promptPush()
+Displays the regular slidedown prompt for push notifications.
+If using categories, call promptPushCategories() instead.
+Subject to backoff logic set by the OneSignal. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Slidedown.promptPush();
+  // To bypass backoff logic while testing, pass {force: true}
+  //OneSignal.Slidedown.promptPush({force: true});
+​
+promptPushCategories()
+Displays the category slidedown prompt, allowing users to update their tags. Also triggers the native notification permission prompt if the user has not already granted permission.
+If not using categories, call promptPush() instead.
+Subject to backoff logic set by the OneSignal. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Slidedown.promptPushCategories();
+  // To bypass backoff logic while testing, pass {force: true}
+  //OneSignal.Slidedown.promptPushCategories({force: true});
+​
+promptSms()
+Displays the SMS subscription prompt.
+Subject to backoff logic set by the OneSignal. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Slidedown.promptSms();
+  // To bypass backoff logic while testing, pass {force: true}
+  //OneSignal.Slidedown.promptSms({force: true});
+​
+promptEmail()
+Displays the email subscription prompt.
+Subject to backoff logic set by the OneSignal. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Slidedown.promptEmail();
+  // To bypass backoff logic while testing, pass {force: true}
+  //OneSignal.Slidedown.promptEmail({force: true});
+​
+promptSmsAndEmail()
+Displays the SMS and email subscription prompts simultaneously.
+Subject to backoff logic set by the OneSignal. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Slidedown.promptSmsAndEmail();
+  // To bypass backoff logic while testing, pass {force: true}
+  //OneSignal.Slidedown.promptSmsAndEmail({force: true});
+​
+addEventListener() Slidedown
+Add a callback to detect the Slidedown prompt shown event.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignalDeferred.push(function(OneSignal) {
+
+    OneSignal.Slidedown.addEventListener('slidedownShown', function (event) {
+      console.log('slidedownShown', { event });
+    });
+
+  });
+​
+Push notifications
+​
+requestPermission()
+Requests push notifications permission via the native browser prompt. Subject to backoff logic set by the browser. See Web permission prompts for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Notifications.requestPermission();
+​
+isPushSupported()
+Returns true if the current browser supports web push.
+JavaScript
+
+Copy
+
+Ask AI
+  const isSupported = OneSignal.Notifications.isPushSupported();
+​
+OneSignal.Notifications.permission
+Returns a boolean indicating the site’s current permission to display notifications.
+true: The user has granted permission to display notifications.
+false: The user has either denied or not yet granted permission to display notifications.
+This is just the sites’s permission, does not factor in OneSignal’s optOut status or the existence of the Subscription ID and Push Token, see OneSignal.User.PushSubscription for these.
+To listen for changes in permission, use the permissionChange event.
+JavaScript
+
+Copy
+
+Ask AI
+  let permission = OneSignal.Notifications.permission;
+​
+addEventListener() notifications
+You can hook into the notification life-cycle by attaching your event handlers to a notification event. Calling addEventListener lets you add an arbitrary number of event handlers for notification events.
+To stop listening for events, call the associated removeEventListener() method.
+JavaScript
+
+Copy
+
+Ask AI
+  function eventListener(event) {
+    console.log(`${event}`);
+  }
+
+  OneSignal.Notifications.addEventListener("event", eventListener);
+
+  OneSignal.Notifications.removeEventListener("event", eventListener);
+​
+permissionChange
+This event occurs when the user clicks Allow or Block or dismisses the browser’s native permission request.
+JavaScript
+
+Copy
+
+Ask AI
+  function permissionChangeListener(permission) {
+    if (permission) {
+      console.log(`permission accepted!`);
+    }
+  }
+
+  OneSignal.Notifications.addEventListener("permissionChange", permissionChangeListener);
+​
+permissionPromptDisplay
+This event occurs when the browser’s native permission request has just been shown.
+JavaScript
+
+Copy
+
+Ask AI
+  function promptListener() {
+    console.log(`permission prompt dispslayed event: ${event}`);
+  }
+
+  OneSignal.Notifications.addEventListener("permissionPromptDisplay", promptListener);
+​
+click
+This event will fire when the notification’s body/title or action buttons are clicked.
+JavaScript
+
+Copy
+
+Ask AI
+  function clickEventListener(event) {
+    console.log(`click event: ${event}`);
+  }
+
+  OneSignal.Notifications.addEventListener("click", clickEventListener);
+​
+foregroundWillDisplay
+This event occurs before a notification is displayed. This event is fired on your page. If multiple browser tabs are open on your site, this event will be fired on all pages on which OneSignal is active.
+JavaScript
+
+Copy
+
+Ask AI
+  function foregroundWillDisplayListener(event) {
+    console.log(`notification will display: ${notification}`);
+  }
+
+  OneSignal.Notifications.addEventListener("foregroundWillDisplay", foregroundWillDisplayListener);
+​
+dismiss
+This event occurs when:
+A user purposely dismisses the notification without clicking the notification body or action buttons
+On Chrome on Android, a user dismisses all web push notifications (this event will be fired for each web push notification we show)
+A notification expires on its own and disappears
+This event does not occur if a user clicks on the notification body or one of the action buttons. That is considered a notification click event.
+JavaScript
+
+Copy
+
+Ask AI
+  function notificationDismissedListener(event) {
+    console.log(`dismiss event: ${event}`);
+  }
+
+  OneSignal.Notifications.addEventListener("dismiss", notificationDismissedListener);
+​
+setDefaultUrl()
+Sets the default URL for notifications.
+If you haven’t set a default URL, your notification will open to the root of your site by default.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Notifications.setDefaultUrl("https://onesignal.com");
+To set the default URL for notifications, provide a valid URL that you want to be launched when the notification is clicked. This default URL will be used if no other URL is specified when creating a notification. If you do specify a URL when creating a notification, the default URL will be overridden.
+In the case of Safari, the default notification icon URL will be set to the Site URL that you have specified in your Safari settings, as this function is not available.
+​
+setDefaultTitle()
+Sets the default title to display on notifications.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Notifications.setDefaultTitle("Powered by OneSignal!");
+If a notification is created with a title, the specified title always overrides this default title.
+A notification’s title defaults to the title of the page the user last visited. If your page titles vary between pages, this inconsistency can be undesirable. Call this to standardize page titles across notifications, as long as a notification title isn’t specified.
+​
+Outcomes
+​
+sendOutcome()
+Triggers an outcome which can be viewed in the OneSignal dashboard. Accepts an outcome name (string, required) and a value (number, optional). Each time sendOutcome method is invoked with the same outcome name passed, the outcome count will increase, and the outcome value will be increased by the amount passed in (if included). See Custom Outcomes for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Session.sendOutcome('outcome name', 19.84);
+​
+sendUniqueOutcome()
+Triggers an outcome which can be viewed in the OneSignal dashboard. Accepts only the outcome name (string, required). sendUniqueOutcome will increase the count for that outcome only once per user. See Custom Outcomes for more details.
+JavaScript
+
+Copy
+
+Ask AI
+  OneSignal.Session.sendUniqueOutcome('outcome name');

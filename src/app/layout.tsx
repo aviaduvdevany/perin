@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
+import NotificationsProvider from "@/components/providers/NotificationsProvider";
 import { Navbar } from "@/components/ui/Navbar";
 
 export const metadata: Metadata = {
@@ -35,10 +36,16 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
+        <script
+          src="https://cdn.onesignal.com/sdks/OneSignalSDK.js"
+          defer
+        ></script>
       </head>
       <body className="antialiased">
         <SessionProvider>
-          <main>{children}</main>
+          <NotificationsProvider>
+            <main>{children}</main>
+          </NotificationsProvider>
         </SessionProvider>
       </body>
     </html>

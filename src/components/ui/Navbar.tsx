@@ -16,6 +16,7 @@ import {
 } from "./navigation-menu";
 import { Button } from "./button";
 import { Home, LayoutDashboard, User, LogOut, Menu, X } from "lucide-react";
+import { NotificationBell } from "./NotificationBell";
 
 export function Navbar() {
   const { isAuthenticated, isLoading, logout } = useAuth();
@@ -91,6 +92,7 @@ export function Navbar() {
                 <>
                   {isAuthenticated ? (
                     <div className="flex items-center space-x-3">
+                      <NotificationBell />
                       <Button
                         variant="ghost"
                         size="sm"
