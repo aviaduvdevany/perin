@@ -116,7 +116,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     payload: { proposals: proposalsWithTz, durationMins: body.durationMins },
   });
 
-  await notif.createNotification(
+  const createdNotif = await notif.createNotification(
     counterpartId,
     "network.message.received",
     "New time proposals",
@@ -126,16 +126,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
   // Mark this proposals notification as actionable so Perin can surface it in chat
   try {
-    const list = await notif.listUnresolvedNotifications(counterpartId, false);
-    const created = list.find(
-      (n) =>
-        n.type === "network.message.received" &&
-        n.data &&
-        typeof n.data === "object" &&
-        (n.data as { messageId?: string }).messageId === message.id
-    );
-    if (created) {
-      await notif.updateNotificationActionability(created.id, counterpartId, {
+    await notif.updateNotificationActionability(
+      createdNotif.id,
+      counterpartId,
+      {
         requires_action: true,
         action_deadline_at: null,
         action_ref: {
@@ -143,8 +137,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
           sessionId,
           messageId: message.id,
         },
-      });
-    }
+      }
+    );
   } catch {
     // best-effort; non-fatal
     console.warn("Failed to mark proposals notification actionable");

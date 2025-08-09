@@ -198,6 +198,36 @@ export const getAgentSessionById = async (
   return result.rows[0] || null;
 };
 
+// List negotiating sessions initiated by the user (used to surface pending outgoing proposals)
+export const listNegotiatingSessionsForUser = async (
+  userId: string,
+  limit: number = 20
+): Promise<AgentSession[]> => {
+  const sql = `
+    SELECT * FROM ${AGENT_SESSIONS_TABLE}
+    WHERE initiator_user_id = $1 AND status = 'negotiating'
+    ORDER BY updated_at DESC
+    LIMIT $2
+  `;
+  const result = await query(sql, [userId, limit]);
+  return result.rows;
+};
+
+// List negotiating sessions where the current user is the counterpart (incoming proposals)
+export const listNegotiatingSessionsForCounterpart = async (
+  userId: string,
+  limit: number = 20
+): Promise<AgentSession[]> => {
+  const sql = `
+    SELECT * FROM ${AGENT_SESSIONS_TABLE}
+    WHERE counterpart_user_id = $1 AND status = 'negotiating'
+    ORDER BY updated_at DESC
+    LIMIT $2
+  `;
+  const result = await query(sql, [userId, limit]);
+  return result.rows;
+};
+
 // Agent Messages
 export const createAgentMessage = async (message: {
   session_id: string;
@@ -278,7 +308,9 @@ export const expireAgentSessions = async (): Promise<number> => {
   return result.rowCount || 0;
 };
 
-export const purgeOldIdempotencyKeys = async (olderThanDays: number = 7): Promise<number> => {
+export const purgeOldIdempotencyKeys = async (
+  olderThanDays: number = 7
+): Promise<number> => {
   const sql = `
     DELETE FROM ${IDEMPOTENCY_KEYS_TABLE}
     WHERE created_at < (now() - ($1::text || ' days')::interval)

@@ -1,5 +1,7 @@
 import type { LangGraphChatState } from "../state/chat-state";
 import * as notif from "@/lib/queries/notifications";
+import * as network from "@/lib/queries/network";
+import * as users from "@/lib/queries/users";
 
 /**
  * Loads unresolved actionable notifications for the user, with a focus on
@@ -36,6 +38,80 @@ export const notificationsContextNode = async (
       data: n.data || null,
     }));
 
+    // Outgoing proposals: sessions I initiated and are still negotiating
+    const myNegotiatingSessions = await network.listNegotiatingSessionsForUser(
+      state.userId,
+      20
+    );
+    const pendingOutgoing = [] as Array<{
+      sessionId: string;
+      counterpartUserId: string;
+      counterpartName?: string;
+      status: string;
+      updatedAt: string;
+    }>;
+    for (const s of myNegotiatingSessions.slice(0, 10)) {
+      let counterpartName: string | undefined;
+      try {
+        const u = await users.getUserById(s.counterpart_user_id);
+        counterpartName =
+          (u?.name as string) || (u?.email as string) || undefined;
+      } catch {}
+      pendingOutgoing.push({
+        sessionId: s.id,
+        counterpartUserId: s.counterpart_user_id,
+        ...(counterpartName ? { counterpartName } : {}),
+        status: s.status,
+        updatedAt: s.updated_at,
+      });
+    }
+
+    // Incoming proposals awaiting my confirmation (I'm the counterpart)
+    const incomingNegotiations =
+      await network.listNegotiatingSessionsForCounterpart(state.userId, 10);
+    // Enrich with last proposal options (if available)
+    const pendingIncoming = [] as Array<{
+      sessionId: string;
+      initiatorUserId: string;
+      initiatorName?: string;
+      status: string;
+      updatedAt: string;
+      proposals?: Array<{ start: string; end: string; tz?: string }>;
+    }>;
+    for (const s of incomingNegotiations.slice(0, 3)) {
+      let proposals:
+        | Array<{ start: string; end: string; tz?: string }>
+        | undefined;
+      try {
+        const msgs = await network.listAgentMessages(s.id);
+        const lastProposal = [...msgs]
+          .reverse()
+          .find((m) => m.type === "proposal");
+        const payload = (lastProposal?.payload || {}) as {
+          proposals?: Array<{ start: string; end: string; tz?: string }>;
+        };
+        if (Array.isArray(payload.proposals)) {
+          proposals = payload.proposals.slice(0, 5);
+        }
+      } catch {
+        // ignore
+      }
+      let initiatorName: string | undefined;
+      try {
+        const u = await users.getUserById(s.initiator_user_id);
+        initiatorName =
+          (u?.name as string) || (u?.email as string) || undefined;
+      } catch {}
+      pendingIncoming.push({
+        sessionId: s.id,
+        initiatorUserId: s.initiator_user_id,
+        ...(initiatorName ? { initiatorName } : {}),
+        status: s.status,
+        updatedAt: s.updated_at,
+        ...(proposals ? { proposals } : {}),
+      });
+    }
+
     return {
       currentStep: "notifications_loaded",
       integrations: {
@@ -43,6 +119,8 @@ export const notificationsContextNode = async (
         notifications: {
           unresolvedActionable: actionable,
           count: actionable.length,
+          pendingOutgoing,
+          pendingIncoming,
         },
       },
     } as Partial<LangGraphChatState>;

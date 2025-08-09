@@ -146,6 +146,76 @@ ${(() => {
   return `You have ${count} unresolved actionable notifications. Top items:\n${lines}`;
 })()}
 
+Pending Outgoing Proposals:
+${(() => {
+  type Pending = {
+    sessionId: string;
+    counterpartUserId: string;
+    counterpartName?: string;
+    status: string;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { pendingOutgoing?: Pending[] }
+    | undefined;
+  const pend = Array.isArray(n?.pendingOutgoing)
+    ? (n!.pendingOutgoing as Pending[])
+    : [];
+  if (!pend.length) return "None.";
+  const top = pend
+    .slice(0, 5)
+    .map((p, i) => {
+      const who = p.counterpartName || p.counterpartUserId;
+      return `${i + 1}. session=${p.sessionId} counterpart=${who} status=${
+        p.status
+      }`;
+    })
+    .join("\n");
+  return top;
+})()}
+
+Pending Incoming Proposals:
+${(() => {
+  type PendingIn = {
+    sessionId: string;
+    initiatorUserId: string;
+    initiatorName?: string;
+    status: string;
+    proposals?: Array<{ start: string; end: string; tz?: string }>;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { pendingIncoming?: PendingIn[] }
+    | undefined;
+  const pend = Array.isArray(n?.pendingIncoming)
+    ? (n!.pendingIncoming as PendingIn[])
+    : [];
+  if (!pend.length) return "None.";
+  const top = pend
+    .slice(0, 5)
+    .map((p, i) => {
+      const opts = Array.isArray(p.proposals)
+        ? " options: " +
+          p.proposals
+            .map(
+              (pp, ii) =>
+                `${ii + 1}=[${pp.start} - ${pp.end}${pp.tz ? " " + pp.tz : ""}]`
+            )
+            .join(", ")
+        : "";
+      const who = p.initiatorName || p.initiatorUserId;
+      return `${i + 1}. session=${p.sessionId} from=${who} status=${
+        p.status
+      }${opts}`;
+    })
+    .join("\n");
+  return top;
+})()}
+
 ${
   integrations
     ? `Additional Integration Contexts: ${JSON.stringify(
