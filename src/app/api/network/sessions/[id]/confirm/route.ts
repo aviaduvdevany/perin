@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { extractSessionIdFromUrl, getUserIdFromSession } from "@/lib/utils/session-helpers";
+import {
+  extractSessionIdFromUrl,
+  getUserIdFromSession,
+} from "@/lib/utils/session-helpers";
 import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
@@ -10,7 +13,6 @@ import {
   deleteCalendarEvent,
 } from "@/lib/integrations/calendar/client";
 import { ConfirmSchema, safeParse } from "@/app/api/network/schemas";
-import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions/:id/confirm
@@ -42,11 +44,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return ErrorResponses.unauthorized("Not part of this session");
   }
 
-  try {
-    ensureSessionNotExpired(sess.ttl_expires_at);
-  } catch (e) {
-    return ErrorResponses.badRequest("Session expired");
-  }
+  // No TTL enforcement; confirmation allowed if other checks succeed.
 
   const json = await request.json();
   const parsed = safeParse(ConfirmSchema, json);

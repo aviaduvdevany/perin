@@ -1,7 +1,10 @@
 import OpenAI from "openai";
 import type { LangGraphChatState } from "@/types/ai";
 import type { ChatMessage } from "@/types/ai";
-import { fallbackToSimpleResponse, withRetry } from "@/lib/ai/resilience/error-handler";
+import {
+  fallbackToSimpleResponse,
+  withRetry,
+} from "@/lib/ai/resilience/error-handler";
 
 // Initialize OpenAI client only on server-side
 let openai: OpenAI | null = null;
@@ -104,6 +107,114 @@ Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}`
   }
 
 Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.
+
+Notifications Context:
+${(() => {
+  type ActionableNotif = {
+    id: string;
+    type: string;
+    title: string;
+    actionRef?: unknown;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { unresolvedActionable?: ActionableNotif[]; count?: number }
+    | undefined;
+  if (
+    !n ||
+    !Array.isArray(n.unresolvedActionable) ||
+    n.unresolvedActionable.length === 0
+  ) {
+    return "No actionable notifications.";
+  }
+  const lines = n.unresolvedActionable
+    .slice(0, 5)
+    .map((item: ActionableNotif, i: number) => {
+      const ref =
+        typeof item.actionRef === "object"
+          ? JSON.stringify(item.actionRef)
+          : String(item.actionRef ?? "");
+      return `${i + 1}. [${item.type}] ${item.title} (id=${
+        item.id
+      }) actionRef=${ref}`;
+    })
+    .join("\n");
+  const count =
+    typeof n.count === "number" ? n.count : n.unresolvedActionable.length;
+  return `You have ${count} unresolved actionable notifications. Top items:\n${lines}`;
+})()}
+
+Pending Outgoing Proposals:
+${(() => {
+  type Pending = {
+    sessionId: string;
+    counterpartUserId: string;
+    counterpartName?: string;
+    status: string;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { pendingOutgoing?: Pending[] }
+    | undefined;
+  const pend = Array.isArray(n?.pendingOutgoing)
+    ? (n!.pendingOutgoing as Pending[])
+    : [];
+  if (!pend.length) return "None.";
+  const top = pend
+    .slice(0, 5)
+    .map((p, i) => {
+      const who = p.counterpartName || p.counterpartUserId;
+      return `${i + 1}. session=${p.sessionId} counterpart=${who} status=${
+        p.status
+      }`;
+    })
+    .join("\n");
+  return top;
+})()}
+
+Pending Incoming Proposals:
+${(() => {
+  type PendingIn = {
+    sessionId: string;
+    initiatorUserId: string;
+    initiatorName?: string;
+    status: string;
+    proposals?: Array<{ start: string; end: string; tz?: string }>;
+  };
+  const integrationsObj = state.integrations as
+    | Record<string, unknown>
+    | undefined;
+  const n = integrationsObj?.notifications as
+    | { pendingIncoming?: PendingIn[] }
+    | undefined;
+  const pend = Array.isArray(n?.pendingIncoming)
+    ? (n!.pendingIncoming as PendingIn[])
+    : [];
+  if (!pend.length) return "None.";
+  const top = pend
+    .slice(0, 5)
+    .map((p, i) => {
+      const opts = Array.isArray(p.proposals)
+        ? " options: " +
+          p.proposals
+            .map(
+              (pp, ii) =>
+                `${ii + 1}=[${pp.start} - ${pp.end}${pp.tz ? " " + pp.tz : ""}]`
+            )
+            .join(", ")
+        : "";
+      const who = p.initiatorName || p.initiatorUserId;
+      return `${i + 1}. session=${p.sessionId} from=${who} status=${
+        p.status
+      }${opts}`;
+    })
+    .join("\n");
+  return top;
+})()}
 
 ${
   integrations

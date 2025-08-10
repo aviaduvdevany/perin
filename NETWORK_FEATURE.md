@@ -108,7 +108,7 @@ Zod schemas: `src/app/api/network/schemas.ts`
 - Membership: only connection participants act on a connection/session
 - Active check: connection must be `active` for proposals/confirm
 - Scopes: proposals require `calendar.availability.read` + `calendar.events.propose`; confirm requires `calendar.events.write.confirm` or `calendar.events.write.auto`
-- TTL: sessions expire after 30 minutes; proposals/confirm reject expired sessions
+- TTL: removed as a blocking concept. Sessions remain confirmable later; per-action checks (membership, scopes, connection active, slot validity, free/busy recheck) gate operations. Background cleanup may archive very old sessions without preventing confirmation if slot is still valid.
 
 ## Idempotency & Concurrency
 

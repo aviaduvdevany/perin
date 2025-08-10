@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { extractSessionIdFromUrl, getUserIdFromSession } from "@/lib/utils/session-helpers";
+import {
+  extractSessionIdFromUrl,
+  getUserIdFromSession,
+} from "@/lib/utils/session-helpers";
 import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import { generateMutualProposals } from "@/lib/network/scheduling";
 import { ProposalsSchema, safeParse } from "@/app/api/network/schemas";
-import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import { rateLimit } from "@/lib/utils/rate-limit";
-
-
 
 // POST /api/network/sessions/:id/proposals - Generate and send proposals from initiator to counterpart
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -40,11 +40,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return ErrorResponses.unauthorized("Not part of this session");
   }
 
-  try {
-    ensureSessionNotExpired(sess.ttl_expires_at);
-  } catch (e) {
-    return ErrorResponses.badRequest("Session expired");
-  }
+  // No TTL enforcement; sessions remain confirmable later. Per-action checks apply below.
 
   const json = await request.json();
   const parsed = safeParse(ProposalsSchema, json);
@@ -115,13 +111,33 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     payload: { proposals: proposalsWithTz, durationMins: body.durationMins },
   });
 
-  await notif.createNotification(
+  const createdNotif = await notif.createNotification(
     counterpartId,
     "network.message.received",
     "New time proposals",
     `You received ${proposals.length} time proposals`,
     { sessionId: sessionId, messageId: message.id }
   );
+
+  // Mark this proposals notification as actionable so Perin can surface it in chat
+  try {
+    await notif.updateNotificationActionability(
+      createdNotif.id,
+      counterpartId,
+      {
+        requires_action: true,
+        action_deadline_at: null,
+        action_ref: {
+          kind: "network.proposals",
+          sessionId,
+          messageId: message.id,
+        },
+      }
+    );
+  } catch {
+    // best-effort; non-fatal
+    console.warn("Failed to mark proposals notification actionable");
+  }
 
   // Update session status to negotiating
   const updated = await networkQueries.updateAgentSession(sessionId, {

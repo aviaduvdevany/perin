@@ -8,6 +8,8 @@ import type {
   LangGraphChatState,
 } from "@/types/ai";
 import { networkNegotiationNode } from "./nodes/network-negotiation-node";
+import { notificationsContextNode } from "./nodes/notifications-node";
+import { notificationsActionNode } from "./nodes/notifications-action-node";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -81,6 +83,13 @@ export const executePerinChatWithLangGraph = async (
             ...(integrationResult as Partial<LangGraphChatState>),
           };
 
+          // Step 2a: Load notifications context so Perin knows about actionable items
+          const notifResult = await notificationsContextNode(state);
+          state = {
+            ...state,
+            ...(notifResult as Partial<LangGraphChatState>),
+          };
+
           // Step 2.5: Network negotiation if scheduling intent
           if (specialization === "scheduling") {
             const netResult = await networkNegotiationNode(state, {
@@ -91,6 +100,13 @@ export const executePerinChatWithLangGraph = async (
             });
             state = { ...state, ...(netResult as Partial<LangGraphChatState>) };
           }
+
+          // Step 2.6: If user responds with a selection like "confirm 2", try to act on notification
+          const notifActionResult = await notificationsActionNode(state);
+          state = {
+            ...state,
+            ...(notifActionResult as Partial<LangGraphChatState>),
+          };
 
           // Step 3: Call OpenAI with real-time streaming and error handling
           const openaiClient = initializeOpenAI();

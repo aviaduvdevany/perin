@@ -52,13 +52,24 @@ export async function POST(request: NextRequest) {
 
     // Note: chatRequest is no longer used with LangGraph implementation
 
+    // Heuristic specialization inference: default to scheduling when user asks to meet/schedule
+    const text = messages
+      .map((m: { content: string }) => m?.content || "")
+      .join(" ")
+      .toLowerCase();
+    const mentionsScheduling =
+      /\b(meet|meeting|schedule|set up|book|find time|calendar)\b/.test(text);
+    const inferredSpecialization =
+      specialization || (mentionsScheduling ? "scheduling" : undefined);
+
+
     // Execute AI chat with LangGraph
     const { response } = await executePerinChatWithLangGraph(
       messages,
       userId,
       tone || user.tone || "friendly",
       perinName || user.perin_name || "Perin",
-      specialization,
+      inferredSpecialization,
       {
         perin_name: user.perin_name || undefined,
         tone: user.tone || undefined,

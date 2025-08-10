@@ -9,3 +9,6 @@ export const AGENT_SESSIONS_TABLE = "agent_sessions";
 export const AGENT_MESSAGES_TABLE = "agent_messages";
 export const AUDIT_LOGS_TABLE = "audit_logs";
 export const IDEMPOTENCY_KEYS_TABLE = "idempotency_keys";
+export const NOTIFICATIONS_TABLE = "notifications";
+export const DEVICES_TABLE = "notification_devices";
+export const PREFS_TABLE = "notification_preferences";
