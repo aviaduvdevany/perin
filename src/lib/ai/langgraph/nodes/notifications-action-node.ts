@@ -1,7 +1,6 @@
 import type { LangGraphChatState } from "../state/chat-state";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
-import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import {
   getConnectionById,
   getConnectionPermissions,
@@ -76,11 +75,7 @@ export const notificationsActionNode = async (
       return { currentStep: "notifications_action_error" };
     }
 
-    try {
-      ensureSessionNotExpired(sess.ttl_expires_at);
-    } catch {
-      return { currentStep: "notifications_action_error" };
-    }
+    // No TTL enforcement; proceed if other checks succeed
 
     // Permission checks
     const connection = await getConnectionById(sess.connection_id);

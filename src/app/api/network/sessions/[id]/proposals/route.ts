@@ -10,7 +10,6 @@ import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import { generateMutualProposals } from "@/lib/network/scheduling";
 import { ProposalsSchema, safeParse } from "@/app/api/network/schemas";
-import { ensureSessionNotExpired } from "@/lib/utils/network-auth";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions/:id/proposals - Generate and send proposals from initiator to counterpart
@@ -41,11 +40,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     return ErrorResponses.unauthorized("Not part of this session");
   }
 
-  try {
-    ensureSessionNotExpired(sess.ttl_expires_at);
-  } catch {
-    return ErrorResponses.badRequest("Session expired");
-  }
+  // No TTL enforcement; sessions remain confirmable later. Per-action checks apply below.
 
   const json = await request.json();
   const parsed = safeParse(ProposalsSchema, json);

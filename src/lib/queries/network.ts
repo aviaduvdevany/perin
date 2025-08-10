@@ -297,15 +297,9 @@ export const setSessionConfirmedIfUnconfirmed = async (
 };
 
 // Background cleanup helpers
+// TTL-based expiration removed; keep a no-op for compatibility
 export const expireAgentSessions = async (): Promise<number> => {
-  const sql = `
-    UPDATE ${AGENT_SESSIONS_TABLE}
-    SET status = 'expired', updated_at = now()
-    WHERE ttl_expires_at < now()
-      AND status NOT IN ('confirmed','canceled','expired','error')
-  `;
-  const result = await query(sql);
-  return result.rowCount || 0;
+  return 0;
 };
 
 export const purgeOldIdempotencyKeys = async (
