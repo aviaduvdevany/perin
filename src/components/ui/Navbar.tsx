@@ -29,13 +29,7 @@ export function Navbar() {
       href: "/",
       icon: Home,
       description: "Welcome to Perin",
-    },
-    {
-      name: "Chat",
-      href: "/chat",
-      icon: LayoutDashboard,
-      description: "Your productivity hub",
-      requiresAuth: true,
+      requiresAuth: false,
     },
   ];
 
