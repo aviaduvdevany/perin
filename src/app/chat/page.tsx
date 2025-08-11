@@ -2,6 +2,6 @@
 
 import { redirect } from "next/navigation";
 
-export default function ChatLegacyRedirectPage() {
+export default async function ChatLegacyRedirectPage() {
   redirect("/");
 }
