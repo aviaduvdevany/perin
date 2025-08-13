@@ -108,7 +108,7 @@ Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}`
 
 Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.
 
-Notifications Context:
+  Notifications Context:
 ${(() => {
   type ActionableNotif = {
     id: string;

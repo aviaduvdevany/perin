@@ -41,13 +41,34 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
 
       // Smart context loading - only load if contextually relevant
       if (detection.isRelevant) {
-        const context = await withRetry(
-          async () => {
-            return await loadIntegrationContext(state.userId, integrationType);
-          },
-          `integration-${integrationType}-${state.userId}`,
-          { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
-        );
+        let context: IntegrationContext;
+        try {
+          context = await withRetry(
+            async () => {
+              return await loadIntegrationContext(
+                state.userId,
+                integrationType
+              );
+            },
+            `integration-${integrationType}-${state.userId}`,
+            { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
+          );
+        } catch (err) {
+          // If Gmail needs reauth, surface a connected=false context with a clear error
+          const code = (err as { code?: string })?.code;
+          if (integrationType === "gmail" && code === "GMAIL_REAUTH_REQUIRED") {
+            return {
+              [`${integrationType}Context`]: {
+                isConnected: false,
+                data: [],
+                count: 0,
+                error: "GMAIL_REAUTH_REQUIRED",
+              },
+              currentStep: `${integrationType}_reauth_required`,
+            } as unknown as Partial<LangGraphChatState>;
+          }
+          throw err;
+        }
 
         return {
           [`${integrationType}Context`]: context,

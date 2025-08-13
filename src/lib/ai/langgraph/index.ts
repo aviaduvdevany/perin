@@ -83,6 +83,23 @@ export const executePerinChatWithLangGraph = async (
             ...(integrationResult as Partial<LangGraphChatState>),
           };
 
+          // If Gmail requires reauth, emit a control token for the UI to react seamlessly
+          try {
+            const integrationsObj = (state.integrations || {}) as Record<
+              string,
+              unknown
+            >;
+            const gmailCtx = integrationsObj["gmail"] as
+              | { isConnected?: boolean; error?: string }
+              | undefined;
+            if (gmailCtx && gmailCtx.error === "GMAIL_REAUTH_REQUIRED") {
+              const CONTROL = "[[PERIN_ACTION:gmail_reauth_required]]";
+              controller.enqueue(new TextEncoder().encode(CONTROL));
+              controller.close();
+              return;
+            }
+          } catch {}
+
           // Step 2a: Load notifications context so Perin knows about actionable items
           const notifResult = await notificationsContextNode(state);
           state = {

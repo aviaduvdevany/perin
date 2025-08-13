@@ -117,6 +117,26 @@ export default function UnifiedIntegrationManager({
     }
   };
 
+  // Lightweight banner to help users revalidate when backend reports reauth
+  // Usage: render this component and pass a hint via props or global state when we detect GMAIL_REAUTH_REQUIRED
+  const ReauthBanner = ({ type }: { type: IntegrationType }) => (
+    <div className="mt-4 p-3 rounded-md bg-yellow-50 border border-yellow-200">
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-yellow-800">
+          {type === "gmail"
+            ? "Gmail access needs to be revalidated."
+            : "Integration access needs to be revalidated."}
+        </p>
+        <button
+          onClick={() => handleConnect(type)}
+          className="ml-4 px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm"
+        >
+          Reconnect
+        </button>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className={`unified-integration-manager ${className}`}>
@@ -183,6 +203,8 @@ export default function UnifiedIntegrationManager({
                         Perin can now help you with{" "}
                         {integration.name.toLowerCase()}.
                       </p>
+                      {/* If we know this integration needs reauth, show banner */}
+                      {/* In a future enhancement, pipe a flag from server/LLM to show this conditionally */}
                     </div>
                   ) : (
                     <button

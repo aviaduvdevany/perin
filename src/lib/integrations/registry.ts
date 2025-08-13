@@ -30,12 +30,9 @@ export interface CalendarData {
 }
 
 // Context loaders for each integration
-const gmailContextLoader = async (
-  userId: string,
-  params?: unknown
-): Promise<GmailData[]> => {
+const gmailContextLoader = async (userId: string): Promise<GmailData[]> => {
   try {
-    // Import the Gmail client to fetch emails
+    // Import the Gmail client to fetch emails (with built-in fallbacks)
     const emails = await fetchRecentEmails(userId, 5);
 
     return emails.map((email) => ({
@@ -49,13 +46,13 @@ const gmailContextLoader = async (
     }));
   } catch (error) {
     console.error("Error in Gmail context loader:", error);
-    return [];
+    // Propagate so upstream can signal reauth and stop LLM streaming
+    throw error;
   }
 };
 
 const calendarContextLoader = async (
-  userId: string,
-  params?: unknown
+  userId: string
 ): Promise<CalendarData[]> => {
   try {
     // Import the Calendar client to fetch events

@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
+import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
@@ -69,8 +70,28 @@ export function PerinChat() {
           if (done) break;
 
           const chunk = decoder.decode(value);
-          fullResponse += chunk;
-          setStreamingMessage(fullResponse);
+          // Detect control tokens for seamless UI actions
+          if (chunk.includes("[[PERIN_ACTION:gmail_reauth_required]]")) {
+            // Show a one-tap reconnect inline message instead of a vague error
+            setMessages((prev) => {
+              const already = prev.some((m) =>
+                m.content.includes("needs a quick reconnect")
+              );
+              if (already) return prev;
+              return [
+                ...prev,
+                {
+                  id: `system-${Date.now()}`,
+                  role: "assistant",
+                  content:
+                    "Your Gmail session needs a quick reconnect to continue. Click Reconnect to proceed.",
+                },
+              ];
+            });
+          } else {
+            fullResponse += chunk;
+            setStreamingMessage(fullResponse);
+          }
         }
 
         const assistantMessage: ChatMessage = {
@@ -209,6 +230,25 @@ export function PerinChat() {
             )}
           </motion.div>
         ))}
+
+        {/* Inline reconnect UI when Perin asks for Gmail reauth */}
+        {messages.some((m) =>
+          m.content.includes("needs a quick reconnect")
+        ) && (
+          <div className="flex justify-start">
+            <Glass
+              variant="default"
+              border={true}
+              glow={false}
+              className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm w-full"
+            >
+              <UnifiedIntegrationManager
+                className="mt-2"
+                showOnlyConnectable={true}
+              />
+            </Glass>
+          </div>
+        )}
 
         {isChatLoading && !streamingMessage && (
           <motion.div

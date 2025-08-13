@@ -1,9 +1,9 @@
-import { google } from 'googleapis';
+import { google } from "googleapis";
 
 // Gmail OAuth scopes - using full access for future features
 const GMAIL_SCOPES = [
-  'https://www.googleapis.com/auth/gmail.modify', // Read, send, delete emails
-  'https://www.googleapis.com/auth/gmail.settings.basic', // Basic settings
+  "https://www.googleapis.com/auth/gmail.modify", // Read, send, delete emails
+  "https://www.googleapis.com/auth/gmail.settings.basic", // Basic settings
 ];
 
 // Create OAuth2 client
@@ -19,9 +19,9 @@ export const createGmailOAuth2Client = () => {
 export const getGmailAuthUrl = (): string => {
   const oauth2Client = createGmailOAuth2Client();
   return oauth2Client.generateAuthUrl({
-    access_type: 'offline',
+    access_type: "offline",
     scope: GMAIL_SCOPES,
-    prompt: 'consent', // Force refresh token
+    prompt: "consent", // Force refresh token
   });
 };
 
@@ -34,8 +34,22 @@ export const exchangeCodeForTokens = async (code: string) => {
 
 // Refresh access token
 export const refreshGmailToken = async (refreshToken: string) => {
-  const oauth2Client = createGmailOAuth2Client();
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  const { credentials } = await oauth2Client.refreshAccessToken();
-  return credentials;
+  try {
+    const oauth2Client = createGmailOAuth2Client();
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+    const { credentials } = await oauth2Client.refreshAccessToken();
+    return credentials;
+  } catch (error) {
+    // Normalize Google invalid_grant into a typed error we can handle upstream
+    const err = new Error("INVALID_GRANT");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).code = "INVALID_GRANT";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).cause = error;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).code = "INVALID_GRANT";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).cause = error;
+    throw err;
+  }
 };
