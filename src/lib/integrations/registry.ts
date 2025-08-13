@@ -70,7 +70,8 @@ const calendarContextLoader = async (
     }));
   } catch (error) {
     console.error("Error in Calendar context loader:", error);
-    return [];
+    // Propagate so upstream can signal reauth and stop LLM streaming
+    throw error;
   }
 };
 

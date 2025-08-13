@@ -1,7 +1,10 @@
 import { createCalendarClient, refreshCalendarToken } from "./auth";
 import type { CalendarEvent, CreateEventRequest } from "@/types/calendar";
 import { calendar_v3 } from "googleapis";
-import { getUserIntegration, updateIntegrationTokens } from "@/lib/queries/integrations";
+import {
+  getUserIntegration,
+  updateIntegrationTokens,
+} from "@/lib/queries/integrations";
 
 /**
  * Fetch recent calendar events for a user
@@ -16,7 +19,10 @@ export const fetchRecentEvents = async (
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
-      throw new Error("Calendar integration not found or inactive");
+      const e = new Error("CALENDAR_NOT_CONNECTED");
+      // @ts-expect-error annotate
+      e.code = "CALENDAR_NOT_CONNECTED";
+      throw e;
     }
 
     // Check if token needs refresh
@@ -26,15 +32,26 @@ export const fetchRecentEvents = async (
     let accessToken = integration.access_token;
 
     if (now >= expiresAt && integration.refresh_token) {
-      const newTokens = await refreshCalendarToken(integration.refresh_token);
-      accessToken = newTokens.access_token;
+      try {
+        const newTokens = await refreshCalendarToken(integration.refresh_token);
+        accessToken = newTokens.access_token;
 
-      // Update tokens in database
-      await updateIntegrationTokens(
-        integration.id,
-        newTokens.access_token,
-        newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
-      );
+        // Update tokens in database
+        await updateIntegrationTokens(
+          integration.id,
+          newTokens.access_token,
+          newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
+        );
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "INVALID_GRANT") {
+          const e = new Error("CALENDAR_REAUTH_REQUIRED");
+          // @ts-expect-error augment for upstream
+          e.code = "CALENDAR_REAUTH_REQUIRED";
+          throw e;
+        }
+        throw error;
+      }
     }
 
     // Create calendar client
@@ -99,7 +116,10 @@ export const createCalendarEvent = async (
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
-      throw new Error("Calendar integration not found or inactive");
+      const e = new Error("CALENDAR_NOT_CONNECTED");
+      // @ts-expect-error annotate
+      e.code = "CALENDAR_NOT_CONNECTED";
+      throw e;
     }
 
     // Check if token needs refresh
@@ -109,15 +129,26 @@ export const createCalendarEvent = async (
     let accessToken = integration.access_token;
 
     if (now >= expiresAt && integration.refresh_token) {
-      const newTokens = await refreshCalendarToken(integration.refresh_token);
-      accessToken = newTokens.access_token;
+      try {
+        const newTokens = await refreshCalendarToken(integration.refresh_token);
+        accessToken = newTokens.access_token;
 
-      // Update tokens in database
-      await updateIntegrationTokens(
-        integration.id,
-        newTokens.access_token,
-        newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
-      );
+        // Update tokens in database
+        await updateIntegrationTokens(
+          integration.id,
+          newTokens.access_token,
+          newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
+        );
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "INVALID_GRANT") {
+          const e = new Error("CALENDAR_REAUTH_REQUIRED");
+          // @ts-expect-error augment for upstream
+          e.code = "CALENDAR_REAUTH_REQUIRED";
+          throw e;
+        }
+        throw error;
+      }
     }
 
     // Create calendar client
@@ -194,7 +225,10 @@ export const deleteCalendarEvent = async (
   try {
     const integration = await getUserIntegration(userId, "calendar");
     if (!integration || !integration.is_active) {
-      throw new Error("Calendar integration not found or inactive");
+      const e = new Error("CALENDAR_NOT_CONNECTED");
+      // @ts-expect-error annotate
+      e.code = "CALENDAR_NOT_CONNECTED";
+      throw e;
     }
 
     let accessToken = integration.access_token;
@@ -242,15 +276,26 @@ export const getCalendarAvailability = async (
     let accessToken = integration.access_token;
 
     if (now >= expiresAt && integration.refresh_token) {
-      const newTokens = await refreshCalendarToken(integration.refresh_token);
-      accessToken = newTokens.access_token;
+      try {
+        const newTokens = await refreshCalendarToken(integration.refresh_token);
+        accessToken = newTokens.access_token;
 
-      // Update tokens in database
-      await updateIntegrationTokens(
-        integration.id,
-        newTokens.access_token,
-        newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
-      );
+        // Update tokens in database
+        await updateIntegrationTokens(
+          integration.id,
+          newTokens.access_token,
+          newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
+        );
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "INVALID_GRANT") {
+          const e = new Error("CALENDAR_REAUTH_REQUIRED");
+          // @ts-expect-error augment for upstream
+          e.code = "CALENDAR_REAUTH_REQUIRED";
+          throw e;
+        }
+        throw error;
+      }
     }
 
     // Create calendar client

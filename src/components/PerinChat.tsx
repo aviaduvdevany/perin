@@ -88,6 +88,24 @@ export function PerinChat() {
                 },
               ];
             });
+          } else if (
+            chunk.includes("[[PERIN_ACTION:calendar_reauth_required]]")
+          ) {
+            setMessages((prev) => {
+              const already = prev.some((m) =>
+                m.content.includes("calendar session needs a quick reconnect")
+              );
+              if (already) return prev;
+              return [
+                ...prev,
+                {
+                  id: `system-${Date.now()}`,
+                  role: "assistant",
+                  content:
+                    "Your calendar session needs a quick reconnect to continue. Click Reconnect to proceed.",
+                },
+              ];
+            });
           } else {
             fullResponse += chunk;
             setStreamingMessage(fullResponse);

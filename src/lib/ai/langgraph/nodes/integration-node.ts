@@ -56,13 +56,20 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
         } catch (err) {
           // If Gmail needs reauth, surface a connected=false context with a clear error
           const code = (err as { code?: string })?.code;
-          if (integrationType === "gmail" && code === "GMAIL_REAUTH_REQUIRED") {
+          if (
+            (integrationType === "gmail" && code === "GMAIL_REAUTH_REQUIRED") ||
+            (integrationType === "calendar" &&
+              code === "CALENDAR_REAUTH_REQUIRED")
+          ) {
             return {
               [`${integrationType}Context`]: {
                 isConnected: false,
                 data: [],
                 count: 0,
-                error: "GMAIL_REAUTH_REQUIRED",
+                error:
+                  integrationType === "gmail"
+                    ? "GMAIL_REAUTH_REQUIRED"
+                    : "CALENDAR_REAUTH_REQUIRED",
               },
               currentStep: `${integrationType}_reauth_required`,
             } as unknown as Partial<LangGraphChatState>;

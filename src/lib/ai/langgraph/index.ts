@@ -90,11 +90,32 @@ export const executePerinChatWithLangGraph = async (
               unknown
             >;
             const gmailCtx = integrationsObj["gmail"] as
-              | { isConnected?: boolean; error?: string }
+              | { error?: string }
               | undefined;
-            if (gmailCtx && gmailCtx.error === "GMAIL_REAUTH_REQUIRED") {
-              const CONTROL = "[[PERIN_ACTION:gmail_reauth_required]]";
-              controller.enqueue(new TextEncoder().encode(CONTROL));
+            const calCtx = integrationsObj["calendar"] as
+              | { error?: string }
+              | undefined;
+            if (
+              gmailCtx?.error === "GMAIL_REAUTH_REQUIRED" ||
+              gmailCtx?.error === "GMAIL_NOT_CONNECTED"
+            ) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  "[[PERIN_ACTION:gmail_reauth_required]]"
+                )
+              );
+              controller.close();
+              return;
+            }
+            if (
+              calCtx?.error === "CALENDAR_REAUTH_REQUIRED" ||
+              calCtx?.error === "CALENDAR_NOT_CONNECTED"
+            ) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  "[[PERIN_ACTION:calendar_reauth_required]]"
+                )
+              );
               controller.close();
               return;
             }

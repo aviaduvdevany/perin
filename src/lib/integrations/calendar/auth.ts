@@ -8,9 +8,10 @@ export const initializeGoogleCalendarAuth = (): OAuth2Client => {
   if (!oauth2Client) {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    
+
     // Use calendar-specific redirect URI or fallback to a default
-    const redirectUri = process.env.GOOGLE_CALENDAR_REDIRECT_URI || 
+    const redirectUri =
+      process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
       "http://localhost:3000/api/integrations/calendar/callback";
 
     if (!clientId || !clientSecret) {
@@ -19,8 +20,8 @@ export const initializeGoogleCalendarAuth = (): OAuth2Client => {
 
     console.log("Calendar OAuth2 Configuration:", {
       clientId: clientId ? "Set" : "Missing",
-      clientSecret: clientSecret ? "Set" : "Missing", 
-      redirectUri
+      clientSecret: clientSecret ? "Set" : "Missing",
+      redirectUri,
     });
 
     oauth2Client = new google.auth.OAuth2(clientId, clientSecret, redirectUri);
@@ -89,7 +90,12 @@ export const refreshCalendarToken = async (refreshToken: string) => {
     };
   } catch (error) {
     console.error("Error refreshing calendar token:", error);
-    throw new Error("Failed to refresh access token");
+    const err = new Error("INVALID_GRANT");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).code = "INVALID_GRANT";
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (err as any).cause = error;
+    throw err;
   }
 };
 
