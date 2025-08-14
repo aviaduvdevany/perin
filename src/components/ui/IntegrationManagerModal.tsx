@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { connectIntegrationService } from "@/app/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
 import { useIntegrations } from "@/components/providers/IntegrationsProvider";
@@ -18,16 +18,12 @@ export default function IntegrationManagerModal({
 }: IntegrationManagerModalProps) {
   const [activeSection, setActiveSection] =
     useState<IntegrationType>("calendar");
-  const { integrations, isLoading, refresh, disconnect } = useIntegrations();
+  const { integrations, isLoading, disconnect } = useIntegrations();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      refresh();
-    }
-  }, [open, refresh]);
+  // Do not refetch on open; list is managed by app-level provider (loaded once, refreshed on mutations)
 
   const activeList = useMemo(() => {
     const calendars = integrations
