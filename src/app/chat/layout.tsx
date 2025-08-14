@@ -13,6 +13,7 @@ import BottomSheet from "@/components/ui/BottomSheet";
 import ProfileSummary from "@/components/ui/ProfileSummary";
 import IntegrationManagerModal from "@/components/ui/IntegrationManagerModal";
 import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
+import { IntegrationsProvider } from "@/components/providers/IntegrationsProvider";
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
   const {
@@ -121,7 +122,9 @@ export default function ChatWorkspaceLayout({
 }) {
   return (
     <ChatUIProvider>
-      <ChatLayoutInner>{children}</ChatLayoutInner>
+      <IntegrationsProvider>
+        <ChatLayoutInner>{children}</ChatLayoutInner>
+      </IntegrationsProvider>
     </ChatUIProvider>
   );
 }

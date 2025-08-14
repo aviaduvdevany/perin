@@ -2,9 +2,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { connectIntegrationService } from "@/app/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
+import { useIntegrations } from "@/components/providers/IntegrationsProvider";
 
 interface IntegrationManagerModalProps {
   open: boolean;
@@ -17,23 +18,36 @@ export default function IntegrationManagerModal({
 }: IntegrationManagerModalProps) {
   const [activeSection, setActiveSection] =
     useState<IntegrationType>("calendar");
-  const [connectedCalendars, setConnectedCalendars] = useState<
-    Array<{ id: string; label: string; accountEmail: string }>
-  >([{ id: "cal-1", label: "Work Calendar", accountEmail: "you@company.com" }]);
-  const [connectedGmails, setConnectedGmails] = useState<
-    Array<{ id: string; label: string; accountEmail: string }>
-  >([{ id: "gm-1", label: "Primary", accountEmail: "you@gmail.com" }]);
+  const { integrations, isLoading, refresh, optimisticRemove } =
+    useIntegrations();
+
+  useEffect(() => {
+    if (open) {
+      refresh();
+    }
+  }, [open, refresh]);
 
   const activeList = useMemo(() => {
-    return activeSection === "calendar" ? connectedCalendars : connectedGmails;
-  }, [activeSection, connectedCalendars, connectedGmails]);
+    const calendars = integrations
+      .filter((i) => i.type === "calendar")
+      .map((c, idx) => ({
+        id: c.id,
+        label: (c.metadata?.label as string) || `Calendar ${idx + 1}`,
+        accountEmail: (c.metadata?.accountEmail as string) || "(email hidden)",
+      }));
+    const gmails = integrations
+      .filter((i) => i.type === "gmail")
+      .map((g, idx) => ({
+        id: g.id,
+        label: (g.metadata?.label as string) || `Gmail ${idx + 1}`,
+        accountEmail: (g.metadata?.accountEmail as string) || "(email hidden)",
+      }));
+    return activeSection === "calendar" ? calendars : gmails;
+  }, [integrations, activeSection]);
 
   const removeConnection = (id: string) => {
-    if (activeSection === "calendar") {
-      setConnectedCalendars((prev) => prev.filter((c) => c.id !== id));
-    } else {
-      setConnectedGmails((prev) => prev.filter((g) => g.id !== id));
-    }
+    // Optimistic only for now; server disconnect can be added later
+    optimisticRemove(id);
   };
 
   const handleAddAnother = async () => {
@@ -157,7 +171,11 @@ export default function IntegrationManagerModal({
                     </button>
                   </div>
 
-                  {activeList.length === 0 ? (
+                  {isLoading ? (
+                    <p className="text-sm text-[var(--foreground-muted)]">
+                      Loading...
+                    </p>
+                  ) : activeList.length === 0 ? (
                     <p className="text-sm text-[var(--foreground-muted)]">
                       No connections yet. Add your first one.
                     </p>

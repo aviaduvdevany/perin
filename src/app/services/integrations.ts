@@ -1,7 +1,7 @@
 import internalApiRequest from "./internalApi";
 import { HTTPMethod } from "@/types/api";
 import type { CreateEventRequest } from "@/types/calendar";
-import type { IntegrationType } from "@/types/integrations";
+import type { IntegrationType, IntegrationStatus } from "@/types/integrations";
 
 /**
  * Unified integration connection service
@@ -37,14 +37,29 @@ export const getAvailableIntegrationsService = async () => {
 };
 
 /**
+ * Get all integrations for the authenticated user
+ */
+export const getUserIntegrationsService = async (): Promise<{
+  integrations: IntegrationStatus[];
+}> => {
+  try {
+    const response = await internalApiRequest("integrations", HTTPMethod.GET);
+    return response as { integrations: IntegrationStatus[] };
+  } catch (error) {
+    console.error("Error getting user integrations:", error);
+    throw error;
+  }
+};
+
+/**
  * Legacy service functions for backward compatibility
  */
 export const connectGmailService = async () => {
-  return connectIntegrationService('gmail');
+  return connectIntegrationService("gmail");
 };
 
 export const connectCalendarService = async () => {
-  return connectIntegrationService('calendar');
+  return connectIntegrationService("calendar");
 };
 
 export const fetchCalendarEventsService = async (params?: {
@@ -54,7 +69,8 @@ export const fetchCalendarEventsService = async (params?: {
   try {
     const queryParams = new URLSearchParams();
     if (params?.days) queryParams.append("days", params.days.toString());
-    if (params?.maxResults) queryParams.append("maxResults", params.maxResults.toString());
+    if (params?.maxResults)
+      queryParams.append("maxResults", params.maxResults.toString());
 
     const response = await internalApiRequest(
       `integrations/calendar/events?${queryParams.toString()}`,
@@ -67,7 +83,9 @@ export const fetchCalendarEventsService = async (params?: {
   }
 };
 
-export const createCalendarEventService = async (eventData: CreateEventRequest) => {
+export const createCalendarEventService = async (
+  eventData: CreateEventRequest
+) => {
   try {
     const response = await internalApiRequest(
       "integrations/calendar/events",
