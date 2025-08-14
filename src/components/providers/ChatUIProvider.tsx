@@ -17,6 +17,8 @@ export type ChatUIContextValue = {
   setTodayOpen: SetState<boolean>;
   profileOpen: boolean;
   setProfileOpen: SetState<boolean>;
+  integrationsOpen: boolean;
+  setIntegrationsOpen: SetState<boolean>;
   collapseTodayAfterFirstMessage: () => void;
 };
 
@@ -36,6 +38,7 @@ export function ChatUIProvider({
     value?.todayOpen ?? true
   );
   const [profileOpen, setProfileOpen] = useState<boolean>(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState<boolean>(false);
 
   const todayOpen = value?.todayOpen ?? internalTodayOpen;
   const setTodayOpen = value?.setTodayOpen ?? setInternalTodayOpen;
@@ -54,6 +57,8 @@ export function ChatUIProvider({
       setTodayOpen,
       profileOpen,
       setProfileOpen,
+      integrationsOpen,
+      setIntegrationsOpen,
       collapseTodayAfterFirstMessage,
     }),
     [
@@ -61,6 +66,8 @@ export function ChatUIProvider({
       setTodayOpen,
       profileOpen,
       setProfileOpen,
+      integrationsOpen,
+      setIntegrationsOpen,
       collapseTodayAfterFirstMessage,
     ]
   );

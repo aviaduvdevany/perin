@@ -3,8 +3,8 @@ import type {
   IntegrationRegistryEntry,
   ContextDetectionResult,
 } from "@/types/integrations";
-import { fetchRecentEmails } from "@/lib/integrations/gmail/client";
-import { fetchRecentEvents } from "@/lib/integrations/calendar/client";
+import { fetchRecentEmailsFromAll } from "@/lib/integrations/gmail/client";
+import { fetchRecentEventsFromAll } from "@/lib/integrations/calendar/client";
 
 // Gmail integration data types
 export interface GmailData {
@@ -32,18 +32,26 @@ export interface CalendarData {
 // Context loaders for each integration
 const gmailContextLoader = async (userId: string): Promise<GmailData[]> => {
   try {
-    // Import the Gmail client to fetch emails (with built-in fallbacks)
-    const emails = await fetchRecentEmails(userId, 5);
+    // Fetch recent emails across all connected Gmail accounts
+    const emails = await fetchRecentEmailsFromAll(userId, 5);
 
-    return emails.map((email) => ({
-      id: email.id,
-      from: email.from,
-      to: email.to,
-      subject: email.subject,
-      snippet: email.snippet,
-      date: email.date,
-      unread: email.unread,
-    }));
+    return emails.map(
+      (email) =>
+        ({
+          id: email.id,
+          from: email.from,
+          to: email.to,
+          subject: email.subject,
+          snippet: email.snippet,
+          date: email.date,
+          unread: email.unread,
+          // carry through per-account tagging in a widened shape
+          ...(email.__accountId ? { __accountId: email.__accountId } : {}),
+          ...(email.__accountEmail
+            ? { __accountEmail: email.__accountEmail }
+            : {}),
+        } as unknown as GmailData)
+    );
   } catch (error) {
     console.error("Error in Gmail context loader:", error);
     // Propagate so upstream can signal reauth and stop LLM streaming
@@ -55,19 +63,26 @@ const calendarContextLoader = async (
   userId: string
 ): Promise<CalendarData[]> => {
   try {
-    // Import the Calendar client to fetch events
-    const events = await fetchRecentEvents(userId, 7, 5); // 7 days, max 5 events
+    // Fetch recent events across all connected calendar accounts
+    const events = await fetchRecentEventsFromAll(userId, 7, 5);
 
-    return events.map((event) => ({
-      id: event.id,
-      summary: event.summary,
-      description: event.description || "",
-      start: event.start,
-      end: event.end,
-      location: event.location || "",
-      isAllDay: event.isAllDay,
-      attendees: event.attendees?.length || 0,
-    }));
+    return events.map(
+      (event) =>
+        ({
+          id: event.id,
+          summary: event.summary,
+          description: event.description || "",
+          start: event.start,
+          end: event.end,
+          location: event.location || "",
+          isAllDay: event.isAllDay,
+          attendees: event.attendees?.length || 0,
+          ...(event.__accountId ? { __accountId: event.__accountId } : {}),
+          ...(event.__accountEmail
+            ? { __accountEmail: event.__accountEmail }
+            : {}),
+        } as unknown as CalendarData)
+    );
   } catch (error) {
     console.error("Error in Calendar context loader:", error);
     // Propagate so upstream can signal reauth and stop LLM streaming
@@ -120,17 +135,33 @@ export const INTEGRATION_REGISTRY: Record<
         "https://www.googleapis.com/auth/gmail.settings.basic",
       ],
     },
-    contextTransformer: (data: unknown[]) => ({
-      recentEmails: (data as GmailData[]).map((email) => ({
-        from: email.from,
-        subject: email.subject,
-        snippet: email.snippet,
-        date: email.date,
-        unread: email.unread,
-      })),
-      emailCount: data.length,
-      hasUnread: (data as GmailData[]).some((email) => email.unread),
-    }),
+    contextTransformer: (data: unknown[]) => {
+      const emails = data as Array<
+        GmailData & { __accountId?: string; __accountEmail?: string }
+      >;
+      return {
+        recentEmails: emails.map((email) => ({
+          from: email.from,
+          subject: email.subject,
+          snippet: email.snippet,
+          date: email.date,
+          unread: email.unread,
+          accountEmail: email.__accountEmail,
+          accountId: email.__accountId,
+        })),
+        emailCount: emails.length,
+        hasUnread: emails.some((email) => email.unread),
+        accounts: Array.from(
+          emails.reduce(
+            (set, e) => set.add(`${e.__accountId}::${e.__accountEmail || ""}`),
+            new Set<string>()
+          )
+        ).map((key) => {
+          const [accountId, accountEmail] = key.split("::");
+          return { accountId, accountEmail };
+        }),
+      };
+    },
   },
 
   calendar: {
@@ -175,20 +206,36 @@ export const INTEGRATION_REGISTRY: Record<
         "https://www.googleapis.com/auth/calendar.events",
       ],
     },
-    contextTransformer: (data: unknown[]) => ({
-      recentEvents: (data as CalendarData[]).map((event) => ({
-        id: event.id,
-        summary: event.summary,
-        description: event.description,
-        start: event.start,
-        end: event.end,
-        location: event.location,
-        isAllDay: event.isAllDay,
-        attendees: event.attendees,
-      })),
-      eventCount: data.length,
-      hasUpcomingEvents: data.length > 0,
-    }),
+    contextTransformer: (data: unknown[]) => {
+      const events = data as Array<
+        CalendarData & { __accountId?: string; __accountEmail?: string }
+      >;
+      return {
+        recentEvents: events.map((event) => ({
+          id: event.id,
+          summary: event.summary,
+          description: event.description,
+          start: event.start,
+          end: event.end,
+          location: event.location,
+          isAllDay: event.isAllDay,
+          attendees: event.attendees,
+          accountEmail: event.__accountEmail,
+          accountId: event.__accountId,
+        })),
+        eventCount: events.length,
+        hasUpcomingEvents: events.length > 0,
+        accounts: Array.from(
+          events.reduce(
+            (set, e) => set.add(`${e.__accountId}::${e.__accountEmail || ""}`),
+            new Set<string>()
+          )
+        ).map((key) => {
+          const [accountId, accountEmail] = key.split("::");
+          return { accountId, accountEmail };
+        }),
+      };
+    },
   },
 
   // Future integrations - placeholder structure

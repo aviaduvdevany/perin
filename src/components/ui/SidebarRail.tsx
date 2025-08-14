@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
+import { useChatUI } from "@/components/providers/ChatUIProvider";
 
 interface SidebarRailProps {
   onOpenProfile: () => void;
@@ -15,6 +16,7 @@ export default function SidebarRail({
   className = "",
   size = "md",
 }: SidebarRailProps) {
+  const { setIntegrationsOpen } = useChatUI();
   const [expanded, setExpanded] = useLocalStorage<boolean>(
     "chat.sidebar.expanded",
     false
@@ -72,7 +74,11 @@ export default function SidebarRail({
       >
         <div className="space-y-1">
           <Item icon="👤" label="Profile" onClick={onOpenProfile} />
-          <Item icon="🧩" label="Integrations" onClick={onOpenProfile} />
+          <Item
+            icon="🧩"
+            label="Integrations"
+            onClick={() => setIntegrationsOpen(true)}
+          />
           <Item icon="🕸️" label="Network" onClick={onOpenProfile} />
         </div>
         <div className="pt-2 mt-2 border-t border-[var(--card-border)]">

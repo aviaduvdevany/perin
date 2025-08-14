@@ -5,7 +5,8 @@ import type {
   PerinChatRequest,
   PerinMemoryRequest,
   PerinMemoryResponse,
-} from "../types";
+} from "@/types/ai";
+import { useIntegrations } from "@/components/providers/IntegrationsProvider";
 
 export interface UsePerinAI {
   // Chat functionality
@@ -28,6 +29,7 @@ export interface UsePerinAI {
 
 export function usePerinAI(): UsePerinAI {
   const { data: session } = useSession();
+  const { integrations } = useIntegrations();
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isMemoryLoading, setIsMemoryLoading] = useState(false);
@@ -49,12 +51,21 @@ export function usePerinAI(): UsePerinAI {
       setChatError(null);
 
       try {
+        const connectedTypes = Array.from(
+          new Set(
+            (integrations || []).filter((i) => i.isActive).map((i) => i.type)
+          )
+        );
+
         const response = await fetch("/api/ai/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(request),
+          body: JSON.stringify({
+            ...request,
+            clientIntegrations: connectedTypes,
+          }),
         });
 
         if (!response.ok) {
@@ -84,7 +95,7 @@ export function usePerinAI(): UsePerinAI {
         setIsChatLoading(false);
       }
     },
-    [session]
+    [session, integrations]
   );
 
   const getMemory = useCallback(

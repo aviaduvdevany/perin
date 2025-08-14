@@ -7,6 +7,7 @@ import type {
   PerinChatResponse,
   LangGraphChatState,
 } from "@/types/ai";
+import type { IntegrationType } from "@/types/integrations";
 import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
@@ -43,7 +44,8 @@ export const executePerinChatWithLangGraph = async (
     timezone?: string;
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
-  }
+  },
+  options?: { connectedIntegrationTypes?: IntegrationType[] }
 ): Promise<PerinChatResponse> => {
   try {
     // Create initial state
@@ -58,6 +60,14 @@ export const executePerinChatWithLangGraph = async (
     // Add user data if provided
     if (user) {
       state = { ...state, user };
+    }
+
+    // Attach client hint for connected integrations if provided
+    if (options?.connectedIntegrationTypes?.length) {
+      state = {
+        ...state,
+        connectedIntegrationTypes: options.connectedIntegrationTypes,
+      } as unknown as LangGraphChatState;
     }
 
     // Derive conversation context

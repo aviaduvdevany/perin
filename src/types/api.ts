@@ -1,4 +1,3 @@
-
 // API error interface
 export interface ApiError {
   message: string;
@@ -58,6 +57,17 @@ export interface ChatApiRequest {
   tone?: string;
   perinName?: string;
   specialization?: "negotiation" | "scheduling" | "memory" | "coordination";
+  // Optional hint from the client about connected integration types
+  clientIntegrations?: (
+    | "gmail"
+    | "calendar"
+    | "slack"
+    | "notion"
+    | "github"
+    | "discord"
+    | "zoom"
+    | "teams"
+  )[];
 }
 
 // AI memory API request interface
