@@ -78,6 +78,8 @@ export interface SystemPromptContext {
 }
 
 // LangGraph-specific types
+import type { IntegrationType } from "@/types/integrations";
+
 export interface LangGraphChatState {
   messages: ChatMessage[];
   userId: string;
@@ -98,6 +100,8 @@ export interface LangGraphChatState {
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
   };
+  // Connected integrations hint from client (optional optimization)
+  connectedIntegrationTypes?: IntegrationType[];
   // Legacy context fields for backward compatibility
   emailContext: {
     recentEmails?: Array<{

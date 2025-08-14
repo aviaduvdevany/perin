@@ -14,6 +14,8 @@ import {
 } from "./registry";
 import { createUnifiedOAuth2Manager } from "./oauth2-manager";
 import * as integrationQueries from "@/lib/queries/integrations";
+import { createGmailOAuth2Client } from "./gmail/auth";
+import { google } from "googleapis";
 
 /**
  * Connect an integration (initiate OAuth2 flow)
@@ -58,7 +60,41 @@ export const handleIntegrationCallback = async (
     // Exchange code for tokens
     const tokens = await oauth2Manager.exchangeCode(code);
 
-    // Store integration in database
+    // Derive account identity (email/label) per provider before storing
+    let accountEmail: string | null = null;
+    let accountLabel: string | null = null;
+
+    try {
+      if (type === "gmail") {
+        // Use Gmail profile API to get the user's email
+        const oauth2 = createGmailOAuth2Client();
+        oauth2.setCredentials({
+          access_token: tokens.access_token || undefined,
+          refresh_token: tokens.refresh_token || undefined,
+        });
+        const gmail = google.gmail({ version: "v1", auth: oauth2 });
+        const profile = await gmail.users.getProfile({ userId: "me" });
+        accountEmail = profile.data.emailAddress || null;
+        accountLabel = "Primary";
+      } else if (type === "calendar") {
+        // Use Calendar API to get primary calendar details
+        const { google } = await import("googleapis");
+        const accessToken = tokens.access_token || "";
+        const calendar = google.calendar({
+          version: "v3",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        const primary = await calendar.calendarList.get({
+          calendarId: "primary",
+        });
+        accountEmail = (primary.data.id as string) || null;
+        accountLabel = (primary.data.summary as string) || "Primary Calendar";
+      }
+    } catch (e) {
+      console.warn("Account identity lookup failed; proceeding without it.", e);
+    }
+
+    // Store integration in database (now with accountEmail/accountLabel)
     const integration = await integrationQueries.createUserIntegration(
       request.state || "unknown", // userId from state
       type,
@@ -68,7 +104,13 @@ export const handleIntegrationCallback = async (
         ? new Date(tokens.expiry_date)
         : new Date(Date.now() + 3600000),
       config.scopes,
-      { connectedAt: new Date().toISOString() }
+      {
+        connectedAt: new Date().toISOString(),
+        accountEmail,
+        label: accountLabel || undefined,
+      },
+      accountEmail,
+      accountLabel
     );
 
     return {

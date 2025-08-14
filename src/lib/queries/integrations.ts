@@ -1,7 +1,6 @@
 import { query } from "@/lib/db";
 import { USER_INTEGRATIONS_TABLE } from "@/lib/tables";
 
-
 export interface UserIntegration {
   id: string;
   user_id: string;
@@ -13,6 +12,8 @@ export interface UserIntegration {
   connected_at: string;
   last_sync_at: string | null;
   is_active: boolean;
+  account_email?: string | null;
+  account_label?: string | null;
   metadata: Record<string, unknown>;
 }
 
@@ -30,7 +31,7 @@ export const getUserIntegration = async (
     const result = await query(sql, [userId, integrationType]);
     return result.rows[0] || null;
   } catch (error) {
-    console.error('Error getting user integration:', error);
+    console.error("Error getting user integration:", error);
     throw error;
   }
 };
@@ -43,20 +44,23 @@ export const createUserIntegration = async (
   refreshToken: string | null,
   expiresAt: Date,
   scopes: string[],
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
+  accountEmail?: string | null,
+  accountLabel?: string | null
 ): Promise<UserIntegration> => {
   const sql = `
     INSERT INTO ${USER_INTEGRATIONS_TABLE} (
-      user_id, integration_type, access_token, refresh_token, 
-      token_expires_at, scopes, metadata
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    ON CONFLICT (user_id, integration_type) 
+      user_id, integration_type, access_token, refresh_token,
+      token_expires_at, scopes, metadata, account_email, account_label
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    ON CONFLICT (user_id, integration_type, account_email)
     DO UPDATE SET 
       access_token = $3,
       refresh_token = $4,
       token_expires_at = $5,
       scopes = $6,
       metadata = $7,
+      account_label = COALESCE($9, ${USER_INTEGRATIONS_TABLE}.account_label),
       connected_at = now(),
       is_active = true
     RETURNING *
@@ -64,12 +68,19 @@ export const createUserIntegration = async (
 
   try {
     const result = await query(sql, [
-      userId, integrationType, accessToken, refreshToken,
-      expiresAt.toISOString(), scopes, JSON.stringify(metadata)
+      userId,
+      integrationType,
+      accessToken,
+      refreshToken,
+      expiresAt.toISOString(),
+      scopes,
+      JSON.stringify(metadata),
+      accountEmail || null,
+      accountLabel || null,
     ]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error creating user integration:', error);
+    console.error("Error creating user integration:", error);
     throw error;
   }
 };
@@ -88,13 +99,13 @@ export const updateIntegrationTokens = async (
 
   try {
     const result = await query(sql, [
-      accessToken, 
-      expiresAt?.toISOString() || null, 
-      integrationId
+      accessToken,
+      expiresAt?.toISOString() || null,
+      integrationId,
     ]);
     return (result.rowCount || 0) > 0;
   } catch (error) {
-    console.error('Error updating integration tokens:', error);
+    console.error("Error updating integration tokens:", error);
     throw error;
   }
 };
@@ -113,7 +124,7 @@ export const getUserIntegrations = async (
     const result = await query(sql, [userId]);
     return result.rows;
   } catch (error) {
-    console.error('Error getting user integrations:', error);
+    console.error("Error getting user integrations:", error);
     throw error;
   }
 };
@@ -133,7 +144,7 @@ export const deactivateIntegration = async (
     const result = await query(sql, [userId, integrationType]);
     return (result.rowCount || 0) > 0;
   } catch (error) {
-    console.error('Error deactivating integration:', error);
+    console.error("Error deactivating integration:", error);
     throw error;
   }
 };

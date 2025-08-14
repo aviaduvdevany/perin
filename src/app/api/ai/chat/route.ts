@@ -24,7 +24,8 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { messages, tone, perinName, specialization } = body;
+    const { messages, tone, perinName, specialization, clientIntegrations } =
+      body;
 
     // Validate required fields
     if (!messages || !Array.isArray(messages)) {
@@ -62,7 +63,6 @@ export async function POST(request: NextRequest) {
     const inferredSpecialization =
       specialization || (mentionsScheduling ? "scheduling" : undefined);
 
-
     // Execute AI chat with LangGraph
     const { response } = await executePerinChatWithLangGraph(
       messages,
@@ -76,6 +76,11 @@ export async function POST(request: NextRequest) {
         timezone: user.timezone,
         preferred_hours: user.preferred_hours || undefined,
         memory: user.memory || undefined,
+      },
+      {
+        connectedIntegrationTypes: Array.isArray(clientIntegrations)
+          ? clientIntegrations
+          : undefined,
       }
     );
 
