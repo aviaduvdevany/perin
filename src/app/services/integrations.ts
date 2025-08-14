@@ -52,6 +52,31 @@ export const getUserIntegrationsService = async (): Promise<{
 };
 
 /**
+ * Disconnect an integration. Prefer id if available; fallback to type (disables all of that type).
+ */
+export const disconnectIntegrationService = async (params: {
+  id?: string;
+  type?: IntegrationType;
+}) => {
+  if (!params.id && !params.type) {
+    throw new Error("id or type is required");
+  }
+  const search = new URLSearchParams();
+  if (params.id) search.set("id", params.id);
+  if (params.type) search.set("type", params.type);
+  try {
+    const response = await internalApiRequest(
+      `integrations?${search.toString()}`,
+      HTTPMethod.DELETE
+    );
+    return response as { success: boolean };
+  } catch (error) {
+    console.error("Error disconnecting integration:", error);
+    throw error;
+  }
+};
+
+/**
  * Legacy service functions for backward compatibility
  */
 export const connectGmailService = async () => {

@@ -262,22 +262,25 @@ export const refreshIntegrationTokens = async (
  */
 export const disconnectIntegration = async (
   userId: string,
-  type: IntegrationType
+  typeOrId: IntegrationType | { id: string }
 ): Promise<boolean> => {
   try {
-    const integration = await integrationQueries.getUserIntegration(
-      userId,
-      type
-    );
-
-    if (!integration) {
-      return false;
+    if (typeof typeOrId === "string") {
+      const integration = await integrationQueries.getUserIntegration(
+        userId,
+        typeOrId
+      );
+      if (!integration) return false;
+      await integrationQueries.deactivateIntegration(userId, typeOrId);
+      return true;
+    } else {
+      return await integrationQueries.deactivateIntegrationById(
+        typeOrId.id,
+        userId
+      );
     }
-
-    await integrationQueries.deactivateIntegration(userId, type);
-    return true;
   } catch (error) {
-    console.error(`Error disconnecting ${type}:`, error);
+    console.error(`Error disconnecting integration:`, error);
     return false;
   }
 };

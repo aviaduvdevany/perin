@@ -12,6 +12,7 @@ import type { IntegrationStatus, IntegrationType } from "@/types/integrations";
 import {
   getUserIntegrationsService,
   connectIntegrationService,
+  disconnectIntegrationService,
 } from "@/app/services/integrations";
 
 export type IntegrationsContextValue = {
@@ -23,6 +24,10 @@ export type IntegrationsContextValue = {
   optimisticRemove: (id: string) => void;
   addOrUpdate: (integration: IntegrationStatus) => void;
   connect: (type: IntegrationType) => Promise<void>;
+  disconnect: (params: {
+    id?: string;
+    type?: IntegrationType;
+  }) => Promise<boolean>;
 };
 
 const IntegrationsContext = createContext<IntegrationsContextValue | null>(
@@ -74,6 +79,24 @@ export function IntegrationsProvider({
     if (authUrl) window.location.href = authUrl;
   }, []);
 
+  const disconnect = useCallback(
+    async (params: { id?: string; type?: IntegrationType }) => {
+      try {
+        if (params.id) {
+          optimisticRemove(params.id);
+        }
+        const res = await disconnectIntegrationService(params);
+        if (!res?.success) return false;
+        await refresh();
+        return true;
+      } catch (e) {
+        console.error("disconnect failed", e);
+        return false;
+      }
+    },
+    [optimisticRemove, refresh]
+  );
+
   useEffect(() => {
     // initial load; safe to call even if unauthenticated (server returns 401)
     refresh();
@@ -89,6 +112,7 @@ export function IntegrationsProvider({
       optimisticRemove,
       addOrUpdate,
       connect,
+      disconnect,
     }),
     [
       integrations,
@@ -99,6 +123,7 @@ export function IntegrationsProvider({
       optimisticRemove,
       addOrUpdate,
       connect,
+      disconnect,
     ]
   );
 

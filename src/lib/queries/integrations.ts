@@ -148,3 +148,23 @@ export const deactivateIntegration = async (
     throw error;
   }
 };
+
+// Deactivate a specific integration by id (multi-account safe)
+export const deactivateIntegrationById = async (
+  integrationId: string,
+  userId: string
+): Promise<boolean> => {
+  const sql = `
+    UPDATE ${USER_INTEGRATIONS_TABLE}
+    SET is_active = false
+    WHERE id = $1 AND user_id = $2 AND is_active = true
+  `;
+
+  try {
+    const result = await query(sql, [integrationId, userId]);
+    return (result.rowCount || 0) > 0;
+  } catch (error) {
+    console.error("Error deactivating integration by id:", error);
+    throw error;
+  }
+};

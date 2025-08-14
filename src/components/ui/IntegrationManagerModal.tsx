@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { connectIntegrationService } from "@/app/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
 import { useIntegrations } from "@/components/providers/IntegrationsProvider";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface IntegrationManagerModalProps {
   open: boolean;
@@ -17,8 +18,10 @@ export default function IntegrationManagerModal({
 }: IntegrationManagerModalProps) {
   const [activeSection, setActiveSection] =
     useState<IntegrationType>("calendar");
-  const { integrations, isLoading, refresh, optimisticRemove } =
-    useIntegrations();
+  const { integrations, isLoading, refresh, disconnect } = useIntegrations();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -45,8 +48,20 @@ export default function IntegrationManagerModal({
   }, [integrations, activeSection]);
 
   const removeConnection = (id: string) => {
-    // Optimistic only for now; server disconnect can be added later
-    optimisticRemove(id);
+    setPendingRemoveId(id);
+    setConfirmOpen(true);
+  };
+
+  const confirmRemove = async () => {
+    if (!pendingRemoveId) return;
+    setRemoving(true);
+    try {
+      await disconnect({ id: pendingRemoveId });
+    } finally {
+      setRemoving(false);
+      setConfirmOpen(false);
+      setPendingRemoveId(null);
+    }
   };
 
   const handleAddAnother = async () => {
@@ -208,12 +223,24 @@ export default function IntegrationManagerModal({
                     </ul>
                   )}
                 </div>
-
               </section>
             </div>
           </motion.div>
         </motion.div>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Remove integration?"
+        description="This will disconnect the selected account. You can reconnect anytime."
+        confirmLabel="Remove"
+        cancelLabel="Cancel"
+        onConfirm={confirmRemove}
+        onCancel={() => {
+          setConfirmOpen(false);
+          setPendingRemoveId(null);
+        }}
+        loading={removing}
+      />
     </AnimatePresence>
   );
 }
