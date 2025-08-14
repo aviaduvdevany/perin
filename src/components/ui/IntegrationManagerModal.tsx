@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
 import { useEffect, useMemo, useState } from "react";
 import { connectIntegrationService } from "@/app/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
@@ -210,20 +209,6 @@ export default function IntegrationManagerModal({
                   )}
                 </div>
 
-                <div className="rounded-xl border border-[var(--card-border)] p-4">
-                  <div className="mb-3">
-                    <h4 className="text-sm font-semibold">
-                      Explore Integrations
-                    </h4>
-                    <p className="text-xs text-[var(--foreground-muted)]">
-                      Connect more services to enhance Perin.
-                    </p>
-                  </div>
-                  <UnifiedIntegrationManager
-                    className=""
-                    showOnlyConnectable={true}
-                  />
-                </div>
               </section>
             </div>
           </motion.div>
