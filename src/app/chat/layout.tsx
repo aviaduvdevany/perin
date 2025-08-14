@@ -11,9 +11,18 @@ import {
 import MobileTopBar from "@/components/ui/MobileTopBar";
 import BottomSheet from "@/components/ui/BottomSheet";
 import ProfileSummary from "@/components/ui/ProfileSummary";
+import IntegrationManagerModal from "@/components/ui/IntegrationManagerModal";
+import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
-  const { todayOpen, setTodayOpen, profileOpen, setProfileOpen } = useChatUI();
+  const {
+    todayOpen,
+    setTodayOpen,
+    profileOpen,
+    setProfileOpen,
+    integrationsOpen,
+    setIntegrationsOpen,
+  } = useChatUI();
 
   return (
     <div className="relative min-h-screen bg-[var(--background-primary)] overflow-x-hidden overflow-y-hidden">
@@ -78,12 +87,28 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
         </BottomSheet>
 
         <BottomSheet
+          open={integrationsOpen}
+          onClose={() => setIntegrationsOpen(false)}
+          title="Integrations"
+        >
+          <UnifiedIntegrationManager showOnlyConnectable={true} />
+        </BottomSheet>
+
+        <BottomSheet
           open={todayOpen}
           onClose={() => setTodayOpen(false)}
           title="Today"
         >
           <TodayCard />
         </BottomSheet>
+      </div>
+
+      {/* Desktop modal */}
+      <div className="hidden lg:block">
+        <IntegrationManagerModal
+          open={integrationsOpen}
+          onClose={() => setIntegrationsOpen(false)}
+        />
       </div>
     </div>
   );
