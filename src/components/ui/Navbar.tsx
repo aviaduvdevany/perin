@@ -5,15 +5,10 @@ import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import {
-  NotificationBell,
-  NotificationPreferences,
-  NotificationsModal,
-} from "@/components/notifications";
+import { NotificationPreferences } from "@/components/notifications";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   return (
     <>
@@ -28,7 +23,6 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
-            <NotificationBell onClick={() => setNotificationsOpen(true)} />
             <NotificationPreferences />
           </div>
 
@@ -54,24 +48,12 @@ export function Navbar() {
           <div className="md:hidden">
             <div className="space-y-1 px-4 pb-3 pt-2">
               <div className="flex items-center justify-between">
-                <NotificationBell
-                  onClick={() => {
-                    setNotificationsOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                />
                 <NotificationPreferences />
               </div>
             </div>
           </div>
         )}
       </nav>
-
-      {/* Notifications Modal */}
-      <NotificationsModal
-        open={notificationsOpen}
-        onClose={() => setNotificationsOpen(false)}
-      />
     </>
   );
 }

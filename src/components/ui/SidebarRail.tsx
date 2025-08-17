@@ -3,15 +3,18 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { useUserData } from "@/components/providers/UserDataProvider";
+import { useNotifications } from "@/components/providers/NotificationContext";
 
 interface SidebarRailProps {
   className?: string;
   size?: "md" | "lg";
+  onOpenNotifications?: () => void;
 }
 
 export default function SidebarRail({
   className = "",
   size = "md",
+  onOpenNotifications,
 }: SidebarRailProps) {
   const { actions } = useUserData();
   const { setIntegrationsOpen, setProfileOpen, setNetworkOpen } = actions;
@@ -51,6 +54,63 @@ export default function SidebarRail({
     </button>
   );
 
+  const NotificationItem = () => {
+    const { unreadCount, hasUnresolvedNotifications } = useNotifications();
+
+    return (
+      <div className="relative">
+        <button
+          className={`w-full cursor-pointer flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
+          onClick={onOpenNotifications}
+          aria-label="Notifications"
+        >
+          <motion.div
+            className="relative"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+          >
+            <span className={`${iconSize}`} aria-hidden>
+              🔔
+            </span>
+            {/* Unread count badge */}
+            {unreadCount > 0 && (
+              <motion.span
+                className="absolute -top-1 -right-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--accent-secondary)] px-1 text-xs text-white"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+              >
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </motion.span>
+            )}
+            {/* Action required indicator */}
+            {hasUnresolvedNotifications && (
+              <motion.span
+                className="absolute -bottom-1 -right-1 inline-flex h-2 w-2 rounded-full bg-orange-500"
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              />
+            )}
+          </motion.div>
+          {hovered && (
+            <motion.span
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-sm"
+            >
+              Notifications
+            </motion.span>
+          )}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div
       className={`h-auto flex flex-col justify-between ${className}`}
@@ -67,6 +127,7 @@ export default function SidebarRail({
         }}
       >
         <div className="space-y-1">
+          <NotificationItem />
           <Item
             icon="👤"
             label="Profile"

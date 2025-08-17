@@ -1,6 +1,6 @@
 "use client";
 
-import { useState , useMemo } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, RefreshCw, CheckCircle } from "lucide-react";
 import { Button } from "../ui/button";
@@ -17,6 +17,14 @@ import type { Notification } from "@/types/notifications";
 interface NotificationsModalProps {
   open: boolean;
   onClose: () => void;
+  onOpenProposalModal: (data: {
+    sessionId: string;
+    messageId: string;
+    proposals: Array<{ start: string; end: string; tz?: string }>;
+    durationMins: number;
+    initiatorName?: string;
+    notificationId: string;
+  }) => void;
 }
 
 // Utility functions for formatting
@@ -112,20 +120,13 @@ const formatNotificationBody = (notification: Notification): string => {
 export default function NotificationsModal({
   open,
   onClose,
+  onOpenProposalModal,
 }: NotificationsModalProps) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalData, setModalData] = useState<{
-    sessionId: string;
-    messageId: string;
-    proposals: Array<{ start: string; end: string; tz?: string }>;
-    durationMins: number;
-    initiatorName?: string;
-    notificationId: string;
-  } | null>(null);
   const [isLoadingModal, setIsLoadingModal] = useState(false);
 
   const {
     notifications,
+    unreadCount,
     hasUnresolvedNotifications,
     loading,
     markAsRead,
@@ -168,63 +169,22 @@ export default function NotificationsModal({
         // Fetch the proposal data
         const proposalData = await getSessionProposalsService(sessionId);
 
-        setModalData({
+        const modalData = {
           sessionId,
           messageId,
           proposals: proposalData.proposals,
           durationMins: proposalData.durationMins,
-          initiatorName: formatUserDisplayName(notification),
           notificationId: notification.id,
-        });
+        };
 
-        setModalOpen(true);
-        onClose(); // Close the notification dropdown
+        // Close notifications modal and open proposal modal
+        onClose();
+        onOpenProposalModal(modalData);
       } catch (error) {
         console.error("Failed to load proposal data:", error);
       } finally {
         setIsLoadingModal(false);
       }
-    }
-  };
-
-  const handleConfirmProposal = async (proposal: {
-    start: string;
-    end: string;
-    tz?: string;
-  }) => {
-    if (!modalData) return;
-
-    try {
-      await confirmTimeProposalService({
-        sessionId: modalData.sessionId,
-        start: proposal.start,
-        end: proposal.end,
-        tz: proposal.tz,
-        notificationId: modalData.notificationId,
-      });
-
-      // Refresh notifications to update the UI
-      await refreshNotifications();
-    } catch (error) {
-      console.error("Failed to confirm proposal:", error);
-      throw error;
-    }
-  };
-
-  const handleDeclineProposal = async () => {
-    if (!modalData) return;
-
-    try {
-      await declineTimeProposalService({
-        sessionId: modalData.sessionId,
-        notificationId: modalData.notificationId,
-      });
-
-      // Refresh notifications to update the UI
-      await refreshNotifications();
-    } catch (error) {
-      console.error("Failed to decline proposal:", error);
-      throw error;
     }
   };
 
@@ -282,60 +242,92 @@ export default function NotificationsModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-start justify-end pt-20 px-4"
+            className="fixed inset-0 z-50"
           >
-            {/* Backdrop */}
+            {/* Full-screen backdrop with diffusing effect */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              className="absolute inset-0 bg-black/30 backdrop-blur-md"
               onClick={onClose}
             />
 
-            {/* Notifications Panel */}
+            {/* Notifications Panel - Emerging from sidebar */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: -10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -10 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-96 max-w-[90vw] z-10"
+              initial={{ opacity: 0, x: -20, scale: 0.95 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -20, scale: 0.95 }}
+              transition={{
+                type: "spring",
+                damping: 25,
+                stiffness: 300,
+                duration: 0.3,
+              }}
+              className="absolute left-20 top-20 w-96 max-w-[calc(100vw-5rem)] z-10"
             >
               <Glass
                 variant="default"
                 border={true}
-                glow={false}
-                className="border border-[var(--card-border)] shadow-2xl"
+                glow={true}
+                className="border border-[var(--card-border)] shadow-2xl backdrop-blur-xl"
               >
-                <div className="p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <div className="text-sm font-semibold text-[var(--cta-text)]">
-                      Notifications
-                      {hasUnresolvedNotifications && (
-                        <span className="ml-2 text-xs text-orange-500">
-                          • Action required
-                        </span>
-                      )}
-                    </div>
+                <div className="p-4">
+                  <div className="mb-4 flex items-center justify-between">
+                    <motion.div
+                      className="flex items-center gap-2"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 }}
+                    >
+                      <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
+                        <span className="text-lg">🔔</span>
+                      </div>
+                      <div>
+                        <div className="text-sm font-semibold text-[var(--cta-text)]">
+                          Notifications
+                        </div>
+                        {hasUnresolvedNotifications && (
+                          <div className="text-xs text-orange-500 font-medium">
+                            Action required
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
                     <div className="flex items-center gap-2">
                       {loading && (
-                        <Loader2 className="h-4 w-4 animate-spin text-[var(--foreground-subtle)]" />
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin text-[var(--foreground-subtle)]" />
+                        </motion.div>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => refreshNotifications()}
-                        className="text-[var(--foreground-subtle)] hover:text-[var(--cta-text)]"
+                        className="text-[var(--foreground-subtle)] hover:text-[var(--cta-text)] transition-colors"
                       >
                         <RefreshCw className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={onClose}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClose}
+                        className="text-[var(--foreground-subtle)] hover:text-[var(--cta-text)] transition-colors"
+                      >
                         Close
                       </Button>
                     </div>
                   </div>
 
-                  <div className="max-h-96 overflow-y-auto space-y-3">
+                  <motion.div
+                    className="max-h-96 overflow-y-auto space-y-3"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
                     {loading && notifications.length === 0 && (
                       <div className="text-sm text-[var(--foreground-subtle)] flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -423,31 +415,13 @@ export default function NotificationsModal({
                         </div>
                       )
                     )}
-                  </div>
+                  </motion.div>
                 </div>
               </Glass>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Time Proposal Modal - Centered */}
-      {modalData && (
-        <TimeProposalModal
-          open={modalOpen}
-          onClose={() => {
-            setModalOpen(false);
-            setModalData(null);
-          }}
-          sessionId={modalData.sessionId}
-          messageId={modalData.messageId}
-          proposals={modalData.proposals}
-          durationMins={modalData.durationMins}
-          initiatorName={modalData.initiatorName}
-          onConfirm={handleConfirmProposal}
-          onDecline={handleDeclineProposal}
-        />
-      )}
 
       {/* Loading Modal - Centered */}
       <AnimatePresence>
