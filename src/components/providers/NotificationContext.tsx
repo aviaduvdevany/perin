@@ -8,6 +8,7 @@ import {
   useCallback,
   ReactNode,
 } from "react";
+import { useSession } from "next-auth/react";
 import {
   listNotificationsService,
   markNotificationReadService,
@@ -43,6 +44,7 @@ interface NotificationProviderProps {
 }
 
 export function NotificationProvider({ children }: NotificationProviderProps) {
+  const { data: session, status } = useSession();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState<number | null>(null);
@@ -52,6 +54,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
 
   const loadNotifications = useCallback(
     async (force = false) => {
+      // Don't load if not authenticated
+      if (status !== "authenticated" || !session) {
+        return;
+      }
+
       // Don't reload if we have recent data and not forcing
       if (!force && lastFetched && Date.now() - lastFetched < CACHE_DURATION) {
         return;
@@ -61,7 +68,6 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       try {
         const res = await listNotificationsService(false);
         const list = (res.notifications || []) as Notification[];
-        console.log("Loaded notifications:", list.length, "notifications");
         setNotifications(list);
         setLastFetched(Date.now());
       } catch (error) {
@@ -70,11 +76,10 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
         setLoading(false);
       }
     },
-    [lastFetched]
+    [lastFetched, status, session]
   );
 
   const refreshNotifications = useCallback(async () => {
-    console.log("Manually refreshing notifications...");
     await loadNotifications(true);
   }, [loadNotifications]);
 
@@ -105,19 +110,25 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     }
   }, []);
 
-  // Load notifications on mount
+  // Load notifications on mount and when authentication status changes
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    if (status === "authenticated" && session) {
+      loadNotifications();
+    }
+  }, [loadNotifications, status, session]);
 
   // Auto-refresh every 30 seconds (more frequent for better responsiveness)
   useEffect(() => {
+    if (status !== "authenticated" || !session) {
+      return;
+    }
+
     const interval = setInterval(() => {
       loadNotifications(true);
     }, 30 * 1000); // 30 seconds instead of 2 minutes
 
     return () => clearInterval(interval);
-  }, [loadNotifications]);
+  }, [loadNotifications, status, session]);
 
   // Calculate derived state
   const unreadCount = notifications.filter((n) => !n.is_read).length;

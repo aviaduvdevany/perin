@@ -20,6 +20,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const notifications = unresolved
     ? await notifQueries.listUnresolvedNotifications(userId, requiresAction)
     : await notifQueries.listNotifications(userId, onlyUnread);
+
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return NextResponse.json({ notifications, unreadCount });
