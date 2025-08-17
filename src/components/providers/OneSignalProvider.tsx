@@ -33,7 +33,7 @@ declare global {
 
 type Props = { children: React.ReactNode };
 
-export default function NotificationsProvider({ children }: Props) {
+export default function OneSignalProvider({ children }: Props) {
   useEffect(() => {
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID;
     if (!appId) return;

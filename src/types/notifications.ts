@@ -4,7 +4,6 @@ export interface Notification {
   type:
     | "network.connection.invite"
     | "network.connection.accepted"
-    | "network.session.started"
     | "network.message.received"
     | "network.meeting.confirmed"
     | "network.meeting.canceled"
@@ -25,6 +24,10 @@ export interface Notification {
   action_deadline_at?: string | null;
   action_ref?: Record<string, unknown> | null;
   created_at: string;
+  // User data from JOIN (optional as it may not always be present)
+  user_name?: string | null;
+  user_perin_name?: string | null;
+  user_email?: string | null;
 }
 
 export type NotificationChannel =

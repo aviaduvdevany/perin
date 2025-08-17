@@ -1,34 +1,29 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import { Logo } from "./Logo";
-import { Glass } from "./Glass";
-import { Button } from "./button";
+import { Logo } from "@/components/ui/Logo";
+import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { NotificationBell } from "./NotificationBell";
+import { NotificationPreferences } from "@/components/notifications";
 
 export function Navbar() {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <Glass
-      variant="strong"
-      border={true}
-      glow={false}
-      backdropBlur="xl"
-      className="z-50 w-full border-b border-[var(--card-border)]"
-    >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <>
+      <nav className="sticky top-0 z-40 w-full border-b border-[var(--card-border)] bg-[var(--background-primary)]/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Logo size="md" animated={true} />
-          </Link>
+          <div className="flex items-center">
+            <Link href="/" className="flex items-center space-x-2">
+              <Logo className="h-8 w-8" />
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
-            <NotificationBell />
+            <NotificationPreferences />
           </div>
 
           {/* Mobile menu button */}
@@ -36,10 +31,10 @@ export function Navbar() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 transition-all duration-300"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-[var(--cta-text)] hover:bg-[var(--accent-primary)]/10 hover:text-[var(--accent-primary)]"
             >
-              {isMobileMenuOpen ? (
+              {mobileMenuOpen ? (
                 <X className="h-5 w-5" />
               ) : (
                 <Menu className="h-5 w-5" />
@@ -49,21 +44,16 @@ export function Navbar() {
         </div>
 
         {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <Glass
-            variant="default"
-            border={true}
-            glow={false}
-            className="md:hidden border-t border-[var(--card-border)]"
-          >
-            <div className="border-t border-[var(--card-border)] pt-4 pb-3">
-              <div className="space-y-2">
-                <NotificationBell />
+        {mobileMenuOpen && (
+          <div className="md:hidden">
+            <div className="space-y-1 px-4 pb-3 pt-2">
+              <div className="flex items-center justify-between">
+                <NotificationPreferences />
               </div>
             </div>
-          </Glass>
+          </div>
         )}
-      </div>
-    </Glass>
+      </nav>
+    </>
   );
 }

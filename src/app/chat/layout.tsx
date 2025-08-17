@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import SidebarRail from "@/components/ui/SidebarRail";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import MobileTopBar from "@/components/ui/MobileTopBar";
@@ -10,12 +10,88 @@ import IntegrationManagerModal from "@/components/dock-modals/IntegrationManager
 import ProfileModal from "@/components/dock-modals/ProfileModal";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
+import {
+  NotificationsModal,
+  TimeProposalModal,
+} from "@/components/notifications";
+import { useNotifications } from "@/components/providers/NotificationContext";
+import {
+  confirmTimeProposalService,
+  declineTimeProposalService,
+} from "@/app/services/notifications";
 // import UserDataDebug from "@/components/ui/UserDataDebug";
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
   const { state, actions } = useUserData();
   const { profileOpen, integrationsOpen, networkOpen } = state.ui;
   const { setProfileOpen, setIntegrationsOpen, setNetworkOpen } = actions;
+
+  // Notification modal state
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [proposalModalOpen, setProposalModalOpen] = useState(false);
+  const [proposalModalData, setProposalModalData] = useState<{
+    sessionId: string;
+    messageId: string;
+    proposals: Array<{ start: string; end: string; tz?: string }>;
+    durationMins: number;
+    initiatorName?: string;
+    notificationId: string;
+  } | null>(null);
+
+  const { refreshNotifications } = useNotifications();
+
+  const handleOpenProposalModal = (data: {
+    sessionId: string;
+    messageId: string;
+    proposals: Array<{ start: string; end: string; tz?: string }>;
+    durationMins: number;
+    initiatorName?: string;
+    notificationId: string;
+  }) => {
+    setProposalModalData(data);
+    setProposalModalOpen(true);
+  };
+
+  const handleConfirmProposal = async (proposal: {
+    start: string;
+    end: string;
+    tz?: string;
+  }) => {
+    if (!proposalModalData) return;
+
+    try {
+      await confirmTimeProposalService({
+        sessionId: proposalModalData.sessionId,
+        start: proposal.start,
+        end: proposal.end,
+        tz: proposal.tz,
+        notificationId: proposalModalData.notificationId,
+      });
+
+      // Refresh notifications to update the UI
+      await refreshNotifications();
+    } catch (error) {
+      console.error("Failed to confirm proposal:", error);
+      throw error;
+    }
+  };
+
+  const handleDeclineProposal = async () => {
+    if (!proposalModalData) return;
+
+    try {
+      await declineTimeProposalService({
+        sessionId: proposalModalData.sessionId,
+        notificationId: proposalModalData.notificationId,
+      });
+
+      // Refresh notifications to update the UI
+      await refreshNotifications();
+    } catch (error) {
+      console.error("Failed to decline proposal:", error);
+      throw error;
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-[var(--background-primary)] overflow-x-hidden overflow-y-hidden">
@@ -52,7 +128,10 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
       {/* Fixed left rail, centered (tablet/desktop) */}
       <div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-30">
-        <SidebarRail size="lg" />
+        <SidebarRail
+          size="lg"
+          onOpenNotifications={() => setNotificationsOpen(true)}
+        />
       </div>
 
       {/* Mobile sheets */}
@@ -90,6 +169,30 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
         />
       </div>
 
+      {/* Notification modals - Top level for proper positioning */}
+      <NotificationsModal
+        open={notificationsOpen}
+        onClose={() => setNotificationsOpen(false)}
+        onOpenProposalModal={handleOpenProposalModal}
+      />
+
+      {proposalModalData && (
+        <TimeProposalModal
+          open={proposalModalOpen}
+          onClose={() => {
+            setProposalModalOpen(false);
+            setProposalModalData(null);
+          }}
+          sessionId={proposalModalData.sessionId}
+          messageId={proposalModalData.messageId}
+          proposals={proposalModalData.proposals}
+          durationMins={proposalModalData.durationMins}
+          initiatorName={proposalModalData.initiatorName}
+          onConfirm={handleConfirmProposal}
+          onDecline={handleDeclineProposal}
+        />
+      )}
+
       {/* Debug component (remove in production) */}
       {/* <UserDataDebug /> */}
     </div>
@@ -101,7 +204,5 @@ export default function ChatWorkspaceLayout({
 }: {
   children: ReactNode;
 }) {
-  return (
-    <ChatLayoutInner>{children}</ChatLayoutInner>
-  );
+  return <ChatLayoutInner>{children}</ChatLayoutInner>;
 }

@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
-import {
-  ErrorResponses,
-  withErrorHandler,
-} from "@/lib/utils/error-handlers";
+import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
-import * as notif from "@/lib/queries/notifications";
 import type { StartNetworkSessionRequest } from "@/types/network";
 import {
   StartNetworkSessionSchema,
@@ -60,15 +56,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     status: "initiated",
     ttl_expires_at: ttl,
   });
-
-  // Notify counterpart
-  await notif.createNotification(
-    body.counterpartUserId,
-    "network.session.started",
-    "New scheduling session",
-    `User ${userId} started a scheduling session with you`,
-    { sessionId: created.id, connectionId: body.connectionId }
-  );
 
   return NextResponse.json({ session: created });
 });
