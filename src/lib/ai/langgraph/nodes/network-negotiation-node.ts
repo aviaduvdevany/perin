@@ -364,15 +364,6 @@ export const networkNegotiationNode = async (
         },
       });
 
-      // Mirror session started notification as in API route for parity
-      await notif.dispatchNotification(
-        counterpartId,
-        "network.session.started",
-        "New scheduling session",
-        `User ${state.userId} started a scheduling session with you`,
-        { sessionId: session.id, connectionId: connectionId }
-      );
-
       // Create the proposals notification with action requirements
       await notif.dispatchNotification(
         counterpartId,

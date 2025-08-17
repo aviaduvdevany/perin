@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Bell, BellOff, Clock, Settings, Mail, Smartphone } from "lucide-react";
-import { Button } from "./button";
-import { Glass } from "./Glass";
+import { Button } from "@/components/ui/button";
+import { Glass } from "@/components/ui/Glass";
 import {
   getNotificationPreferencesService,
   updateNotificationPreferencesService,

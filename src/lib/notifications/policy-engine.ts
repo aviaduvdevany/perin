@@ -55,13 +55,20 @@ interface DigestSettings {
 export class NotificationPolicyEngine {
   private static readonly HIGH_PRIORITY_TYPES = [
     "network.connection.invite",
+    "network.connection.accepted",
+    "network.message.received",
+    "network.meeting.confirmed",
+    "network.meeting.canceled",
     "calendar.meeting.confirm_request",
     "calendar.conflict.detected",
-  ];
+    "assistant.suggestion.better_time",
+    "assistant.follow_up.suggested",
+    "calendar.meeting.reminder",
+    "system.digest.daily",
+  ] as const;
 
   private static readonly MEDIUM_PRIORITY_TYPES = [
     "network.connection.accepted",
-    "network.session.started",
     "network.meeting.confirmed",
     "network.meeting.canceled",
     "assistant.suggestion.better_time",

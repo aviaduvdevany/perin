@@ -471,14 +471,6 @@ export const scheduleMeetingHandler: ToolHandler<
     // Create notifications
     await notif.createNotification(
       counterpartUserId,
-      "network.session.started",
-      "New scheduling session",
-      `User ${context.userId} started a scheduling session with you`,
-      { sessionId: session.id, connectionId }
-    );
-
-    await notif.createNotification(
-      counterpartUserId,
       "network.message.received",
       "New time proposals",
       `You received ${proposals.length} time proposals`,

@@ -5,7 +5,12 @@ import type {
   NotificationDevicePlatform,
   NotificationPreferences,
 } from "@/types/notifications";
-import { NOTIFICATIONS_TABLE, DEVICES_TABLE, PREFS_TABLE } from "@/lib/tables";
+import {
+  NOTIFICATIONS_TABLE,
+  DEVICES_TABLE,
+  PREFS_TABLE,
+  USERS_TABLE,
+} from "@/lib/tables";
 
 // Helper function to dispatch notifications with push support
 export const dispatchNotification = async (
@@ -88,9 +93,15 @@ export const listNotifications = async (
   onlyUnread = false
 ): Promise<Notification[]> => {
   const sql = `
-    SELECT * FROM ${NOTIFICATIONS_TABLE}
-    WHERE user_id = $1 ${onlyUnread ? "AND is_read = false" : ""}
-    ORDER BY created_at DESC
+    SELECT 
+      n.*,
+      u.name as user_name,
+      u.perin_name as user_perin_name,
+      u.email as user_email
+    FROM ${NOTIFICATIONS_TABLE} n
+    LEFT JOIN ${USERS_TABLE} u ON n.user_id = u.id
+    WHERE n.user_id = $1 ${onlyUnread ? "AND n.is_read = false" : ""}
+    ORDER BY n.created_at DESC
     LIMIT 100
   `;
   const result = await query(sql, [userId]);
@@ -142,11 +153,17 @@ export const listUnresolvedNotifications = async (
   requiresActionOnly = true
 ): Promise<Notification[]> => {
   const sql = `
-    SELECT * FROM ${NOTIFICATIONS_TABLE}
-    WHERE user_id = $1
-      AND is_resolved = false
-      ${requiresActionOnly ? "AND requires_action = true" : ""}
-    ORDER BY created_at DESC
+    SELECT 
+      n.*,
+      u.name as user_name,
+      u.perin_name as user_perin_name,
+      u.email as user_email
+    FROM ${NOTIFICATIONS_TABLE} n
+    LEFT JOIN ${USERS_TABLE} u ON n.user_id = u.id
+    WHERE n.user_id = $1
+      AND n.is_resolved = false
+      ${requiresActionOnly ? "AND n.requires_action = true" : ""}
+    ORDER BY n.created_at DESC
     LIMIT 100
   `;
   const result = await query(sql, [userId]);

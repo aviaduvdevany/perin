@@ -85,3 +85,103 @@ export const dispatchNotificationService = async (params: {
 
   return response.json();
 };
+
+// Time proposal action services
+export const confirmTimeProposalService = async (params: {
+  sessionId: string;
+  start: string;
+  end: string;
+  tz?: string;
+  title?: string;
+  description?: string;
+  location?: string;
+  notificationId?: string;
+}) => {
+  const idempotencyKey = `confirm:${params.sessionId}:${params.start}:${params.end}`;
+
+  const response = await fetch(
+    `/api/network/sessions/${params.sessionId}/confirm`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      body: JSON.stringify({
+        start: params.start,
+        end: params.end,
+        tz: params.tz || "UTC",
+        title: params.title,
+        description: params.description,
+        location: params.location,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response
+      .json()
+      .catch(() => ({ message: "Unknown error" }));
+    throw new Error(
+      error.message || `Failed to confirm proposal: ${response.status}`
+    );
+  }
+
+  // Mark notification as resolved if provided
+  if (params.notificationId) {
+    try {
+      await resolveNotificationService(params.notificationId);
+    } catch (error) {
+      console.warn("Failed to resolve notification:", error);
+    }
+  }
+
+  return response.json();
+};
+
+export const declineTimeProposalService = async (params: {
+  sessionId: string;
+  notificationId?: string;
+}) => {
+  // For now, we'll just mark the notification as resolved
+  // In the future, this could send a decline message to the initiator
+  if (params.notificationId) {
+    try {
+      await resolveNotificationService(params.notificationId);
+    } catch (error) {
+      console.warn("Failed to resolve notification:", error);
+    }
+  }
+
+  return { success: true };
+};
+
+export const getSessionProposalsService = async (sessionId: string) => {
+  const response = await fetch(`/api/network/sessions/${sessionId}/messages`);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch session messages: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const messages = data.messages || [];
+
+  // Find the proposal message
+  const proposalMessage = messages.find(
+    (m: {
+      type: string;
+      id: string;
+      payload?: { proposals?: unknown[]; durationMins?: number };
+    }) => m.type === "proposal"
+  );
+
+  if (!proposalMessage) {
+    throw new Error("No proposal message found in session");
+  }
+
+  return {
+    messageId: proposalMessage.id,
+    proposals: proposalMessage.payload?.proposals || [],
+    durationMins: proposalMessage.payload?.durationMins || 30,
+  };
+};
