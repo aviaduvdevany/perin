@@ -89,8 +89,12 @@ export async function POST(request: NextRequest) {
       userId: userId,
       timestamp: new Date().toISOString(),
       messageCount: messages.length,
-      specialization,
+      specialization: inferredSpecialization,
       hasMemoryContext: Object.keys(memoryContext).length > 0,
+      inferredScheduling: mentionsScheduling,
+      hasIntegrations: Array.isArray(clientIntegrations)
+        ? clientIntegrations.length > 0
+        : false,
     });
 
     return response;

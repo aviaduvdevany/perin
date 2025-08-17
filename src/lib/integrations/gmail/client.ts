@@ -1,6 +1,11 @@
 import { google } from "googleapis";
 import { createGmailOAuth2Client, refreshGmailToken } from "./auth";
 import * as integrationQueries from "@/lib/queries/integrations";
+import {
+  createIntegrationError,
+  IntegrationType,
+  IntegrationErrorType,
+} from "../errors";
 
 // Create authenticated Gmail client
 export const createGmailClient = async (userId: string) => {
@@ -37,10 +42,11 @@ export const createGmailClient = async (userId: string) => {
       // If refresh token is invalid, surface a deterministic error for UI/LLM handling
       const code = (error as { code?: string })?.code;
       if (code === "INVALID_GRANT") {
-        const e = new Error("GMAIL_REAUTH_REQUIRED");
-        // @ts-expect-error attach code for upstream distinction
-        e.code = "GMAIL_REAUTH_REQUIRED";
-        throw e;
+        throw createIntegrationError(
+          IntegrationType.GMAIL,
+          IntegrationErrorType.REAUTH_REQUIRED,
+          "Gmail token refresh failed - reauth required"
+        );
       }
       throw error;
     }
@@ -80,10 +86,11 @@ export const createGmailClientForIntegration = async (
     } catch (error: unknown) {
       const code = (error as { code?: string })?.code;
       if (code === "INVALID_GRANT") {
-        const e = new Error("GMAIL_REAUTH_REQUIRED");
-        // @ts-expect-error attach code for upstream distinction
-        e.code = "GMAIL_REAUTH_REQUIRED";
-        throw e;
+        throw createIntegrationError(
+          IntegrationType.GMAIL,
+          IntegrationErrorType.REAUTH_REQUIRED,
+          "Gmail token refresh failed - reauth required"
+        );
       }
       throw error;
     }

@@ -1,8 +1,17 @@
 // Chat message interface
 export interface ChatMessage {
   id?: string;
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "tool";
   content: string;
+  tool_calls?: Array<{
+    id: string;
+    type: "function";
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
+  tool_call_id?: string;
 }
 
 // AI chat request interface
@@ -140,6 +149,8 @@ export interface LangGraphChatState {
   };
   // New unified integrations field
   integrations?: Record<string, unknown>;
+  // Tool execution results
+  toolExecutionResults?: Record<string, unknown>;
 }
 
 // Gmail integration API types

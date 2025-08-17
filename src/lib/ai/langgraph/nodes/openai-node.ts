@@ -57,6 +57,17 @@ Key Principles:
 7. When email context is available, use it to provide informed responses about emails
 8. When calendar context is available, use it to help with scheduling and provide insights about upcoming events
 
+Tool Usage Guidelines:
+- You have access to powerful tools for actionable intents
+- Use tools for scheduling meetings, confirming appointments, and resolving notifications
+- Prefer tools over conversation for scheduling and coordination tasks
+- If information is missing for tool calls, ask ONE concise clarifying question and proceed
+- Never fabricate IDs; always use human names/emails - the system resolves them securely
+- Respect timezones explicitly; if the user mentions a region (e.g., "Israel time"), use the tzHint parameter
+- After tool actions, summarize what you did and explain what happens next
+- For meeting confirmations, you can select by index (0-based) or specify custom times
+- Available tools include: schedule meetings, confirm meetings, resolve notifications
+
 Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
 User Preferences:
@@ -255,7 +266,7 @@ export const openaiNode = async (
         return await openaiClient.chat.completions.create({
           model: "gpt-4",
           messages: messages.map((msg) => ({
-            role: msg.role,
+            role: msg.role as "system" | "user" | "assistant",
             content: msg.content,
           })),
           stream: true,

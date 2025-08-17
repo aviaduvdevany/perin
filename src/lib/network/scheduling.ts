@@ -1,5 +1,6 @@
 import { getCalendarAvailability } from "@/lib/integrations/calendar/client";
 import type { ConnectionConstraints } from "@/types/network";
+import { withIntegrationErrorHandling } from "@/lib/integrations/error-handler";
 
 export interface GenerateProposalsParams {
   userAId: string;
@@ -11,6 +12,7 @@ export interface GenerateProposalsParams {
   constraintsA?: ConnectionConstraints;
   constraintsB?: ConnectionConstraints;
   limit?: number;
+  currentUserId?: string; // Added to track who is making the request
 }
 
 export interface TimeWindow {
@@ -109,22 +111,40 @@ export const generateMutualProposals = async (
     constraintsA,
     constraintsB,
     limit = 10,
+    currentUserId,
   } = params;
   const window = clampWindow(earliest, latest);
 
-  // Fetch busy windows for both users
-  const [busyA, busyB] = await Promise.all([
-    getCalendarAvailability(
-      userAId,
-      window.start.toISOString(),
-      window.end.toISOString()
-    ),
-    getCalendarAvailability(
-      userBId,
-      window.start.toISOString(),
-      window.end.toISOString()
-    ),
-  ]);
+  // Fetch calendar availability with intelligent error handling
+  const busyA = await withIntegrationErrorHandling(
+    () =>
+      getCalendarAvailability(
+        userAId,
+        window.start.toISOString(),
+        window.end.toISOString()
+      ),
+    {
+      currentUserId,
+      operationUserId: userAId,
+      allowGracefulDegradation: true,
+      defaultValue: { busy: [] },
+    }
+  );
+
+  const busyB = await withIntegrationErrorHandling(
+    () =>
+      getCalendarAvailability(
+        userBId,
+        window.start.toISOString(),
+        window.end.toISOString()
+      ),
+    {
+      currentUserId,
+      operationUserId: userBId,
+      allowGracefulDegradation: true,
+      defaultValue: { busy: [] },
+    }
+  );
 
   const durationMs = minutes(durationMins);
   const stepMs = minutes(30);

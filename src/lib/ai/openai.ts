@@ -18,7 +18,7 @@ const initializeOpenAI = (): OpenAI => {
 /**
  * Smart query function that executes OpenAI chat completion directly
  * Returns typed results with proper error handling
- * 
+ *
  * @deprecated Use executePerinChatWithLangGraph from langgraph/index.ts instead
  */
 export const executePerinChat = async (
@@ -40,7 +40,10 @@ export const executePerinChat = async (
     // Execute OpenAI chat completion
     const response = await openaiClient.chat.completions.create({
       model: "gpt-4",
-      messages,
+      messages: messages.map((msg) => ({
+        role: msg.role as "system" | "user" | "assistant",
+        content: msg.content,
+      })),
       stream: true,
       temperature: 0.7,
       max_tokens: 1000,
