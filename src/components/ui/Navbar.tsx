@@ -7,6 +7,7 @@ import { Glass } from "./Glass";
 import { Button } from "./button";
 import { Menu, X } from "lucide-react";
 import { NotificationBell } from "./NotificationBell";
+import { NotificationPreferences } from "./NotificationPreferences";
 
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
@@ -29,6 +30,7 @@ export function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
             <NotificationBell />
+            <NotificationPreferences />
           </div>
 
           {/* Mobile menu button */}
@@ -59,6 +61,7 @@ export function Navbar() {
             <div className="border-t border-[var(--card-border)] pt-4 pb-3">
               <div className="space-y-2">
                 <NotificationBell />
+                <NotificationPreferences />
               </div>
             </div>
           </Glass>

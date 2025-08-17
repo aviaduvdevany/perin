@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
-import NotificationsProvider from "@/components/providers/NotificationsProvider";
+import OneSignalProvider from "@/components/providers/OneSignalProvider";
+import { NotificationProvider } from "@/components/providers/NotificationContext";
 import { Navbar } from "@/components/ui/Navbar";
 import { UserDataProvider } from "@/components/providers/UserDataProvider";
 
@@ -44,12 +45,14 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <SessionProvider>
-          <NotificationsProvider>
-            <UserDataProvider>
-              <Navbar />
-              <main>{children}</main>
-            </UserDataProvider>
-          </NotificationsProvider>
+          <OneSignalProvider>
+            <NotificationProvider>
+              <UserDataProvider>
+                <Navbar />
+                <main>{children}</main>
+              </UserDataProvider>
+            </NotificationProvider>
+          </OneSignalProvider>
         </SessionProvider>
       </body>
     </html>
