@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
-import {
-  ErrorResponses,
-  withErrorHandler,
-} from "@/lib/utils/error-handlers";
+import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { CreateConnectionRequest } from "@/types/network";
@@ -86,7 +83,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const page = Math.max(parseInt(searchParams.get("page") || "1", 10), 1);
   const offset = (page - 1) * limit;
 
-  const connections = await networkQueries.listConnectionsForUserPaginated(
+  const connections = await networkQueries.listConnectionsWithUserInfo(
     userId,
     limit,
     offset

@@ -1,20 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import PerinAvatar from "./PerinAvatar";
-import { getUserProfileService } from "@/app/services/users";
-
-interface ProfileData {
-  user: {
-    id: string;
-    name?: string | null;
-    perin_name?: string | null;
-    tone?: string | null;
-    timezone?: string | null;
-    avatar_url?: string | null;
-  };
-}
+import { useUserData } from "@/components/providers/UserDataProvider";
 
 interface ProfileSummaryProps {
   className?: string;
@@ -23,25 +11,8 @@ interface ProfileSummaryProps {
 export default function ProfileSummary({
   className = "",
 }: ProfileSummaryProps) {
-  const [profile, setProfile] = useState<ProfileData["user"] | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data: ProfileData = await getUserProfileService();
-        if (mounted) setProfile(data.user);
-      } catch (err) {
-        // noop: keep placeholder UI
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const { state } = useUserData();
+  const { user: profile } = state;
 
   const name = profile?.name || "Your profile";
   const perinName = profile?.perin_name || "Perin";

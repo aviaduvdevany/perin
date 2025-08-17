@@ -6,6 +6,7 @@ import {
   AGENT_MESSAGES_TABLE,
   AUDIT_LOGS_TABLE,
   IDEMPOTENCY_KEYS_TABLE,
+  USERS_TABLE,
 } from "@/lib/tables";
 import type {
   UserConnection,
@@ -93,6 +94,38 @@ export const listConnectionsForUserPaginated = async (
     SELECT * FROM ${USER_CONNECTIONS_TABLE}
     WHERE requester_user_id = $1 OR target_user_id = $1
     ORDER BY updated_at DESC
+    LIMIT $2 OFFSET $3
+  `;
+  const result = await query(sql, [userId, limit, offset]);
+  return result.rows;
+};
+
+export const listConnectionsWithUserInfo = async (
+  userId: string,
+  limit: number,
+  offset: number
+): Promise<
+  Array<
+    UserConnection & {
+      requester_user_name?: string;
+      requester_user_email?: string;
+      target_user_name?: string;
+      target_user_email?: string;
+    }
+  >
+> => {
+  const sql = `
+    SELECT 
+      c.*,
+      requester.name as requester_user_name,
+      requester.email as requester_user_email,
+      target.name as target_user_name,
+      target.email as target_user_email
+    FROM ${USER_CONNECTIONS_TABLE} c
+    LEFT JOIN ${USERS_TABLE} requester ON c.requester_user_id = requester.id
+    LEFT JOIN ${USERS_TABLE} target ON c.target_user_id = target.id
+    WHERE c.requester_user_id = $1 OR c.target_user_id = $1
+    ORDER BY c.updated_at DESC
     LIMIT $2 OFFSET $3
   `;
   const result = await query(sql, [userId, limit, offset]);

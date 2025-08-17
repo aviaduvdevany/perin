@@ -1,29 +1,21 @@
 "use client";
 
 import { ReactNode } from "react";
-import TodayCard from "@/components/ui/TodayCard";
 import SidebarRail from "@/components/ui/SidebarRail";
-import CollapsibleCard from "@/components/ui/CollapsibleCard";
-import {
-  ChatUIProvider,
-  useChatUI,
-} from "@/components/providers/ChatUIProvider";
+import { useUserData } from "@/components/providers/UserDataProvider";
 import MobileTopBar from "@/components/ui/MobileTopBar";
 import BottomSheet from "@/components/ui/BottomSheet";
 import ProfileSummary from "@/components/ui/ProfileSummary";
-import IntegrationManagerModal from "@/components/ui/IntegrationManagerModal";
+import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
+import ProfileModal from "@/components/dock-modals/ProfileModal";
+import NetworkModal from "@/components/dock-modals/NetworkModal";
 import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
-import { IntegrationsProvider } from "@/components/providers/IntegrationsProvider";
+// import UserDataDebug from "@/components/ui/UserDataDebug";
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
-  const {
-    todayOpen,
-    setTodayOpen,
-    profileOpen,
-    setProfileOpen,
-    integrationsOpen,
-    setIntegrationsOpen,
-  } = useChatUI();
+  const { state, actions } = useUserData();
+  const { profileOpen, integrationsOpen, networkOpen } = state.ui;
+  const { setProfileOpen, setIntegrationsOpen, setNetworkOpen } = actions;
 
   return (
     <div className="relative min-h-screen bg-[var(--background-primary)] overflow-x-hidden overflow-y-hidden">
@@ -46,10 +38,7 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
       </div>
 
       {/* Mobile top bar */}
-      <MobileTopBar
-        onOpenTasks={() => setTodayOpen(true)}
-        onOpenProfile={() => setProfileOpen(true)}
-      />
+      <MobileTopBar onOpenProfile={() => setProfileOpen(true)} />
 
       <div className="mx-auto max-w-full h-full px-4 pt-12 lg:pt-0">
         <div className="grid grid-cols-12 gap-4 h-full py-4">
@@ -63,18 +52,7 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
 
       {/* Fixed left rail, centered (tablet/desktop) */}
       <div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-30">
-        <SidebarRail size="lg" onOpenProfile={() => setProfileOpen(true)} />
-      </div>
-
-      {/* Floating Today overlay on right (desktop/tablet) */}
-      <div className="hidden lg:block fixed right-6 top-24 z-20 w-[360px] max-w-[38vw]">
-        <CollapsibleCard
-          title="Today"
-          open={todayOpen}
-          onToggle={() => setTodayOpen((v) => !v)}
-        >
-          <TodayCard />
-        </CollapsibleCard>
+        <SidebarRail size="lg" />
       </div>
 
       {/* Mobile sheets */}
@@ -94,23 +72,26 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
         >
           <UnifiedIntegrationManager showOnlyConnectable={true} />
         </BottomSheet>
-
-        <BottomSheet
-          open={todayOpen}
-          onClose={() => setTodayOpen(false)}
-          title="Today"
-        >
-          <TodayCard />
-        </BottomSheet>
       </div>
 
-      {/* Desktop modal */}
+      {/* Desktop modals */}
       <div className="hidden lg:block">
         <IntegrationManagerModal
           open={integrationsOpen}
           onClose={() => setIntegrationsOpen(false)}
         />
+        <ProfileModal
+          open={profileOpen}
+          onClose={() => setProfileOpen(false)}
+        />
+        <NetworkModal
+          open={networkOpen}
+          onClose={() => setNetworkOpen(false)}
+        />
       </div>
+
+      {/* Debug component (remove in production) */}
+      {/* <UserDataDebug /> */}
     </div>
   );
 }
@@ -121,10 +102,6 @@ export default function ChatWorkspaceLayout({
   children: ReactNode;
 }) {
   return (
-    <ChatUIProvider>
-      <IntegrationsProvider>
-        <ChatLayoutInner>{children}</ChatLayoutInner>
-      </IntegrationsProvider>
-    </ChatUIProvider>
+    <ChatLayoutInner>{children}</ChatLayoutInner>
   );
 }

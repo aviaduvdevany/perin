@@ -10,12 +10,11 @@ import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
-import { useChatUI } from "@/components/providers/ChatUIProvider";
+
 
 export function PerinChat() {
   const { data: session } = useSession();
   const { sendMessage, isChatLoading, chatError } = usePerinAI();
-  const { collapseTodayAfterFirstMessage } = useChatUI();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState("");
@@ -36,7 +35,6 @@ export function PerinChat() {
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isChatLoading) return;
 
-    const isFirstUserMessage = messages.length === 0;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -48,9 +46,6 @@ export function PerinChat() {
     setStreamingMessage("");
     setPerinStatus("thinking");
 
-    if (isFirstUserMessage) {
-      collapseTodayAfterFirstMessage();
-    }
 
     try {
       const currentMessages = [...messages, userMessage];

@@ -3,6 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import NotificationsProvider from "@/components/providers/NotificationsProvider";
 import { Navbar } from "@/components/ui/Navbar";
+import { UserDataProvider } from "@/components/providers/UserDataProvider";
 
 export const metadata: Metadata = {
   title: "Perin - Your AI-powered productivity assistant",
@@ -44,8 +45,10 @@ export default function RootLayout({
       <body className="antialiased">
         <SessionProvider>
           <NotificationsProvider>
-            <Navbar />
-            <main>{children}</main>
+            <UserDataProvider>
+              <Navbar />
+              <main>{children}</main>
+            </UserDataProvider>
           </NotificationsProvider>
         </SessionProvider>
       </body>

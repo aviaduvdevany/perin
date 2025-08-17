@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 import Stepper, { Step } from "@/components/ui/Stepper";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { connectIntegrationService } from "@/app/services/integrations";
-import { updateUserProfileService } from "@/app/services/users";
+import { useUserData } from "@/components/providers/UserDataProvider";
 
 interface OnboardingData {
   name: string;
@@ -91,6 +90,7 @@ const avatarOptions = [
 export default function OnboardingPage() {
   const { data: session } = useSession();
   const router = useRouter();
+  const { actions } = useUserData();
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     name: session?.user?.name || "",
     perin_name: "Perin",
@@ -140,17 +140,7 @@ export default function OnboardingPage() {
   const connectGmail = async () => {
     setGmailConnecting(true);
     try {
-      const response = await connectIntegrationService("gmail");
-      console.log("Gmail connect response:", response);
-
-      const { authUrl } = response;
-
-      if (authUrl) {
-        console.log("Redirecting to:", authUrl);
-        window.location.href = authUrl;
-      } else {
-        console.error("No authUrl in response:", response);
-      }
+      await actions.connectIntegration("gmail");
     } catch (error) {
       console.error("Error connecting Gmail:", error);
     } finally {
@@ -163,17 +153,7 @@ export default function OnboardingPage() {
   const connectCalendar = async () => {
     setCalendarConnecting(true);
     try {
-      const response = await connectIntegrationService("calendar");
-      console.log("Calendar connect response:", response);
-
-      const { authUrl } = response;
-
-      if (authUrl) {
-        console.log("Redirecting to:", authUrl);
-        window.location.href = authUrl;
-      } else {
-        console.error("No authUrl in response:", response);
-      }
+      await actions.connectIntegration("calendar");
     } catch (error) {
       console.error("Error connecting Calendar:", error);
     } finally {
@@ -184,7 +164,7 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     try {
       // Update user profile with onboarding data
-      const response = await updateUserProfileService({
+      await actions.updateUser({
         name: onboardingData.name,
         perin_name: onboardingData.perin_name,
         tone: onboardingData.tone,
@@ -193,9 +173,7 @@ export default function OnboardingPage() {
         avatar_url: onboardingData.avatar_url,
       });
 
-      if (response) {
-        router.push("/chat");
-      }
+      router.push("/chat");
     } catch (error) {
       console.error("Error completing onboarding:", error);
     }

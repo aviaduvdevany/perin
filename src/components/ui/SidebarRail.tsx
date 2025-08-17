@@ -2,29 +2,23 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { useChatUI } from "@/components/providers/ChatUIProvider";
+import { useUserData } from "@/components/providers/UserDataProvider";
 
 interface SidebarRailProps {
-  onOpenProfile: () => void;
   className?: string;
   size?: "md" | "lg";
 }
 
 export default function SidebarRail({
-  onOpenProfile,
   className = "",
   size = "md",
 }: SidebarRailProps) {
-  const { setIntegrationsOpen } = useChatUI();
-  const [expanded, setExpanded] = useLocalStorage<boolean>(
-    "chat.sidebar.expanded",
-    false
-  );
+  const { actions } = useUserData();
+  const { setIntegrationsOpen, setProfileOpen, setNetworkOpen } = actions;
   const [hovered, setHovered] = useState(false);
 
   const collapsedWidth = size === "lg" ? "w-[72px]" : "w-[56px]";
-  const expandedWidth = size === "lg" ? "w-60" : "w-48";
+  const expandedWidth = size === "lg" ? "w-48" : "w-48";
   const itemPad = size === "lg" ? "px-4 py-3" : "px-3 py-2";
   const iconSize = size === "lg" ? "text-2xl" : "text-lg";
 
@@ -38,14 +32,14 @@ export default function SidebarRail({
     onClick: () => void;
   }) => (
     <button
-      className={`w-full flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
+      className={`w-full cursor-pointer flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
       onClick={onClick}
       aria-label={label}
     >
       <span className={`${iconSize}`} aria-hidden>
         {icon}
       </span>
-      {(expanded || hovered) && (
+      {hovered && (
         <motion.span
           initial={{ opacity: 0, x: -6 }}
           animate={{ opacity: 1, x: 0 }}
@@ -65,7 +59,7 @@ export default function SidebarRail({
     >
       <div
         className={`rounded-2xl p-2 ${
-          expanded ? expandedWidth : collapsedWidth
+          hovered ? expandedWidth : collapsedWidth
         } transition-[width] duration-200 border border-[var(--card-border)]`}
         style={{
           background:
@@ -73,19 +67,20 @@ export default function SidebarRail({
         }}
       >
         <div className="space-y-1">
-          <Item icon="👤" label="Profile" onClick={onOpenProfile} />
+          <Item
+            icon="👤"
+            label="Profile"
+            onClick={() => setProfileOpen(true)}
+          />
           <Item
             icon="🧩"
             label="Integrations"
             onClick={() => setIntegrationsOpen(true)}
           />
-          <Item icon="🕸️" label="Network" onClick={onOpenProfile} />
-        </div>
-        <div className="pt-2 mt-2 border-t border-[var(--card-border)]">
           <Item
-            icon={expanded ? "◀" : "▶"}
-            label={expanded ? "Collapse" : "Expand"}
-            onClick={() => setExpanded(!expanded)}
+            icon="🕸️"
+            label="Network"
+            onClick={() => setNetworkOpen(true)}
           />
         </div>
       </div>

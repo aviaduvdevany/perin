@@ -2,9 +2,8 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
-import { connectIntegrationService } from "@/app/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
-import { useIntegrations } from "@/components/providers/IntegrationsProvider";
+import { useUserData } from "@/components/providers/UserDataProvider";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 
 interface IntegrationManagerModalProps {
@@ -18,7 +17,8 @@ export default function IntegrationManagerModal({
 }: IntegrationManagerModalProps) {
   const [activeSection, setActiveSection] =
     useState<IntegrationType>("calendar");
-  const { integrations, isLoading, disconnect } = useIntegrations();
+  const { state, actions } = useUserData();
+  const { integrations, loading } = state;
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
@@ -52,7 +52,7 @@ export default function IntegrationManagerModal({
     if (!pendingRemoveId) return;
     setRemoving(true);
     try {
-      await disconnect({ id: pendingRemoveId });
+      await actions.disconnectIntegration(pendingRemoveId);
     } finally {
       setRemoving(false);
       setConfirmOpen(false);
@@ -62,8 +62,7 @@ export default function IntegrationManagerModal({
 
   const handleAddAnother = async () => {
     try {
-      const { authUrl } = await connectIntegrationService(activeSection);
-      if (authUrl) window.location.href = authUrl;
+      await actions.connectIntegration(activeSection);
     } catch (e) {
       console.error("Failed to start connection:", e);
     }
@@ -181,7 +180,7 @@ export default function IntegrationManagerModal({
                     </button>
                   </div>
 
-                  {isLoading ? (
+                  {loading.integrations ? (
                     <p className="text-sm text-[var(--foreground-muted)]">
                       Loading...
                     </p>

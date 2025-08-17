@@ -6,7 +6,7 @@ import type {
   PerinMemoryRequest,
   PerinMemoryResponse,
 } from "@/types/ai";
-import { useIntegrations } from "@/components/providers/IntegrationsProvider";
+import { useUserData } from "@/components/providers/UserDataProvider";
 
 export interface UsePerinAI {
   // Chat functionality
@@ -29,7 +29,8 @@ export interface UsePerinAI {
 
 export function usePerinAI(): UsePerinAI {
   const { data: session } = useSession();
-  const { integrations } = useIntegrations();
+  const { state } = useUserData();
+  const { integrations } = state;
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isMemoryLoading, setIsMemoryLoading] = useState(false);

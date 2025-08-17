@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { connectIntegrationService } from "../../app/services/integrations";
+import { useState } from "react";
+import { useUserData } from "@/components/providers/UserDataProvider";
 
 interface CalendarIntegrationProps {
   className?: string;
@@ -8,25 +8,18 @@ interface CalendarIntegrationProps {
 export default function CalendarIntegration({
   className = "",
 }: CalendarIntegrationProps) {
-  const [isConnected, setIsConnected] = useState(false);
+  const { state, actions } = useUserData();
+  const { integrations } = state;
   const [isConnecting, setIsConnecting] = useState(false);
 
-  useEffect(() => {
-    // Check if calendar is already connected
-    // This would typically check the user's integrations
-    // For now, we'll assume it's not connected
-    setIsConnected(false);
-  }, []);
+  const isConnected = integrations.some(
+    (integration) => integration.type === "calendar" && integration.isActive
+  );
 
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      const response = await connectIntegrationService('calendar');
-      const { authUrl } = response;
-
-      if (authUrl) {
-        window.location.href = authUrl;
-      }
+      await actions.connectIntegration("calendar");
     } catch (error) {
       console.error("Error connecting Calendar:", error);
     } finally {
