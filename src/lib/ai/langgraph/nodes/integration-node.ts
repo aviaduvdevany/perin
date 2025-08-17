@@ -8,6 +8,7 @@ import {
 } from "@/lib/integrations/service";
 import { detectIntegrationContext } from "@/lib/integrations/registry";
 import { withRetry } from "@/lib/ai/resilience/error-handler";
+import { IntegrationError, isReauthError } from "@/lib/integrations/errors";
 
 /**
  * Generic Integration Node for LangGraph
@@ -54,22 +55,25 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
             { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
           );
         } catch (err) {
-          // If Gmail needs reauth, surface a connected=false context with a clear error
-          const code = (err as { code?: string })?.code;
-          if (
-            (integrationType === "gmail" && code === "GMAIL_REAUTH_REQUIRED") ||
-            (integrationType === "calendar" &&
-              code === "CALENDAR_REAUTH_REQUIRED")
-          ) {
+          // Use centralized error handling for integration errors
+          if (isReauthError(err)) {
+            let errorType: string;
+            if (err instanceof IntegrationError) {
+              errorType = `${err.integrationType.toUpperCase()}_REAUTH_REQUIRED`;
+            } else {
+              // Fallback for legacy errors
+              errorType =
+                integrationType === "gmail"
+                  ? "GMAIL_REAUTH_REQUIRED"
+                  : "CALENDAR_REAUTH_REQUIRED";
+            }
+
             return {
               [`${integrationType}Context`]: {
                 isConnected: false,
                 data: [],
                 count: 0,
-                error:
-                  integrationType === "gmail"
-                    ? "GMAIL_REAUTH_REQUIRED"
-                    : "CALENDAR_REAUTH_REQUIRED",
+                error: errorType,
               },
               currentStep: `${integrationType}_reauth_required`,
             } as unknown as Partial<LangGraphChatState>;

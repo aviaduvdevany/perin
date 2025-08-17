@@ -14,6 +14,7 @@ import {
   ToolErrorCode,
 } from "../../tools/types";
 import { getToolHandler } from "../../tools/registry";
+import { isReauthError } from "@/lib/integrations/errors";
 
 /**
  * Execute a single tool call with validation and error handling
@@ -78,18 +79,12 @@ async function executeToolCall(
     try {
       result = await toolHandler.handler(context, validation.data as never);
     } catch (error) {
-      // Check for reauth required errors that should bubble up to the orchestrator
-      if (
-        error instanceof Error &&
-        (error.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-          error.message.includes("CALENDAR_NOT_CONNECTED") ||
-          error.message.includes("GMAIL_REAUTH_REQUIRED") ||
-          error.message.includes("GMAIL_NOT_CONNECTED"))
-      ) {
-        // These errors should bubble up to trigger the reauth flow
+      // Use centralized error handling for integration errors
+      if (isReauthError(error)) {
+        // Integration reauth errors should bubble up to trigger the reauth flow
         console.log(
           "Tool executor bubbling up integration error:",
-          error.message
+          error instanceof Error ? error.message : "Unknown error"
         );
         throw error;
       }
@@ -118,18 +113,12 @@ async function executeToolCall(
       timestamp,
     };
   } catch (error) {
-    // Check for reauth required errors that should bubble up to the orchestrator
-    if (
-      error instanceof Error &&
-      (error.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-        error.message.includes("CALENDAR_NOT_CONNECTED") ||
-        error.message.includes("GMAIL_REAUTH_REQUIRED") ||
-        error.message.includes("GMAIL_NOT_CONNECTED"))
-    ) {
-      // These errors should bubble up to trigger the reauth flow
+    // Use centralized error handling for integration errors
+    if (isReauthError(error)) {
+      // Integration reauth errors should bubble up to trigger the reauth flow
       console.log(
         "executeToolCall outer catch: bubbling up reauth error:",
-        error.message
+        error instanceof Error ? error.message : "Unknown error"
       );
       throw error;
     }
@@ -208,23 +197,15 @@ export const toolExecutorNode = async (
   } catch (error) {
     console.log("Promise.all caught error in tool executor:", {
       message: error instanceof Error ? error.message : "Unknown",
-      isReauthError:
-        error instanceof Error &&
-        error.message.includes("CALENDAR_REAUTH_REQUIRED"),
+      isReauthError: isReauthError(error),
     });
 
-    // Check for reauth required errors that should bubble up
-    if (
-      error instanceof Error &&
-      (error.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-        error.message.includes("CALENDAR_NOT_CONNECTED") ||
-        error.message.includes("GMAIL_REAUTH_REQUIRED") ||
-        error.message.includes("GMAIL_NOT_CONNECTED"))
-    ) {
+    // Use centralized error handling for integration errors
+    if (isReauthError(error)) {
       // Bubble up to the orchestrator for reauth handling
       console.log(
         "Tool executor batch bubbling up integration error:",
-        error.message
+        error instanceof Error ? error.message : "Unknown error"
       );
       throw error;
     }

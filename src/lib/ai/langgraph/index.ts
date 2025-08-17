@@ -278,41 +278,24 @@ export const executePerinChatWithLangGraph = async (
                   ...(toolResult as Partial<LangGraphChatState>),
                 };
               } catch (toolError) {
-                // Check for reauth errors during tool execution
-                if (
-                  toolError instanceof Error &&
-                  (toolError.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-                    toolError.message.includes("CALENDAR_NOT_CONNECTED"))
-                ) {
+                // Use centralized error handling for integration errors
+                const { getErrorActionToken } = await import(
+                  "@/lib/integrations/error-handler"
+                );
+                const actionToken = getErrorActionToken(toolError);
+
+                if (actionToken) {
                   console.log(
-                    "Orchestrator handling calendar reauth error:",
-                    toolError.message
+                    "Orchestrator handling integration error:",
+                    toolError instanceof Error
+                      ? toolError.message
+                      : "Unknown error"
                   );
-                  controller.enqueue(
-                    new TextEncoder().encode(
-                      "[[PERIN_ACTION:calendar_reauth_required]]"
-                    )
-                  );
+                  controller.enqueue(new TextEncoder().encode(actionToken));
                   controller.close();
                   return;
                 }
-                if (
-                  toolError instanceof Error &&
-                  (toolError.message.includes("GMAIL_REAUTH_REQUIRED") ||
-                    toolError.message.includes("GMAIL_NOT_CONNECTED"))
-                ) {
-                  console.log(
-                    "Orchestrator handling gmail reauth error:",
-                    toolError.message
-                  );
-                  controller.enqueue(
-                    new TextEncoder().encode(
-                      "[[PERIN_ACTION:gmail_reauth_required]]"
-                    )
-                  );
-                  controller.close();
-                  return;
-                }
+
                 // For other errors, continue with normal error handling
                 throw toolError;
               }

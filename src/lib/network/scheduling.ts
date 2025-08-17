@@ -1,5 +1,6 @@
 import { getCalendarAvailability } from "@/lib/integrations/calendar/client";
 import type { ConnectionConstraints } from "@/types/network";
+import { withIntegrationErrorHandling } from "@/lib/integrations/error-handler";
 
 export interface GenerateProposalsParams {
   userAId: string;
@@ -114,57 +115,36 @@ export const generateMutualProposals = async (
   } = params;
   const window = clampWindow(earliest, latest);
 
-  // Fetch busy windows for both users, handling reauth errors gracefully
-  let busyA, busyB;
-
-  // Helper function to handle calendar reauth errors based on user context
-  const handleCalendarError = (
-    error: unknown,
-    failedUserId: string,
-    userLabel: string
-  ) => {
-    if (
-      error instanceof Error &&
-      (error.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-        error.message.includes("CALENDAR_NOT_CONNECTED"))
-    ) {
-      // If the current user needs reauth, bubble up the error to trigger reauth UI
-      if (currentUserId && failedUserId === currentUserId) {
-        console.log(
-          `Current user (${failedUserId}) needs calendar reauth - triggering reauth flow`
-        );
-        throw error; // This will bubble up to show the reauth component
-      } else {
-        // If another user needs reauth, handle gracefully
-        console.log(
-          `${userLabel} (${failedUserId}) needs calendar reauth, using empty availability`
-        );
-        return { busy: [] }; // Assume user is free if calendar unavailable
-      }
-    } else {
-      throw error; // Always bubble up non-reauth errors
+  // Fetch calendar availability with intelligent error handling
+  const busyA = await withIntegrationErrorHandling(
+    () =>
+      getCalendarAvailability(
+        userAId,
+        window.start.toISOString(),
+        window.end.toISOString()
+      ),
+    {
+      currentUserId,
+      operationUserId: userAId,
+      allowGracefulDegradation: true,
+      defaultValue: { busy: [] },
     }
-  };
+  );
 
-  try {
-    busyA = await getCalendarAvailability(
-      userAId,
-      window.start.toISOString(),
-      window.end.toISOString()
-    );
-  } catch (error) {
-    busyA = handleCalendarError(error, userAId, "User A");
-  }
-
-  try {
-    busyB = await getCalendarAvailability(
-      userBId,
-      window.start.toISOString(),
-      window.end.toISOString()
-    );
-  } catch (error) {
-    busyB = handleCalendarError(error, userBId, "User B");
-  }
+  const busyB = await withIntegrationErrorHandling(
+    () =>
+      getCalendarAvailability(
+        userBId,
+        window.start.toISOString(),
+        window.end.toISOString()
+      ),
+    {
+      currentUserId,
+      operationUserId: userBId,
+      allowGracefulDegradation: true,
+      defaultValue: { busy: [] },
+    }
+  );
 
   const durationMs = minutes(durationMins);
   const stepMs = minutes(30);

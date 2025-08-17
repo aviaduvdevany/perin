@@ -21,6 +21,7 @@ import * as userQueries from "@/lib/queries/users";
 import * as notif from "@/lib/queries/notifications";
 import { generateMutualProposals } from "@/lib/network/scheduling";
 import { createCalendarEvent } from "@/lib/integrations/calendar/client";
+import { isReauthError } from "@/lib/integrations/errors";
 // Note: Using local implementations of scheduling utilities for this file
 
 /**
@@ -439,21 +440,9 @@ export const scheduleMeetingHandler: ToolHandler<
         currentUserId: context.userId, // Pass current user context for reauth handling
       });
     } catch (error) {
-      // Handle calendar reauth required errors - these should bubble up to trigger the reauth flow
-      if (
-        error instanceof Error &&
-        error.message.includes("CALENDAR_REAUTH_REQUIRED")
-      ) {
-        throw error; // Let this bubble up to the existing reauth handling
-      }
-      // Handle other calendar-related errors
-      if (
-        error instanceof Error &&
-        (error.message.includes("CALENDAR_NOT_CONNECTED") ||
-          error.message.includes("GMAIL_REAUTH_REQUIRED") ||
-          error.message.includes("GMAIL_NOT_CONNECTED"))
-      ) {
-        throw error; // Let these bubble up to the existing reauth handling
+      // Use centralized error handling for integration errors
+      if (isReauthError(error)) {
+        throw error; // Let integration reauth errors bubble up
       }
       // For other errors, return a tool error
       return createToolError(
@@ -547,15 +536,9 @@ export const scheduleMeetingHandler: ToolHandler<
   } catch (error) {
     console.error("scheduleMeetingHandler error:", error);
 
-    // Check for reauth required errors that should bubble up
-    if (
-      error instanceof Error &&
-      (error.message.includes("CALENDAR_REAUTH_REQUIRED") ||
-        error.message.includes("CALENDAR_NOT_CONNECTED") ||
-        error.message.includes("GMAIL_REAUTH_REQUIRED") ||
-        error.message.includes("GMAIL_NOT_CONNECTED"))
-    ) {
-      // Re-throw these errors to bubble up to the orchestrator
+    // Use centralized error handling for integration errors
+    if (isReauthError(error)) {
+      // Re-throw integration reauth errors to bubble up to the orchestrator
       throw error;
     }
 
