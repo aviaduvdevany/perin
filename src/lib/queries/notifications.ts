@@ -7,6 +7,60 @@ import type {
 } from "@/types/notifications";
 import { NOTIFICATIONS_TABLE, DEVICES_TABLE, PREFS_TABLE } from "@/lib/tables";
 
+// Helper function to dispatch notifications with push support
+export const dispatchNotification = async (
+  userId: string,
+  type: Notification["type"],
+  title: string,
+  body?: string | null,
+  data?: Record<string, unknown> | null,
+  requiresAction?: boolean,
+  actionDeadlineAt?: string | null,
+  actionRef?: Record<string, unknown> | null
+): Promise<Notification> => {
+  // Try to use dispatch service first (for push notifications)
+  try {
+    const internalKey = process.env.NOTIFICATIONS_INTERNAL_KEY;
+    if (internalKey) {
+      const response = await fetch(
+        `${
+          process.env.NEXTAUTH_URL || "http://localhost:3000"
+        }/api/notifications/dispatch`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-internal-key": internalKey,
+          },
+          body: JSON.stringify({
+            userId,
+            type,
+            title,
+            body,
+            data,
+            requiresAction,
+            actionDeadlineAt,
+            actionRef,
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.notification;
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "Failed to dispatch notification, falling back to direct creation:",
+      error
+    );
+  }
+
+  // Fallback to direct creation
+  return createNotification(userId, type, title, body, data);
+};
+
 export const createNotification = async (
   userId: string,
   type: Notification["type"],

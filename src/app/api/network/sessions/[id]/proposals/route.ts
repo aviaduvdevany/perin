@@ -111,12 +111,20 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     payload: { proposals: proposalsWithTz, durationMins: body.durationMins },
   });
 
-  const createdNotif = await notif.createNotification(
+  const createdNotif = await notif.dispatchNotification(
     counterpartId,
     "network.message.received",
     "New time proposals",
     `You received ${proposals.length} time proposals`,
-    { sessionId: sessionId, messageId: message.id }
+    { sessionId: sessionId, messageId: message.id },
+    true, // requiresAction
+    null, // actionDeadlineAt
+    {
+      // actionRef
+      kind: "network.proposals",
+      sessionId,
+      messageId: message.id,
+    }
   );
 
   // Mark this proposals notification as actionable so Perin can surface it in chat

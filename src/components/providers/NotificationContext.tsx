@@ -61,6 +61,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
       try {
         const res = await listNotificationsService(false);
         const list = (res.notifications || []) as Notification[];
+        console.log("Loaded notifications:", list.length, "notifications");
         setNotifications(list);
         setLastFetched(Date.now());
       } catch (error) {
@@ -73,6 +74,7 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
   );
 
   const refreshNotifications = useCallback(async () => {
+    console.log("Manually refreshing notifications...");
     await loadNotifications(true);
   }, [loadNotifications]);
 
@@ -108,11 +110,11 @@ export function NotificationProvider({ children }: NotificationProviderProps) {
     loadNotifications();
   }, [loadNotifications]);
 
-  // Auto-refresh every 2 minutes
+  // Auto-refresh every 30 seconds (more frequent for better responsiveness)
   useEffect(() => {
     const interval = setInterval(() => {
       loadNotifications(true);
-    }, 2 * 60 * 1000);
+    }, 30 * 1000); // 30 seconds instead of 2 minutes
 
     return () => clearInterval(interval);
   }, [loadNotifications]);

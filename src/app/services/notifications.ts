@@ -43,3 +43,45 @@ export const updateNotificationPreferencesService = async (prefs: {
   channels?: Record<string, unknown> | null;
   digest?: Record<string, unknown> | null;
 }) => internalApiRequest(`notifications/preferences`, HTTPMethod.PUT, prefs);
+
+// New function to dispatch notifications with push support
+export const dispatchNotificationService = async (params: {
+  userId: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  data?: Record<string, unknown> | null;
+  requiresAction?: boolean;
+  actionDeadlineAt?: string | null;
+  actionRef?: Record<string, unknown> | null;
+}) => {
+  const internalKey = process.env.NOTIFICATIONS_INTERNAL_KEY;
+  if (!internalKey) {
+    console.warn(
+      "NOTIFICATIONS_INTERNAL_KEY not set, falling back to direct creation"
+    );
+    // Fallback to direct creation if dispatch is not configured
+    return internalApiRequest(`notifications`, HTTPMethod.POST, params);
+  }
+
+  // Use direct fetch for dispatch with custom headers
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_API_URL || "";
+  const url = `${baseUrl}/api/notifications/dispatch`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-internal-key": internalKey,
+    },
+    body: JSON.stringify(params),
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Dispatch failed: ${response.status} ${response.statusText}`
+    );
+  }
+
+  return response.json();
+};

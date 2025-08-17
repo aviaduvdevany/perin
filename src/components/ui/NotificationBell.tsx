@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Bell, Check, Loader2 } from "lucide-react";
+import { Bell, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "./button";
 import { Glass } from "./Glass";
 import { useNotifications } from "../providers/NotificationContext";
@@ -15,6 +15,7 @@ export function NotificationBell() {
     hasUnresolvedNotifications,
     loading,
     markAsRead,
+    refreshNotifications,
   } = useNotifications();
 
   // Group notifications by type for better UX
@@ -73,6 +74,14 @@ export function NotificationBell() {
                   {loading && (
                     <Loader2 className="h-4 w-4 animate-spin text-[var(--foreground-subtle)]" />
                   )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => refreshNotifications()}
+                    className="text-[var(--foreground-subtle)] hover:text-[var(--cta-text)]"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
