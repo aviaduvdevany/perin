@@ -70,7 +70,7 @@ function extractSimpleTimeRange(
   const m = text.match(timeRe);
   if (dayIdx === -1 || !m) return {};
 
-  const [_, h1s, m1s, ap1, h2s, m2s, ap2] = m;
+  const [, h1s, m1s, ap1, h2s, m2s, ap2] = m;
   const h1 = parseInt(h1s, 10);
   const min1 = m1s ? parseInt(m1s, 10) : 0;
   const h2 = parseInt(h2s, 10);

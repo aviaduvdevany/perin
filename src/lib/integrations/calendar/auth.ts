@@ -44,6 +44,8 @@ export const generateCalendarAuthUrl = (): string => {
     access_type: "offline",
     scope: scopes,
     prompt: "consent",
+    // Force refresh token generation
+    include_granted_scopes: true,
   });
 };
 

@@ -46,7 +46,17 @@ export async function GET(request: NextRequest) {
       ? new Date(tokens.expiry_date)
       : new Date(Date.now() + 3600 * 1000); // 1 hour fallback
 
-    // Store integration in database
+    // Clean up any duplicate integrations first
+    await integrationQueries.cleanupDuplicateIntegrations(userId, "calendar");
+
+    // Store/update integration in database
+    console.log("About to store/update integration:", {
+      userId,
+      tokenLength: tokens.access_token.length,
+      hasRefreshToken: !!tokens.refresh_token,
+      expiresAt: expiresAt.toISOString(),
+    });
+
     const integration = await integrationQueries.createUserIntegration(
       userId,
       "calendar",
@@ -62,11 +72,17 @@ export async function GET(request: NextRequest) {
         token_type: tokens.token_type,
       }
     );
-    console.log("Integration stored:", integration ? "Yes" : "No");
 
-    // Redirect back to onboarding to continue the flow
+    console.log("Integration stored successfully:", {
+      id: integration.id,
+      expiresAt: integration.token_expires_at,
+      connectedAt: integration.connected_at,
+      isActive: integration.is_active,
+    });
+
+    // Redirect back to chat instead of onboarding for reauth flow
     return Response.redirect(
-      new URL("/onboarding?calendar=connected", request.url)
+      new URL("/chat?calendar=reconnected", request.url)
     );
   } catch (error) {
     console.error("Error in calendar callback:", error);

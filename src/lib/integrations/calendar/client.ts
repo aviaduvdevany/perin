@@ -354,7 +354,10 @@ export const getCalendarAvailability = async (
     const integration = await getUserIntegration(userId, "calendar");
 
     if (!integration || !integration.is_active) {
-      throw new Error("Calendar integration not found or inactive");
+      const e = new Error("CALENDAR_NOT_CONNECTED");
+      // @ts-expect-error annotate
+      e.code = "CALENDAR_NOT_CONNECTED";
+      throw e;
     }
 
     // Check if token needs refresh
@@ -363,8 +366,19 @@ export const getCalendarAvailability = async (
 
     let accessToken = integration.access_token;
 
+    console.log("Calendar token check:", {
+      expiresAt: expiresAt.toISOString(),
+      now: now.toISOString(),
+      isExpired: now >= expiresAt,
+      hasRefreshToken: !!integration.refresh_token,
+      minutesSinceExpiry: Math.round(
+        (now.getTime() - expiresAt.getTime()) / (1000 * 60)
+      ),
+    });
+
     if (now >= expiresAt && integration.refresh_token) {
       try {
+        console.log("Attempting to refresh expired calendar token");
         const newTokens = await refreshCalendarToken(integration.refresh_token);
         accessToken = newTokens.access_token;
 
@@ -374,9 +388,16 @@ export const getCalendarAvailability = async (
           newTokens.access_token,
           newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
         );
+
+        console.log("Calendar token refreshed successfully", {
+          newExpiryDate: newTokens.expiry_date
+            ? new Date(newTokens.expiry_date).toISOString()
+            : "No expiry",
+        });
       } catch (error) {
         const code = (error as { code?: string })?.code;
         if (code === "INVALID_GRANT") {
+          console.log("Calendar refresh token invalid - requires reauth");
           const e = new Error("CALENDAR_REAUTH_REQUIRED");
           // @ts-expect-error augment for upstream
           e.code = "CALENDAR_REAUTH_REQUIRED";
@@ -384,6 +405,12 @@ export const getCalendarAvailability = async (
         }
         throw error;
       }
+    } else if (now >= expiresAt && !integration.refresh_token) {
+      console.log("Calendar token expired but no refresh token available");
+      const e = new Error("CALENDAR_REAUTH_REQUIRED");
+      // @ts-expect-error augment for upstream
+      e.code = "CALENDAR_REAUTH_REQUIRED";
+      throw e;
     }
 
     // Create calendar client
@@ -408,6 +435,19 @@ export const getCalendarAvailability = async (
     };
   } catch (error) {
     console.error("Error getting calendar availability:", error);
+
+    // Check for authentication-related errors from the API call
+    if (error && typeof error === "object" && "code" in error) {
+      const statusCode = (error as { code?: number }).code;
+      if (statusCode === 401 || statusCode === 403) {
+        const e = new Error("CALENDAR_REAUTH_REQUIRED");
+        // @ts-expect-error annotate
+        e.code = "CALENDAR_REAUTH_REQUIRED";
+        throw e;
+      }
+    }
+
+    // For other errors, just re-throw them
     throw error;
   }
 };
