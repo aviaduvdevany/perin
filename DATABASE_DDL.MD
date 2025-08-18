@@ -1,4 +1,6 @@
-```sql
+** TABLES
+
+```sql 
 -- public.idempotency_keys definition
 
 -- Drop table
@@ -9,7 +11,7 @@ CREATE TABLE public.idempotency_keys (
 	"key" text NOT NULL,
 	"scope" text NOT NULL,
 	status text DEFAULT 'used'::text NOT NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT idempotency_keys_pkey PRIMARY KEY (key)
 );
 
@@ -23,12 +25,12 @@ CREATE TABLE public.idempotency_keys (
 CREATE TABLE public.users (
 	id text DEFAULT gen_random_uuid() NOT NULL,
 	email text NOT NULL,
-	email_verified timestamp NULL,
+	email_verified timestamptz NULL,
 	hashed_password text NULL,
 	"name" text NULL,
 	image text NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
-	updated_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
 	perin_name text DEFAULT 'Perin'::text NULL,
 	tone text NULL,
 	avatar_url text NULL,
@@ -38,7 +40,8 @@ CREATE TABLE public.users (
 	is_beta_user bool DEFAULT false NULL,
 	"role" text DEFAULT 'user'::text NULL,
 	CONSTRAINT users_email_key UNIQUE (email),
-	CONSTRAINT users_pkey PRIMARY KEY (id)
+	CONSTRAINT users_pkey PRIMARY KEY (id),
+	CONSTRAINT users_timezone_valid CHECK (((timezone IS NULL) OR is_valid_iana_timezone(timezone)))
 );
 
 
@@ -55,7 +58,7 @@ CREATE TABLE public.audit_logs (
 	resource_type text NOT NULL,
 	resource_id text NOT NULL,
 	details jsonb NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT audit_logs_pkey PRIMARY KEY (id),
 	CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
@@ -101,6 +104,7 @@ CREATE TABLE public.notification_preferences (
 	digest jsonb NULL,
 	updated_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT notification_preferences_pkey PRIMARY KEY (user_id),
+	CONSTRAINT notification_preferences_timezone_valid CHECK (((timezone IS NULL) OR is_valid_iana_timezone(timezone))),
 	CONSTRAINT notification_preferences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON DELETE CASCADE
 );
 
@@ -119,7 +123,7 @@ CREATE TABLE public.notifications (
 	body text NULL,
 	"data" jsonb NULL,
 	is_read bool DEFAULT false NOT NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
 	requires_action bool DEFAULT false NOT NULL,
 	is_resolved bool DEFAULT false NOT NULL,
 	resolved_at timestamptz NULL,
@@ -146,8 +150,8 @@ CREATE TABLE public.user_connections (
 	requester_user_id text NOT NULL,
 	target_user_id text NOT NULL,
 	status text DEFAULT 'pending'::text NOT NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
-	updated_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT user_connections_pkey PRIMARY KEY (id),
 	CONSTRAINT user_connections_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'active'::text, 'revoked'::text]))),
 	CONSTRAINT user_connections_requester_user_id_fkey FOREIGN KEY (requester_user_id) REFERENCES public.users(id) ON DELETE CASCADE,
@@ -169,10 +173,10 @@ CREATE TABLE public.user_integrations (
 	integration_type text NOT NULL,
 	access_token text NOT NULL,
 	refresh_token text NULL,
-	token_expires_at timestamp NULL,
+	token_expires_at timestamptz NULL,
 	scopes _text NULL,
-	connected_at timestamp DEFAULT now() NOT NULL,
-	last_sync_at timestamp NULL,
+	connected_at timestamptz DEFAULT now() NOT NULL,
+	last_sync_at timestamptz NULL,
 	is_active bool DEFAULT true NULL,
 	metadata jsonb DEFAULT '{}'::jsonb NULL,
 	account_email text NULL,
@@ -201,8 +205,8 @@ CREATE TABLE public.agent_sessions (
 	status text NOT NULL,
 	ttl_expires_at timestamptz NOT NULL,
 	outcome jsonb NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
-	updated_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT agent_sessions_pkey PRIMARY KEY (id),
 	CONSTRAINT agent_sessions_status_check CHECK ((status = ANY (ARRAY['initiated'::text, 'negotiating'::text, 'awaiting_confirmation'::text, 'confirmed'::text, 'canceled'::text, 'expired'::text, 'error'::text]))),
 	CONSTRAINT agent_sessions_type_check CHECK ((type = ANY (ARRAY['schedule_meeting'::text, 'proposal_only'::text]))),
@@ -225,7 +229,7 @@ CREATE TABLE public.connection_permissions (
 	connection_id text NOT NULL,
 	scopes _text DEFAULT '{}'::text[] NOT NULL,
 	"constraints" jsonb DEFAULT '{}'::jsonb NOT NULL,
-	updated_at timestamp DEFAULT now() NOT NULL,
+	updated_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT connection_permissions_connection_id_key UNIQUE (connection_id),
 	CONSTRAINT connection_permissions_pkey PRIMARY KEY (id),
 	CONSTRAINT connection_permissions_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES public.user_connections(id) ON DELETE CASCADE
@@ -272,7 +276,7 @@ CREATE TABLE public.agent_messages (
 	"type" text NOT NULL,
 	payload jsonb NOT NULL,
 	dedupe_key text NULL,
-	created_at timestamp DEFAULT now() NOT NULL,
+	created_at timestamptz DEFAULT now() NOT NULL,
 	CONSTRAINT agent_messages_pkey PRIMARY KEY (id),
 	CONSTRAINT agent_messages_type_check CHECK ((type = ANY (ARRAY['proposal'::text, 'accept'::text, 'confirm'::text, 'cancel'::text, 'error'::text]))),
 	CONSTRAINT agent_messages_from_user_id_fkey FOREIGN KEY (from_user_id) REFERENCES public.users(id) ON DELETE CASCADE,
@@ -281,4 +285,84 @@ CREATE TABLE public.agent_messages (
 );
 CREATE INDEX idx_agent_messages_session ON public.agent_messages USING btree (session_id, created_at);
 CREATE UNIQUE INDEX ux_agent_messages_dedupe ON public.agent_messages USING btree (session_id, dedupe_key) WHERE (dedupe_key IS NOT NULL);
+
 ```
+
+** INDEXES
+
+```sql 
+CREATE UNIQUE INDEX agent_messages_pkey ON public.agent_messages USING btree (id);
+
+CREATE INDEX idx_agent_messages_session ON public.agent_messages USING btree (session_id, created_at);
+
+CREATE UNIQUE INDEX ux_agent_messages_dedupe ON public.agent_messages USING btree (session_id, dedupe_key) WHERE (dedupe_key IS NOT NULL);
+
+CREATE UNIQUE INDEX agent_sessions_pkey ON public.agent_sessions USING btree (id);
+
+CREATE INDEX idx_agent_sessions_conn ON public.agent_sessions USING btree (connection_id);
+
+CREATE INDEX idx_agent_sessions_users ON public.agent_sessions USING btree (initiator_user_id, counterpart_user_id);
+
+CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id);
+
+CREATE INDEX idx_audit_logs_resource ON public.audit_logs USING btree (resource_type, resource_id);
+
+CREATE INDEX idx_audit_logs_user ON public.audit_logs USING btree (user_id);
+
+CREATE UNIQUE INDEX connection_permissions_connection_id_key ON public.connection_permissions USING btree (connection_id);
+
+CREATE UNIQUE INDEX connection_permissions_pkey ON public.connection_permissions USING btree (id);
+
+CREATE UNIQUE INDEX idempotency_keys_pkey ON public.idempotency_keys USING btree (key);
+
+CREATE INDEX idx_notification_deliveries_channel ON public.notification_deliveries USING btree (channel);
+
+CREATE INDEX idx_notification_deliveries_notification ON public.notification_deliveries USING btree (notification_id);
+
+CREATE INDEX idx_notification_deliveries_status ON public.notification_deliveries USING btree (status);
+
+CREATE UNIQUE INDEX notification_deliveries_pkey ON public.notification_deliveries USING btree (id);
+
+CREATE INDEX idx_notification_devices_player ON public.notification_devices USING btree (onesignal_player_id);
+
+CREATE INDEX idx_notification_devices_user_active ON public.notification_devices USING btree (user_id, is_active);
+
+CREATE UNIQUE INDEX notification_devices_pkey ON public.notification_devices USING btree (id);
+
+CREATE UNIQUE INDEX uq_notification_device ON public.notification_devices USING btree (user_id, platform, onesignal_player_id);
+
+CREATE UNIQUE INDEX notification_preferences_pkey ON public.notification_preferences USING btree (user_id);
+
+CREATE INDEX idx_notifications_user ON public.notifications USING btree (user_id, is_read, created_at DESC);
+
+CREATE INDEX idx_notifications_user_created_at ON public.notifications USING btree (user_id, created_at DESC);
+
+CREATE INDEX idx_notifications_user_requires_action ON public.notifications USING btree (user_id) WHERE (requires_action = true);
+
+CREATE INDEX idx_notifications_user_unread ON public.notifications USING btree (user_id) WHERE (is_read = false);
+
+CREATE INDEX idx_notifications_user_unresolved ON public.notifications USING btree (user_id) WHERE (is_resolved = false);
+
+CREATE UNIQUE INDEX notifications_pkey ON public.notifications USING btree (id);
+
+CREATE INDEX idx_user_connections_target ON public.user_connections USING btree (target_user_id);
+
+CREATE INDEX idx_user_connections_user ON public.user_connections USING btree (requester_user_id);
+
+CREATE UNIQUE INDEX user_connections_pkey ON public.user_connections USING btree (id);
+
+CREATE INDEX idx_user_integrations_account_email ON public.user_integrations USING btree (account_email);
+
+CREATE INDEX idx_user_integrations_type ON public.user_integrations USING btree (integration_type);
+
+CREATE INDEX idx_user_integrations_user_id ON public.user_integrations USING btree (user_id);
+
+CREATE UNIQUE INDEX user_integrations_pkey ON public.user_integrations USING btree (id);
+
+CREATE UNIQUE INDEX user_integrations_user_type_email_key ON public.user_integrations USING btree (user_id, integration_type, account_email);
+
+CREATE UNIQUE INDEX users_email_key ON public.users USING btree (email);
+
+CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id);
+```
+

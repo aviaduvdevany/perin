@@ -6,6 +6,8 @@ import Stepper, { Step } from "@/components/ui/Stepper";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/components/providers/UserDataProvider";
+import { getUserTimezone } from "@/lib/utils/timezone";
+import { TimezoneSelector } from "@/components/ui/TimezoneSelector";
 
 interface OnboardingData {
   name: string;
@@ -42,17 +44,7 @@ const toneOptions = [
   { value: "calm", label: "Calm", description: "Peaceful and composed" },
 ];
 
-const timezoneOptions = [
-  { value: "UTC", label: "UTC (Coordinated Universal Time)" },
-  { value: "America/New_York", label: "Eastern Time (ET)" },
-  { value: "America/Chicago", label: "Central Time (CT)" },
-  { value: "America/Denver", label: "Mountain Time (MT)" },
-  { value: "America/Los_Angeles", label: "Pacific Time (PT)" },
-  { value: "Europe/London", label: "London (GMT)" },
-  { value: "Europe/Paris", label: "Paris (CET)" },
-  { value: "Asia/Tokyo", label: "Tokyo (JST)" },
-  { value: "Australia/Sydney", label: "Sydney (AEDT)" },
-];
+// Removed timezoneOptions as we're using TimezoneSelector component
 
 const dayOptions = [
   { value: "monday", label: "Monday" },
@@ -95,7 +87,7 @@ export default function OnboardingPage() {
     name: session?.user?.name || "",
     perin_name: "Perin",
     tone: "friendly",
-    timezone: "UTC",
+    timezone: getUserTimezone(),
     preferred_hours: {
       start: "09:00",
       end: "17:00",
@@ -310,17 +302,13 @@ export default function OnboardingPage() {
                   <label className="block text-sm font-medium text-gray-300 mb-2 text-left">
                     Your Timezone
                   </label>
-                  <select
+                  <TimezoneSelector
                     value={onboardingData.timezone}
-                    onChange={(e) => updateData("timezone", e.target.value)}
-                    className="w-full px-4 py-3 bg-[#1D2239] border border-gray-600 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#4B5DFF] focus:border-transparent transition-all duration-300"
-                  >
-                    {timezoneOptions.map((tz) => (
-                      <option key={tz.value} value={tz.value}>
-                        {tz.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(timezone) => updateData("timezone", timezone)}
+                    placeholder="Select your timezone"
+                    className="w-full"
+                    autoDetect={true}
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -690,11 +678,7 @@ export default function OnboardingPage() {
                   <div className="flex justify-between">
                     <span className="text-gray-400">Timezone:</span>
                     <span className="text-white">
-                      {
-                        timezoneOptions.find(
-                          (tz) => tz.value === onboardingData.timezone
-                        )?.label
-                      }
+                      {onboardingData.timezone}
                     </span>
                   </div>
                   <div className="flex justify-between">

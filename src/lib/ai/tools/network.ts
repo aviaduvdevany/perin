@@ -21,6 +21,7 @@ import * as userQueries from "@/lib/queries/users";
 import * as notif from "@/lib/queries/notifications";
 import { generateMutualProposals } from "@/lib/network/scheduling";
 import { createCalendarEvent } from "@/lib/integrations/calendar/client";
+import { formatInTimezone } from "@/lib/utils/timezone";
 import { isReauthError } from "@/lib/integrations/errors";
 // Note: Using local implementations of scheduling utilities for this file
 
@@ -826,13 +827,26 @@ export const confirmMeetingHandler: ToolHandler<
         ? session.counterpart_user_id
         : session.initiator_user_id;
 
+    // Get recipient's timezone for proper formatting
+    const recipientUser = await userQueries.getUserById(notificationRecipient);
+    const recipientTimezone = recipientUser?.timezone || "UTC";
+
     await notif.createNotification(
       notificationRecipient,
       "network.meeting.confirmed",
       "Meeting confirmed",
-      `Your meeting has been confirmed for ${new Date(
-        confirmedSlot.start
-      ).toLocaleString()}`,
+      `Your meeting has been confirmed for ${formatInTimezone(
+        confirmedSlot.start,
+        recipientTimezone,
+        {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        }
+      )}`,
       { sessionId: args.sessionId, confirmedSlot }
     );
 

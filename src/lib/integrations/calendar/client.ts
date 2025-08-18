@@ -11,6 +11,7 @@ import {
   IntegrationType,
   IntegrationErrorType,
 } from "../errors";
+import { isValidTimezone } from "@/lib/utils/timezone";
 
 /**
  * Fetch recent calendar events for a user
@@ -258,11 +259,15 @@ export const createCalendarEvent = async (
       location: eventData.location,
       start: {
         dateTime: eventData.start,
-        timeZone: eventData.timeZone || "UTC",
+        timeZone: isValidTimezone(eventData.timeZone || "")
+          ? eventData.timeZone
+          : "UTC",
       },
       end: {
         dateTime: eventData.end,
-        timeZone: eventData.timeZone || "UTC",
+        timeZone: isValidTimezone(eventData.timeZone || "")
+          ? eventData.timeZone
+          : "UTC",
       },
       attendees: eventData.attendees?.map((attendee) => ({
         email: attendee.email,
