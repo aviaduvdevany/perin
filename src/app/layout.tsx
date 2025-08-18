@@ -3,6 +3,7 @@ import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import OneSignalProvider from "@/components/providers/OneSignalProvider";
 import { NotificationProvider } from "@/components/providers/NotificationContext";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Navbar } from "@/components/ui/Navbar";
 import { UserDataProvider } from "@/components/providers/UserDataProvider";
 
@@ -26,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -47,10 +48,12 @@ export default function RootLayout({
         <SessionProvider>
           <OneSignalProvider>
             <NotificationProvider>
-              <UserDataProvider>
-                <Navbar />
-                <main>{children}</main>
-              </UserDataProvider>
+              <ThemeProvider>
+                <UserDataProvider>
+                  <Navbar />
+                  <main>{children}</main>
+                </UserDataProvider>
+              </ThemeProvider>
             </NotificationProvider>
           </OneSignalProvider>
         </SessionProvider>

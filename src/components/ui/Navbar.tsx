@@ -6,13 +6,14 @@ import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import { NotificationPreferences } from "@/components/notifications";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
-      <nav className="z-40 w-full border-b border-[var(--card-border)] bg-[var(--background-primary)]/80 backdrop-blur-xl">
+      <nav className="sticky top-0 z-40 w-full border-b border-[var(--card-border)] bg-[var(--background-primary)]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo */}
           <div className="flex items-center">
@@ -23,7 +24,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex md:items-center md:space-x-6">
-            {/* {Dark Mode Toggle} */}
+            <ThemeToggle />
           </div>
 
           {/* Mobile menu button */}
@@ -49,6 +50,7 @@ export function Navbar() {
             <div className="space-y-1 px-4 pb-3 pt-2">
               <div className="flex items-center justify-between">
                 <NotificationPreferences />
+                <ThemeToggle />
               </div>
             </div>
           </div>

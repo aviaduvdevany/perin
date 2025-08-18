@@ -36,27 +36,27 @@ export function Glass({
   interactive = false,
   ...props
 }: GlassProps) {
-  // Variant configurations
+  // Variant configurations - Theme-aware
   const variants = {
     default: {
-      background: "rgba(17, 18, 22, 0.6)",
-      border: "rgba(255, 255, 255, 0.1)",
+      background: "var(--card-background)",
+      border: "var(--card-border)",
     },
     strong: {
-      background: "rgba(17, 18, 22, 0.8)",
-      border: "rgba(255, 255, 255, 0.15)",
+      background: "var(--popover)",
+      border: "var(--border)",
     },
     subtle: {
-      background: "rgba(17, 18, 22, 0.3)",
-      border: "rgba(255, 255, 255, 0.05)",
+      background: "var(--muted)",
+      border: "var(--border)",
     },
     frosted: {
       background: "rgba(255, 255, 255, 0.1)",
       border: "rgba(255, 255, 255, 0.2)",
     },
     colored: {
-      background: "rgba(76, 91, 255, 0.1)",
-      border: "rgba(76, 91, 255, 0.2)",
+      background: "var(--accent-primary)",
+      border: "var(--accent-primary)",
     },
   };
 
@@ -88,16 +88,14 @@ export function Glass({
   const selectedIntensity = intensities[intensity];
   const selectedGlowColor = glowColors[glowColor];
 
-  // Dynamic styles
+  // Dynamic styles - Theme-aware
   const glassStyles = {
     background: backgroundOpacity
-      ? `rgba(17, 18, 22, ${backgroundOpacity})`
+      ? `var(--card-background)`
       : selectedVariant.background,
     border: border
       ? `1px solid ${
-          borderOpacity
-            ? `rgba(255, 255, 255, ${borderOpacity})`
-            : selectedVariant.border
+          borderOpacity ? `var(--card-border)` : selectedVariant.border
         }`
       : "none",
     backdropFilter: `blur(${
@@ -116,17 +114,17 @@ export function Glass({
         : "8px"
     })`,
     boxShadow: glow
-      ? `0 8px 32px ${selectedGlowColor}, inset 0 1px 0 rgba(255, 255, 255, 0.1)`
-      : "inset 0 1px 0 rgba(255, 255, 255, 0.1)",
+      ? `0 8px 32px ${selectedGlowColor}, inset 0 1px 0 var(--card-border)`
+      : "inset 0 1px 0 var(--card-border)",
   };
 
-  // Hover animations
+  // Hover animations - Theme-aware
   const hoverAnimations = hoverEffect
     ? {
         scale: 1.02,
         boxShadow: glow
-          ? `0 12px 40px ${selectedGlowColor}, inset 0 1px 0 rgba(255, 255, 255, 0.15)`
-          : "0 8px 25px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.15)",
+          ? `0 12px 40px ${selectedGlowColor}, inset 0 1px 0 var(--card-border)`
+          : "0 8px 25px var(--card-border), inset 0 1px 0 var(--card-border)",
       }
     : {};
 

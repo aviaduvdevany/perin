@@ -128,11 +128,11 @@ export default function TimeProposalModal({
         >
           <div className="flex justify-center">
             <motion.div
-              className="p-3 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-blue-500/30"
+              className="p-3 rounded-full bg-gradient-to-br from-[var(--accent-primary)]/20 to-[var(--accent-secondary)]/20 border border-[var(--accent-primary)]/30"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <Users className="h-6 w-6 text-blue-400" />
+              <Users className="h-6 w-6 text-[var(--accent-primary)]" />
             </motion.div>
           </div>
           <h3 className="text-lg font-medium text-[var(--foreground-primary)]">
@@ -156,8 +156,8 @@ export default function TimeProposalModal({
                 onClick={() => setSelectedProposal(proposal)}
                 className={`w-full p-4 rounded-xl border-2 transition-all duration-200 ${
                   selectedProposal === proposal
-                    ? "border-blue-500 bg-blue-500/10 shadow-lg shadow-blue-500/20"
-                    : "border-[var(--card-border)] bg-[var(--background-secondary)] hover:border-blue-400/50 hover:bg-blue-500/5"
+                    ? "border-[var(--accent-primary)] bg-[var(--accent-primary)]/10 shadow-lg shadow-[var(--accent-primary)]/20"
+                    : "border-[var(--card-border)] bg-[var(--card-background)] hover:border-[var(--accent-primary)]/50 hover:bg-[var(--accent-primary)]/5"
                 }`}
                 disabled={isLoading}
               >
@@ -166,7 +166,7 @@ export default function TimeProposalModal({
                     <div
                       className={`p-2 rounded-lg ${
                         selectedProposal === proposal
-                          ? "bg-blue-500 text-white"
+                          ? "bg-[var(--accent-primary)] text-white"
                           : "bg-[var(--background-primary)] text-[var(--foreground-muted)]"
                       }`}
                     >
@@ -192,7 +192,7 @@ export default function TimeProposalModal({
                     <motion.div
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="p-1 rounded-full bg-blue-500 text-white"
+                      className="p-1 rounded-full bg-[var(--accent-primary)] text-white"
                     >
                       <Check className="h-4 w-4" />
                     </motion.div>
@@ -227,7 +227,7 @@ export default function TimeProposalModal({
           <Button
             onClick={handleConfirm}
             disabled={!selectedProposal || isLoading}
-            className="flex-1 h-12 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+            className="flex-1 h-12 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] hover:from-[var(--accent-primary)]/90 hover:to-[var(--accent-secondary)]/90 text-white shadow-lg hover:shadow-xl transition-all duration-200"
           >
             {isLoading && action === "confirm" ? (
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -245,10 +245,10 @@ export default function TimeProposalModal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
+              className="absolute inset-0 bg-[var(--background-primary)]/20 backdrop-blur-sm rounded-2xl flex items-center justify-center"
             >
               <div className="text-center space-y-3">
-                <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
+                <Loader2 className="h-8 w-8 animate-spin mx-auto text-[var(--accent-primary)]" />
                 <p className="text-sm text-[var(--foreground-muted)]">
                   {action === "confirm"
                     ? "Confirming meeting..."

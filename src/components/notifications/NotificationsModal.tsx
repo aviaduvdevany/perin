@@ -249,7 +249,7 @@ export default function NotificationsModal({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/30 backdrop-blur-md"
+              className="absolute inset-0 bg-[var(--background-primary)]/30 backdrop-blur-md"
               onClick={onClose}
             />
 
@@ -267,10 +267,10 @@ export default function NotificationsModal({
               className="absolute left-20 top-20 w-96 max-w-[calc(100vw-5rem)] z-10"
             >
               <Glass
-                variant="default"
+                variant="strong"
                 border={true}
                 glow={true}
-                className="border border-[var(--card-border)] shadow-2xl backdrop-blur-xl"
+                className="shadow-2xl backdrop-blur-xl"
               >
                 <div className="p-4">
                   <div className="mb-4 flex items-center justify-between">
@@ -430,13 +430,13 @@ export default function NotificationsModal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-[var(--background-primary)]/50 backdrop-blur-sm"
           >
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[var(--background-primary)] rounded-2xl p-6 border border-[var(--card-border)] shadow-2xl"
+              className="bg-[var(--popover)] rounded-2xl p-6 border border-[var(--border)] shadow-2xl"
             >
               <div className="text-center space-y-3">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
