@@ -7,8 +7,9 @@ import MobileTopBar from "@/components/ui/MobileTopBar";
 import BottomSheet from "@/components/ui/BottomSheet";
 import ProfileSummary from "@/components/ui/ProfileSummary";
 import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
-import ProfileModal from "@/components/dock-modals/ProfileModal";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
+import PreferencesModal from "@/components/dock-modals/PreferencesModal";
+import PerinModal from "@/components/dock-modals/PerinModal";
 import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
 import {
   NotificationsModal,
@@ -23,11 +24,24 @@ import {
 
 function ChatLayoutInner({ children }: { children: ReactNode }) {
   const { state, actions } = useUserData();
-  const { profileOpen, integrationsOpen, networkOpen } = state.ui;
-  const { setProfileOpen, setIntegrationsOpen, setNetworkOpen } = actions;
+  const {
+    profileOpen,
+    integrationsOpen,
+    networkOpen,
+    notificationsOpen,
+    preferencesOpen,
+    perinOpen,
+  } = state.ui;
+  const {
+    setProfileOpen,
+    setIntegrationsOpen,
+    setNetworkOpen,
+    setNotificationsOpen,
+    setPreferencesOpen,
+    setPerinOpen,
+  } = actions;
 
   // Notification modal state
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [proposalModalData, setProposalModalData] = useState<{
     sessionId: string;
@@ -131,6 +145,8 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
         <SidebarRail
           size="lg"
           onOpenNotifications={() => setNotificationsOpen(true)}
+          onOpenPreferences={() => setPreferencesOpen(true)}
+          onOpenPerin={() => setPerinOpen(true)}
         />
       </div>
 
@@ -159,14 +175,15 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
           open={integrationsOpen}
           onClose={() => setIntegrationsOpen(false)}
         />
-        <ProfileModal
-          open={profileOpen}
-          onClose={() => setProfileOpen(false)}
-        />
         <NetworkModal
           open={networkOpen}
           onClose={() => setNetworkOpen(false)}
         />
+        <PreferencesModal
+          open={preferencesOpen}
+          onClose={() => setPreferencesOpen(false)}
+        />
+        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
       </div>
 
       {/* Notification modals - Top level for proper positioning */}

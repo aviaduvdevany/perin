@@ -9,15 +9,19 @@ interface SidebarRailProps {
   className?: string;
   size?: "md" | "lg";
   onOpenNotifications?: () => void;
+  onOpenPreferences?: () => void;
+  onOpenPerin?: () => void;
 }
 
 export default function SidebarRail({
   className = "",
   size = "md",
   onOpenNotifications,
+  onOpenPreferences,
+  onOpenPerin,
 }: SidebarRailProps) {
   const { actions } = useUserData();
-  const { setIntegrationsOpen, setProfileOpen, setNetworkOpen } = actions;
+  const { setIntegrationsOpen, setNetworkOpen } = actions;
   const [hovered, setHovered] = useState(false);
 
   const collapsedWidth = size === "lg" ? "w-[72px]" : "w-[56px]";
@@ -128,11 +132,8 @@ export default function SidebarRail({
       >
         <div className="space-y-1">
           <NotificationItem />
-          <Item
-            icon="👤"
-            label="Profile"
-            onClick={() => setProfileOpen(true)}
-          />
+          <Item icon="👤" label="Perin" onClick={onOpenPerin || (() => {})} />
+
           <Item
             icon="🧩"
             label="Integrations"
@@ -142,6 +143,11 @@ export default function SidebarRail({
             icon="🕸️"
             label="Network"
             onClick={() => setNetworkOpen(true)}
+          />
+          <Item
+            icon="⚙️"
+            label="Preferences"
+            onClick={onOpenPreferences || (() => {})}
           />
         </div>
       </div>

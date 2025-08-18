@@ -50,6 +50,9 @@ export interface UserDataState {
     integrationsOpen: boolean;
     networkOpen: boolean;
     todayOpen: boolean;
+    notificationsOpen: boolean;
+    preferencesOpen: boolean;
+    perinOpen: boolean;
   };
 
   // Loading states
@@ -103,6 +106,9 @@ export interface UserDataActions {
   setIntegrationsOpen: (open: boolean) => void;
   setNetworkOpen: (open: boolean) => void;
   setTodayOpen: (open: boolean) => void;
+  setNotificationsOpen: (open: boolean) => void;
+  setPreferencesOpen: (open: boolean) => void;
+  setPerinOpen: (open: boolean) => void;
 
   // Cache management
   invalidateCache: (dataType: keyof UserDataState) => void;
@@ -139,6 +145,9 @@ const initialState: UserDataState = {
     integrationsOpen: false,
     networkOpen: false,
     todayOpen: true,
+    notificationsOpen: false,
+    preferencesOpen: false,
+    perinOpen: false,
   },
   loading: {
     user: false,
@@ -504,6 +513,27 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setNotificationsOpen = useCallback((open: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      ui: { ...prev.ui, notificationsOpen: open },
+    }));
+  }, []);
+
+  const setPreferencesOpen = useCallback((open: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      ui: { ...prev.ui, preferencesOpen: open },
+    }));
+  }, []);
+
+  const setPerinOpen = useCallback((open: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      ui: { ...prev.ui, perinOpen: open },
+    }));
+  }, []);
+
   // Legacy function from ChatUIProvider
   const collapseTodayAfterFirstMessage = useCallback(() => {
     if (didCollapseRef.current) return;
@@ -595,6 +625,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       setIntegrationsOpen,
       setNetworkOpen,
       setTodayOpen,
+      setNotificationsOpen,
+      setPreferencesOpen,
+      setPerinOpen,
       invalidateCache,
       clearCache,
     }),
@@ -613,6 +646,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       setIntegrationsOpen,
       setNetworkOpen,
       setTodayOpen,
+      setNotificationsOpen,
+      setPreferencesOpen,
+      setPerinOpen,
       invalidateCache,
       clearCache,
     ]
