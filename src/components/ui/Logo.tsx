@@ -1,5 +1,6 @@
 import React from "react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface LogoProps {
   className?: string;
@@ -27,23 +28,21 @@ export function Logo({
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-1", className)}>
       {/* Logo Icon */}
-      <div
-        className={cn(
-          "relative flex items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] shadow-lg glow-primary",
-          sizeClasses[size],
-          animated &&
-            "transition-all duration-300 hover:scale-110 hover:shadow-xl"
-        )}
-      >
-        <span className="font-bold text-white">P</span>
+
+        <Image
+          src="/perin-logo.png"
+          alt="Perin Logo"
+          width={24}
+          height={24}
+          className={`${sizeClasses[size]}`}
+        />
 
         {/* Animated glow effect */}
         {animated && (
           <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] opacity-0 blur-sm transition-opacity duration-300 group-hover:opacity-50" />
         )}
-      </div>
 
       {/* Logo Text */}
       {showText && (
