@@ -2,6 +2,10 @@ import type {
   Notification,
   NotificationPreferences,
 } from "@/types/notifications";
+import {
+  getCurrentTimeInTimezone,
+  isValidTimezone,
+} from "@/lib/utils/timezone";
 
 export interface NotificationPolicy {
   // Relevance and filtering
@@ -221,13 +225,16 @@ export class NotificationPolicyEngine {
       return { shouldDelay: false };
     }
 
+    // Validate timezone
+    if (!isValidTimezone(userTimezone)) {
+      return { shouldDelay: false };
+    }
+
     const startTime = dnd.startTime || "22:00";
     const endTime = dnd.endTime || "08:00";
 
-    // Convert current time to user's timezone
-    const userTime = new Date(
-      currentTime.toLocaleString("en-US", { timeZone: userTimezone })
-    );
+    // Get current time in user's timezone
+    const userTime = getCurrentTimeInTimezone(userTimezone);
     const currentHour = userTime.getHours();
     const currentMinute = userTime.getMinutes();
     const currentTimeMinutes = currentHour * 60 + currentMinute;
@@ -263,12 +270,12 @@ export class NotificationPolicyEngine {
     let delayUntil: Date;
     if (currentTimeMinutes >= startMinutes) {
       // DnD ends tomorrow
-      delayUntil = new Date(currentTime);
+      delayUntil = new Date(userTime);
       delayUntil.setDate(delayUntil.getDate() + 1);
       delayUntil.setHours(endHour, endMinute, 0, 0);
     } else {
       // DnD ends today
-      delayUntil = new Date(currentTime);
+      delayUntil = new Date(userTime);
       delayUntil.setHours(endHour, endMinute, 0, 0);
     }
 
