@@ -1,13 +1,22 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
-import { Search, Globe, Clock, MapPin, ChevronDown } from "lucide-react";
+import React, { useState, useMemo, useEffect } from "react";
+import { Search, Globe, Clock, MapPin } from "lucide-react";
 import {
   TIMEZONE_OPTIONS,
   getUserTimezone,
   type TimezoneOption,
 } from "@/lib/utils/timezone";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TimezoneSelectorProps {
   value?: string;
@@ -49,11 +58,8 @@ export function TimezoneSelector({
   disabled = false,
   autoDetect = true,
 }: TimezoneSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [detectedTimezone, setDetectedTimezone] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchRef = useRef<HTMLInputElement>(null);
 
   // Auto-detect user's timezone
   useEffect(() => {
@@ -118,31 +124,8 @@ export function TimezoneSelector({
     return null;
   }, [value, detectedTimezone]);
 
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Focus search input when dropdown opens
-  useEffect(() => {
-    if (isOpen && searchRef.current) {
-      setTimeout(() => searchRef.current?.focus(), 100);
-    }
-  }, [isOpen]);
-
   const handleSelect = (timezone: string) => {
     onChange(timezone);
-    setIsOpen(false);
     setSearchQuery("");
   };
 
@@ -153,61 +136,40 @@ export function TimezoneSelector({
   };
 
   return (
-    <div className={cn("relative", className)} ref={dropdownRef}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={cn(
-          "w-full flex items-center justify-between px-4 py-3 text-left",
-          "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700",
-          "rounded-lg shadow-sm transition-all duration-200",
-          "hover:border-blue-300 dark:hover:border-blue-600",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          isOpen && "ring-2 ring-blue-500 border-blue-500"
-        )}
-      >
-        <div className="flex items-center space-x-3">
-          <Globe className="w-5 h-5 text-gray-400" />
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-gray-900 dark:text-white">
-              {selectedTimezone?.label || placeholder}
-            </span>
-            {detectedTimezone && !value && (
-              <span className="text-xs text-blue-600 dark:text-blue-400">
-                Auto-detected:{" "}
-                {
-                  TIMEZONE_OPTIONS.find((t) => t.value === detectedTimezone)
-                    ?.label
-                }
-              </span>
-            )}
+    <div className={cn("relative", className)}>
+      <Select value={value} onValueChange={handleSelect} disabled={disabled}>
+        <SelectTrigger className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+          <div className="flex items-center space-x-3">
+            <Globe className="w-5 h-5 text-gray-400" />
+            <div className="flex flex-col text-left">
+              <SelectValue placeholder={placeholder}>
+                {selectedTimezone?.label || placeholder}
+              </SelectValue>
+              {detectedTimezone && !value && (
+                <span className="text-xs text-blue-600 dark:text-blue-400">
+                  Auto-detected:{" "}
+                  {
+                    TIMEZONE_OPTIONS.find((t) => t.value === detectedTimezone)
+                      ?.label
+                  }
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-        <ChevronDown
-          className={cn(
-            "w-5 h-5 text-gray-400 transition-transform duration-200",
-            isOpen && "rotate-180"
-          )}
-        />
-      </button>
+        </SelectTrigger>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-96 overflow-hidden">
+        <SelectContent className="max-h-96">
           {/* Search Input */}
           <div className="p-3 border-b border-gray-200 dark:border-gray-700">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
-                ref={searchRef}
                 type="text"
                 placeholder="Search timezones..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onClick={(e) => e.stopPropagation()}
               />
             </div>
           </div>
@@ -223,7 +185,10 @@ export function TimezoneSelector({
                   </span>
                 </div>
                 <button
-                  onClick={handleDetectedTimezoneSelect}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDetectedTimezoneSelect();
+                  }}
                   className="px-3 py-1 text-xs bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
                 >
                   Use
@@ -232,53 +197,38 @@ export function TimezoneSelector({
             </div>
           )}
 
-          {/* Timezone List */}
-          <div className="max-h-64 overflow-y-auto">
-            {filteredGroups.map((group) => (
-              <div key={group.region}>
-                <div className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 uppercase tracking-wide">
-                  {group.region}
-                </div>
-                {group.timezones.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => handleSelect(option.value)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 text-left",
-                      "hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors",
-                      "focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700",
-                      value === option.value &&
-                        "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
-                    )}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium text-gray-900 dark:text-white">
-                          {option.label.split(" (")[0]}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {option.value}
-                        </span>
-                      </div>
+          {/* Timezone Groups */}
+          {filteredGroups.map((group) => (
+            <SelectGroup key={group.region}>
+              <SelectLabel className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                {group.region}
+              </SelectLabel>
+              {group.timezones.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center space-x-3">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {option.label.split(" (")[0]}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {option.value}
+                      </span>
                     </div>
-                    {value === option.value && (
-                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            ))}
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          ))}
 
-            {filteredGroups.length === 0 && (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                <Globe className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                <p>No timezones found matching &quot;{searchQuery}&quot;</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+          {filteredGroups.length === 0 && (
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+              <Globe className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p>No timezones found matching &quot;{searchQuery}&quot;</p>
+            </div>
+          )}
+        </SelectContent>
+      </Select>
     </div>
   );
 }
