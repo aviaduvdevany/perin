@@ -5,9 +5,7 @@ import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { UserDataProvider } from "@/components/providers/UserDataProvider";
 import { NotificationProvider } from "@/components/providers/NotificationContext";
-import { IntegrationsProvider } from "@/components/providers/IntegrationsProvider";
 import OneSignalProvider from "@/components/providers/OneSignalProvider";
-import { ChatUIProvider } from "@/components/providers/ChatUIProvider";
 import { Navbar } from "@/components/ui/Navbar";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,6 +14,11 @@ export const metadata: Metadata = {
   title: "Perin - AI-Powered Digital Delegate",
   description:
     "Your intelligent AI assistant for scheduling, coordination, and productivity",
+  icons: {
+    icon: "/perin-logo.png",
+    shortcut: "/perin-logo.png",
+    apple: "/perin-logo.png",
+  },
 };
 
 export default function RootLayout({
