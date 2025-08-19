@@ -123,7 +123,6 @@ export function FloatingInput({
             "flex items-end space-x-3 transition-all duration-200",
             isFocused && "scale-[1.02]"
           )}
-          layout
         >
           {/* Textarea Container */}
 

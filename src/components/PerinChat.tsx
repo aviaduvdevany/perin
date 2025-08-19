@@ -23,12 +23,17 @@ export function PerinChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "instant",
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll if there are messages, and use instant scroll on initial load
+    if (messages.length > 0 || streamingMessage) {
+      scrollToBottom(messages.length > 0);
+    }
   }, [messages, streamingMessage]);
 
   const handleSendMessage = async (message: string) => {
@@ -158,7 +163,7 @@ export function PerinChat() {
   }
 
   return (
-    <div className="relative flex flex-col h-full overflow-hidden">
+    <div className="relative flex flex-col h-full overflow-hidden chat-container">
       {messages.length > 0 && (
         <div
           className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"

@@ -599,6 +599,18 @@ body {
   }
 }
 
+/* Desktop scroll behavior fixes */
+@media (min-width: 1280px) {
+  html {
+    scroll-behavior: auto; /* Prevent smooth scrolling on desktop */
+  }
+
+  /* Ensure the chat container doesn't cause unwanted scroll */
+  .chat-container {
+    overflow-anchor: none;
+  }
+}
+
 /* Tablet adjustments */
 @media (min-width: 768px) and (max-height: 1024px) {
   .tablet-height-adjust {
