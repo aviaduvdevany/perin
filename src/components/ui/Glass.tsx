@@ -208,10 +208,13 @@ export function GlassInput({
 }: Omit<GlassProps, "variant">) {
   return (
     <Glass
-      variant="frosted"
+      variant="default"
       border={true}
       glow={false}
       backdropBlur="lg"
+      backgroundOpacity={0.8}
+      borderOpacity={0.2}
+      className="backdrop-blur-lg bg-white/10 dark:bg-black/20 border-white/20 dark:border-white/10"
       {...props}
     >
       {children}
