@@ -123,32 +123,31 @@ export function FloatingInput({
             "flex items-end space-x-3 transition-all duration-200",
             isFocused && "scale-[1.02]"
           )}
-          layout
         >
           {/* Textarea Container */}
 
-            <Textarea
-              ref={textareaRef}
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={placeholder}
-              className={cn(
-                "w-full resize-none text-md transition-all duration-200",
-                "bg-white/10 dark:bg-black/20 border-white/20 dark:border-white/10",
-                "backdrop-blur-lg rounded-2xl p-4",
-                "text-[var(--cta-text)] placeholder-[var(--foreground-muted)]",
-                "scrollbar-ultra-thin min-h-0 shadow-none",
-                "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                rows > 1 && "py-1"
-              )}
-              rows={rows}
-              disabled={isLoading || disabled}
-              aria-label="Message input"
-            />
+          <Textarea
+            ref={textareaRef}
+            value={inputMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={placeholder}
+            className={cn(
+              "w-full resize-none text-md transition-all duration-200",
+              "bg-white/10 dark:bg-black/20 border-white/20 dark:border-white/10",
+              "backdrop-blur-lg rounded-2xl p-4",
+              "text-[var(--cta-text)] placeholder-[var(--foreground-muted)]",
+              "scrollbar-ultra-thin min-h-0 shadow-none",
+              "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              rows > 1 && "py-1"
+            )}
+            rows={rows}
+            disabled={isLoading || disabled}
+            aria-label="Message input"
+          />
 
           {/* Action Buttons */}
           <div className="flex items-end space-x-2">

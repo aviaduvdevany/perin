@@ -560,6 +560,57 @@ body {
   }
 }
 
+/* Mobile navigation improvements */
+@media (max-width: 1023px) {
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-input-container {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+
+  /* Ensure proper safe area handling for mobile */
+  .mobile-layout {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Fix for components being cut off at the top */
+  .mobile-content {
+    min-height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+  }
+}
+
+/* Touch-friendly improvements */
+@media (max-width: 1023px) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Desktop scroll behavior fixes */
+@media (min-width: 1280px) {
+  html {
+    scroll-behavior: auto; /* Prevent smooth scrolling on desktop */
+  }
+
+  /* Ensure the chat container doesn't cause unwanted scroll */
+  .chat-container {
+    overflow-anchor: none;
+  }
+}
+
 /* Tablet adjustments */
 @media (min-width: 768px) and (max-height: 1024px) {
   .tablet-height-adjust {

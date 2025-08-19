@@ -11,7 +11,6 @@ import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
 
-
 export function PerinChat() {
   const { data: session } = useSession();
   const { sendMessage, isChatLoading, chatError } = usePerinAI();
@@ -24,17 +23,21 @@ export function PerinChat() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "instant",
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll if there are messages, and use instant scroll on initial load
+    if (messages.length > 0 || streamingMessage) {
+      scrollToBottom(messages.length > 0);
+    }
   }, [messages, streamingMessage]);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isChatLoading) return;
-
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -45,7 +48,6 @@ export function PerinChat() {
     setMessages((prev) => [...prev, userMessage]);
     setStreamingMessage("");
     setPerinStatus("thinking");
-
 
     try {
       const currentMessages = [...messages, userMessage];
@@ -161,7 +163,7 @@ export function PerinChat() {
   }
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto px-0">
+    <div className="relative flex flex-col h-full overflow-hidden chat-container">
       {messages.length > 0 && (
         <div
           className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"

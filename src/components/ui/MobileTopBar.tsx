@@ -7,10 +7,14 @@ interface MobileTopBarProps {
   className?: string;
 }
 
-export default function MobileTopBar({ onOpenProfile, className = "" }: MobileTopBarProps) {
+export default function MobileTopBar({
+  onOpenProfile,
+  className = "",
+}: MobileTopBarProps) {
   return (
     <motion.div
-      className={`lg:hidden fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-[var(--background-primary)]/70 border-b border-[var(--card-border)] ${className}`}
+      className={`xl:hidden fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-[var(--background-primary)]/70 border-b border-[var(--card-border)] ${className}`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.2 }}
@@ -26,4 +30,4 @@ export default function MobileTopBar({ onOpenProfile, className = "" }: MobileTo
       </div>
     </motion.div>
   );
-} 
+}
