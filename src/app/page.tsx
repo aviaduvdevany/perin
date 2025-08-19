@@ -204,9 +204,9 @@ export default function Home() {
       </div>
 
       {/* Mobile Layout */}
-      <div className="xl:hidden h-screen">
+      <div className="xl:hidden h-screen mobile-layout">
         {/* Mobile Content */}
-        <div className="h-full">
+        <div className="h-full mobile-content">
           {mobileView === "home" ? (
             <MobileHomeScreen onOpenChat={handleOpenChat} />
           ) : (

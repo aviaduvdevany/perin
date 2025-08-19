@@ -569,6 +569,19 @@ body {
   .mobile-input-container {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
+
+  /* Ensure proper safe area handling for mobile */
+  .mobile-layout {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Fix for components being cut off at the top */
+  .mobile-content {
+    min-height: calc(
+      100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom)
+    );
+  }
 }
 
 /* Touch-friendly improvements */
