@@ -560,6 +560,32 @@ body {
   }
 }
 
+/* Mobile navigation improvements */
+@media (max-width: 1023px) {
+  .mobile-safe-area {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .mobile-input-container {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* Touch-friendly improvements */
+@media (max-width: 1023px) {
+  button,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
 /* Tablet adjustments */
 @media (min-width: 768px) and (max-height: 1024px) {
   .tablet-height-adjust {

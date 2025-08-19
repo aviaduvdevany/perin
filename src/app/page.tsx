@@ -45,7 +45,8 @@ export default function Home() {
 
   return (
     <ChatWorkspaceLayout>
-      <div className="h-[calc(100vh-64px)] bg-[var(--background-primary)] flex flex-col">
+      {/* Desktop Chat Interface */}
+      <div className="hidden xl:flex h-[calc(100vh-64px)] bg-[var(--background-primary)] flex-col">
         <main className="flex-1">
           <motion.div
             className="h-full"
@@ -57,6 +58,9 @@ export default function Home() {
           </motion.div>
         </main>
       </div>
+
+      {/* Mobile and Tablet interfaces are handled by ChatWorkspaceLayout */}
+      <div className="xl:hidden" />
     </ChatWorkspaceLayout>
   );
 }

@@ -108,10 +108,7 @@ export function FloatingInput({
 
   return (
     <motion.div
-      className={cn(
-        "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 w-full max-w-[min(92vw,48rem)] px-4 z-50",
-        className
-      )}
+      className={cn("relative w-full max-w-[min(92vw,48rem)] z-50", className)}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
@@ -127,28 +124,28 @@ export function FloatingInput({
         >
           {/* Textarea Container */}
 
-            <Textarea
-              ref={textareaRef}
-              value={inputMessage}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyDown}
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-              placeholder={placeholder}
-              className={cn(
-                "w-full resize-none text-md transition-all duration-200",
-                "bg-white/10 dark:bg-black/20 border-white/20 dark:border-white/10",
-                "backdrop-blur-lg rounded-2xl p-4",
-                "text-[var(--cta-text)] placeholder-[var(--foreground-muted)]",
-                "scrollbar-ultra-thin min-h-0 shadow-none",
-                "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                rows > 1 && "py-1"
-              )}
-              rows={rows}
-              disabled={isLoading || disabled}
-              aria-label="Message input"
-            />
+          <Textarea
+            ref={textareaRef}
+            value={inputMessage}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={placeholder}
+            className={cn(
+              "w-full resize-none text-md transition-all duration-200",
+              "bg-white/10 dark:bg-black/20 border-white/20 dark:border-white/10",
+              "backdrop-blur-lg rounded-2xl p-4",
+              "text-[var(--cta-text)] placeholder-[var(--foreground-muted)]",
+              "scrollbar-ultra-thin min-h-0 shadow-none",
+              "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              rows > 1 && "py-1"
+            )}
+            rows={rows}
+            disabled={isLoading || disabled}
+            aria-label="Message input"
+          />
 
           {/* Action Buttons */}
           <div className="flex items-end space-x-2">

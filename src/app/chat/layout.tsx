@@ -4,6 +4,11 @@ import { ReactNode, useState } from "react";
 import SidebarRail from "@/components/ui/SidebarRail";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import MobileTopBar from "@/components/ui/MobileTopBar";
+import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
+import MobileDrawer from "@/components/ui/MobileDrawer";
+import MobileHomeScreen from "@/components/MobileHomeScreen";
+import { MobilePerinChat } from "@/components/MobilePerinChat";
+import TabletLayout from "@/components/TabletLayout";
 import BottomSheet from "@/components/ui/BottomSheet";
 import ProfileSummary from "@/components/ui/ProfileSummary";
 import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
@@ -40,6 +45,9 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
     setPreferencesOpen,
     setPerinOpen,
   } = actions;
+
+  // Mobile state
+  const [mobileView, setMobileView] = useState<"home" | "chat">("home");
 
   // Notification modal state
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
@@ -107,6 +115,14 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
     }
   };
 
+  const handleOpenChat = () => {
+    setMobileView("chat");
+  };
+
+  const handleBackToHome = () => {
+    setMobileView("home");
+  };
+
   return (
     <div className="relative min-h-screen bg-[var(--background-primary)] overflow-x-hidden overflow-y-hidden">
       {/* Ambient background orbs */}
@@ -127,63 +143,137 @@ function ChatLayoutInner({ children }: { children: ReactNode }) {
         />
       </div>
 
-      {/* Mobile top bar */}
-      <MobileTopBar onOpenProfile={() => setProfileOpen(true)} />
+      {/* Desktop Layout */}
+      <div className="hidden xl:block">
+        <div className="mx-auto max-w-full h-full px-4 pt-12 lg:pt-0">
+          <div className="grid grid-cols-12 gap-4 h-full py-4">
+            <div className="hidden lg:block col-span-1" />
+            <main className="col-span-12 lg:col-span-10 xl:col-span-10 h-full">
+              {children}
+            </main>
+            <div className="hidden lg:block col-span-1" />
+          </div>
+        </div>
 
-      <div className="mx-auto max-w-full h-full px-4 pt-12 lg:pt-0">
-        <div className="grid grid-cols-12 gap-4 h-full py-4">
-          <div className="hidden lg:block col-span-1" />
-          <main className="col-span-12 lg:col-span-10 xl:col-span-10 h-full">
-            {children}
-          </main>
-          <div className="hidden lg:block col-span-1" />
+        {/* Fixed left rail, centered (tablet/desktop) */}
+        <div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-30">
+          <SidebarRail
+            size="lg"
+            onOpenNotifications={() => setNotificationsOpen(true)}
+            onOpenPreferences={() => setPreferencesOpen(true)}
+            onOpenPerin={() => setPerinOpen(true)}
+          />
+        </div>
+
+        {/* Desktop modals */}
+        <div className="hidden lg:block">
+          <IntegrationManagerModal
+            open={integrationsOpen}
+            onClose={() => setIntegrationsOpen(false)}
+          />
+          <NetworkModal
+            open={networkOpen}
+            onClose={() => setNetworkOpen(false)}
+          />
+          <PreferencesModal
+            open={preferencesOpen}
+            onClose={() => setPreferencesOpen(false)}
+          />
+          <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
         </div>
       </div>
 
-      {/* Fixed left rail, centered (tablet/desktop) */}
-      <div className="hidden lg:flex fixed left-6 top-1/2 -translate-y-1/2 z-30">
-        <SidebarRail
-          size="lg"
-          onOpenNotifications={() => setNotificationsOpen(true)}
-          onOpenPreferences={() => setPreferencesOpen(true)}
-          onOpenPerin={() => setPerinOpen(true)}
-        />
+      {/* Tablet Layout */}
+      <div className="hidden lg:block xl:hidden">
+        <TabletLayout />
       </div>
 
-      {/* Mobile sheets */}
-      <div className="lg:hidden">
-        <BottomSheet
+      {/* Mobile Layout */}
+      <div className="xl:hidden">
+        {/* Mobile Top Bar - only show in chat view */}
+        {mobileView === "chat" && (
+          <MobileTopBar onOpenProfile={() => setProfileOpen(true)} />
+        )}
+
+        {/* Mobile Content */}
+        <div className="h-full">
+          {mobileView === "home" ? (
+            <MobileHomeScreen onOpenChat={handleOpenChat} />
+          ) : (
+            <MobilePerinChat
+              onBack={handleBackToHome}
+              onOpenMenu={() => setProfileOpen(true)}
+            />
+          )}
+        </div>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNavigation onOpenChat={handleOpenChat} />
+
+        {/* Mobile Drawers */}
+        <MobileDrawer
           open={profileOpen}
           onClose={() => setProfileOpen(false)}
           title="Profile"
+          position="right"
+          size="md"
         >
           <ProfileSummary />
-        </BottomSheet>
+        </MobileDrawer>
 
-        <BottomSheet
+        <MobileDrawer
           open={integrationsOpen}
           onClose={() => setIntegrationsOpen(false)}
-          title="Integrations"
+          title="Connect Services"
+          position="bottom"
+          size="lg"
         >
-          <UnifiedIntegrationManager showOnlyConnectable={true} />
-        </BottomSheet>
-      </div>
+          <div className="p-4">
+            <UnifiedIntegrationManager showOnlyConnectable={true} />
+          </div>
+        </MobileDrawer>
 
-      {/* Desktop modals */}
-      <div className="hidden lg:block">
-        <IntegrationManagerModal
-          open={integrationsOpen}
-          onClose={() => setIntegrationsOpen(false)}
-        />
-        <NetworkModal
+        <MobileDrawer
           open={networkOpen}
           onClose={() => setNetworkOpen(false)}
-        />
-        <PreferencesModal
+          title="Network"
+          position="bottom"
+          size="lg"
+        >
+          <div className="p-4">
+            <p className="text-[var(--foreground-muted)] text-center py-8">
+              Network management coming soon...
+            </p>
+          </div>
+        </MobileDrawer>
+
+        <MobileDrawer
           open={preferencesOpen}
           onClose={() => setPreferencesOpen(false)}
-        />
-        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
+          title="Settings"
+          position="right"
+          size="md"
+        >
+          <div className="p-4">
+            <p className="text-[var(--foreground-muted)] text-center py-8">
+              Settings panel coming soon...
+            </p>
+          </div>
+        </MobileDrawer>
+
+        <MobileDrawer
+          open={perinOpen}
+          onClose={() => setPerinOpen(false)}
+          title="About Perin"
+          position="bottom"
+          size="md"
+        >
+          <div className="p-4">
+            <p className="text-[var(--foreground-muted)] text-center py-8">
+              Perin is your AI-powered digital delegate...
+            </p>
+          </div>
+        </MobileDrawer>
       </div>
 
       {/* Notification modals - Top level for proper positioning */}

@@ -11,7 +11,6 @@ import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import type { ChatMessage } from "../types";
 
-
 export function PerinChat() {
   const { data: session } = useSession();
   const { sendMessage, isChatLoading, chatError } = usePerinAI();
@@ -35,7 +34,6 @@ export function PerinChat() {
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isChatLoading) return;
 
-
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       role: "user",
@@ -45,7 +43,6 @@ export function PerinChat() {
     setMessages((prev) => [...prev, userMessage]);
     setStreamingMessage("");
     setPerinStatus("thinking");
-
 
     try {
       const currentMessages = [...messages, userMessage];
