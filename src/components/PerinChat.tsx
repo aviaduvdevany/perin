@@ -158,7 +158,7 @@ export function PerinChat() {
   }
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-66px)] overflow-hidden max-w-4xl mx-auto px-0">
+    <div className="relative flex flex-col h-full overflow-hidden">
       {messages.length > 0 && (
         <div
           className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"

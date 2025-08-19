@@ -1,61 +1,47 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
-import OneSignalProvider from "@/components/providers/OneSignalProvider";
-import { NotificationProvider } from "@/components/providers/NotificationContext";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
-import { Navbar } from "@/components/ui/Navbar";
 import { UserDataProvider } from "@/components/providers/UserDataProvider";
+import { NotificationProvider } from "@/components/providers/NotificationContext";
+import { IntegrationsProvider } from "@/components/providers/IntegrationsProvider";
+import OneSignalProvider from "@/components/providers/OneSignalProvider";
+import { ChatUIProvider } from "@/components/providers/ChatUIProvider";
+import { Navbar } from "@/components/ui/Navbar";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Perin - Your AI-powered productivity assistant",
+  title: "Perin - AI-Powered Digital Delegate",
   description:
-    "Delegate smarter with Perin, your futuristic AI assistant for seamless productivity and intelligent task management.",
-  keywords: ["AI", "productivity", "assistant", "automation", "futuristic"],
-  authors: [{ name: "Perin Team" }],
-};
-
-export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  themeColor: "#4C5BFF",
+    "Your intelligent AI assistant for scheduling, coordination, and productivity",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        <script
-          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          defer
-        ></script>
-      </head>
-      <body className="antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>
         <SessionProvider>
-          <OneSignalProvider>
-            <NotificationProvider>
-              <ThemeProvider>
-                <UserDataProvider>
-                  <Navbar />
-                  <main>{children}</main>
-                </UserDataProvider>
-              </ThemeProvider>
-            </NotificationProvider>
-          </OneSignalProvider>
+          <ThemeProvider>
+            <UserDataProvider>
+              <NotificationProvider>
+                <OneSignalProvider>
+                  <div className="min-h-screen bg-[var(--background-primary)]">
+                    {/* Desktop Navbar - only show on desktop */}
+                    <div className="hidden xl:block">
+                      <Navbar />
+                    </div>
+                    {children}
+                  </div>
+                </OneSignalProvider>
+              </NotificationProvider>
+            </UserDataProvider>
+          </ThemeProvider>
         </SessionProvider>
       </body>
     </html>

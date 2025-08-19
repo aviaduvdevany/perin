@@ -108,7 +108,10 @@ export function FloatingInput({
 
   return (
     <motion.div
-      className={cn("relative w-full max-w-[min(92vw,48rem)] z-50", className)}
+      className={cn(
+        "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 w-full max-w-[min(92vw,48rem)] px-4 z-50",
+        className
+      )}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
