@@ -18,6 +18,8 @@ import IntegrationManagerModal from "@/components/dock-modals/IntegrationManager
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import PreferencesModal from "@/components/dock-modals/PreferencesModal";
 import PerinModal from "@/components/dock-modals/PerinModal";
+import DelegationModal from "@/components/dock-modals/DelegationModal";
+import LinkGenerator from "@/components/delegation/LinkGenerator";
 import {
   NotificationsModal,
   TimeProposalModal,
@@ -26,6 +28,7 @@ import {
   confirmTimeProposalService,
   declineTimeProposalService,
 } from "@/app/services/notifications";
+import type { CreateDelegationResponse } from "@/types/delegation";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -40,6 +43,7 @@ export default function Home() {
     notificationsOpen,
     preferencesOpen,
     perinOpen,
+    delegationOpen,
   } = state.ui;
 
   const {
@@ -49,6 +53,7 @@ export default function Home() {
     setNotificationsOpen,
     setPreferencesOpen,
     setPerinOpen,
+    setDelegationOpen,
   } = actions;
 
   // Mobile state
@@ -201,6 +206,10 @@ export default function Home() {
           onClose={() => setPreferencesOpen(false)}
         />
         <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
+        <DelegationModal
+          open={delegationOpen}
+          onClose={() => setDelegationOpen(false)}
+        />
       </div>
 
       {/* Mobile Layout */}
@@ -282,6 +291,22 @@ export default function Home() {
             <p className="text-[var(--foreground-muted)] text-center py-8">
               Perin is your AI-powered digital delegate...
             </p>
+          </div>
+        </MobileDrawer>
+
+        <MobileDrawer
+          open={delegationOpen}
+          onClose={() => setDelegationOpen(false)}
+          title="Talk to My Perin"
+          position="bottom"
+          size="lg"
+        >
+          <div className="p-4">
+            <LinkGenerator
+              onGenerate={(delegation: CreateDelegationResponse) =>
+                console.log("Delegation generated:", delegation)
+              }
+            />
           </div>
         </MobileDrawer>
       </div>

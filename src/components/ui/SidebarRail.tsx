@@ -145,6 +145,11 @@ export default function SidebarRail({
             onClick={() => setNetworkOpen(true)}
           />
           <Item
+            icon="🔗"
+            label="Talk to My Perin"
+            onClick={() => actions.setDelegationOpen(true)}
+          />
+          <Item
             icon="⚙️"
             label="Preferences"
             onClick={onOpenPreferences || (() => {})}

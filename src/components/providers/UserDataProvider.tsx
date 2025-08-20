@@ -53,6 +53,7 @@ export interface UserDataState {
     notificationsOpen: boolean;
     preferencesOpen: boolean;
     perinOpen: boolean;
+    delegationOpen: boolean;
   };
 
   // Loading states
@@ -109,6 +110,7 @@ export interface UserDataActions {
   setNotificationsOpen: (open: boolean) => void;
   setPreferencesOpen: (open: boolean) => void;
   setPerinOpen: (open: boolean) => void;
+  setDelegationOpen: (open: boolean) => void;
 
   // Cache management
   invalidateCache: (dataType: keyof UserDataState) => void;
@@ -148,6 +150,7 @@ const initialState: UserDataState = {
     notificationsOpen: false,
     preferencesOpen: false,
     perinOpen: false,
+    delegationOpen: false,
   },
   loading: {
     user: false,
@@ -534,6 +537,13 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const setDelegationOpen = useCallback((open: boolean) => {
+    setState((prev) => ({
+      ...prev,
+      ui: { ...prev.ui, delegationOpen: open },
+    }));
+  }, []);
+
   // Legacy function from ChatUIProvider
   const collapseTodayAfterFirstMessage = useCallback(() => {
     if (didCollapseRef.current) return;
@@ -628,6 +638,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       setNotificationsOpen,
       setPreferencesOpen,
       setPerinOpen,
+      setDelegationOpen,
       invalidateCache,
       clearCache,
     }),
@@ -649,6 +660,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       setNotificationsOpen,
       setPreferencesOpen,
       setPerinOpen,
+      setDelegationOpen,
       invalidateCache,
       clearCache,
     ]
