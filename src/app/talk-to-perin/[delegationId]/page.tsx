@@ -11,8 +11,8 @@ export default async function PublicDelegationPage({
   params,
   searchParams,
 }: PublicDelegationPageProps) {
-  const { delegationId } = params;
-  const { sig: signature } = searchParams;
+  const { delegationId } = await params;
+  const { sig: signature } = await searchParams;
 
   try {
     // Validate delegation session on the server

@@ -93,11 +93,18 @@ export default function DelegationChat({
     setError(null);
 
     try {
-      const response = await sendDelegationChatService({
+      // Get signature from URL if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const signature = urlParams.get("sig");
+
+      const requestData = {
         delegationId,
         message: userMessage.content,
-        externalUserName,
-      });
+        externalUserName: externalUserName || undefined,
+        signature: signature || undefined,
+      };
+
+      const response = await sendDelegationChatService(requestData);
 
       // Update AI message with response
       setMessages((prev) =>

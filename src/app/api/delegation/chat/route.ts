@@ -5,7 +5,7 @@ import {
   createDelegationMessage,
   getDelegationMessages,
 } from "@/lib/queries/delegation";
-import { executeChatGraph } from "@/lib/ai/langgraph/graphs/base-chat";
+import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
 import { withErrorHandler } from "@/lib/utils/error-handlers";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
@@ -77,33 +77,50 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       content: msg.content,
     }));
 
-    // Execute AI chat with delegation context
-    const aiState = await executeChatGraph({
-      messages: chatMessages,
-      userId: session.ownerUserId,
-      tone: "friendly",
-      perinName: "Perin",
-      specialization: "scheduling",
-      memoryContext: {},
-      conversationContext: "",
-      systemPrompt: "",
-      openaiResponse: "",
-      streamChunks: [],
-      currentStep: "initialized",
-      emailContext: {},
-      calendarContext: {},
-    });
+    // Execute AI chat with delegation context using full LangGraph system
+    const { stream } = await executePerinChatWithLangGraph(
+      chatMessages,
+      session.ownerUserId,
+      "friendly",
+      "Perin",
+      "scheduling",
+      undefined, // user data
+      {
+        // Add delegation context
+        connectedIntegrationTypes: ["calendar", "gmail"],
+      }
+    );
+
+    // Read the stream to get the complete response
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    let fullResponse = "";
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        // Skip control tokens for delegation chat
+        if (!chunk.includes("[[PERIN_ACTION:")) {
+          fullResponse += chunk;
+        }
+      }
+    } finally {
+      reader.releaseLock();
+    }
 
     // Create AI response message
     await createDelegationMessage(
       delegationId,
       false, // fromExternal
-      aiState.openaiResponse,
+      fullResponse,
       "text"
     );
 
     return NextResponse.json({
-      response: aiState.openaiResponse,
+      response: fullResponse,
       delegationId,
       externalUserName,
     });

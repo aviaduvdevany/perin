@@ -58,6 +58,7 @@ export interface DelegationChatRequest {
   delegationId: string;
   message: string;
   externalUserName?: string;
+  signature?: string;
 }
 
 export interface DelegationDetails {
