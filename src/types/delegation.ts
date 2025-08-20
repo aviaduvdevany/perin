@@ -4,7 +4,7 @@ export interface DelegationSession {
   externalUserName?: string;
   externalUserEmail?: string;
   ttlExpiresAt: Date;
-  constraints: MeetingConstraints;
+  constraints?: MeetingConstraints;
   status: "active" | "expired" | "revoked";
   createdAt: Date;
   lastAccessedAt?: Date;

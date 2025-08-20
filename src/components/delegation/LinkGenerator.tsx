@@ -44,12 +44,9 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
   const [ttlHours, setTtlHours] = useState(24);
   const [externalUserName, setExternalUserName] = useState("");
   const [showPreferences, setShowPreferences] = useState(false);
-  const [constraints, setConstraints] = useState<Partial<MeetingConstraints>>({
-    durationMinutes: 30,
-    meetingType: "video",
-    maxNoticeHours: 168,
-    minNoticeHours: 1,
-  });
+  const [constraints, setConstraints] = useState<Partial<MeetingConstraints>>(
+    {}
+  );
 
   const ttlOptions = [
     { value: 1, label: "1 hour" },
@@ -69,16 +66,21 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
     setError(null);
 
     try {
-      // Validate constraints
-      const validation = validateConstraints(constraints);
-      if (!validation.isValid) {
-        setError(validation.errors[0]);
-        return;
+      // Only validate constraints if any are set
+      if (Object.keys(constraints).length > 0) {
+        const validation = validateConstraints(constraints);
+        if (!validation.isValid) {
+          setError(validation.errors[0]);
+          return;
+        }
       }
 
       const request: CreateDelegationRequest = {
         ttlHours,
-        constraints: constraints as MeetingConstraints,
+        constraints:
+          Object.keys(constraints).length > 0
+            ? (constraints as MeetingConstraints)
+            : undefined,
         externalUserName: externalUserName || undefined,
       };
 
@@ -110,9 +112,16 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
 
   const updateConstraint = (
     key: keyof MeetingConstraints,
-    value: string | number
+    value: string | number | undefined
   ) => {
-    setConstraints((prev) => ({ ...prev, [key]: value }));
+    setConstraints((prev) => {
+      if (value === undefined) {
+        const newConstraints = { ...prev };
+        delete newConstraints[key];
+        return newConstraints;
+      }
+      return { ...prev, [key]: value };
+    });
   };
 
   if (generatedDelegation) {
@@ -299,15 +308,16 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
                 </label>
                 <input
                   type="number"
-                  value={constraints.durationMinutes || 30}
+                  value={constraints.durationMinutes || ""}
                   onChange={(e) =>
                     updateConstraint(
                       "durationMinutes",
-                      parseInt(e.target.value)
+                      e.target.value ? parseInt(e.target.value) : undefined
                     )
                   }
                   min="15"
                   max="480"
+                  placeholder="30"
                   className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
                 />
               </div>
@@ -349,15 +359,16 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
                   </label>
                   <input
                     type="number"
-                    value={constraints.minNoticeHours || 1}
+                    value={constraints.minNoticeHours || ""}
                     onChange={(e) =>
                       updateConstraint(
                         "minNoticeHours",
-                        parseInt(e.target.value)
+                        e.target.value ? parseInt(e.target.value) : undefined
                       )
                     }
                     min="0"
                     max="720"
+                    placeholder="1"
                     className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
                   />
                 </div>
@@ -367,15 +378,16 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
                   </label>
                   <input
                     type="number"
-                    value={constraints.maxNoticeHours || 168}
+                    value={constraints.maxNoticeHours || ""}
                     onChange={(e) =>
                       updateConstraint(
                         "maxNoticeHours",
-                        parseInt(e.target.value)
+                        e.target.value ? parseInt(e.target.value) : undefined
                       )
                     }
                     min="0"
                     max="720"
+                    placeholder="168"
                     className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
                   />
                 </div>

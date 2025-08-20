@@ -53,7 +53,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const { ttlHours, constraints, externalUserName } = validation.data;
 
   // Validate constraints if provided
-  if (constraints) {
+  if (constraints && Object.keys(constraints).length > 0) {
     const mergedConstraints = mergeConstraintsWithDefaults(constraints);
     const validation = validateMeetingConstraints(mergedConstraints);
 
@@ -72,7 +72,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const delegation = await createDelegationSession(
     session.user.id,
     ttlExpiresAt,
-    constraints ? mergeConstraintsWithDefaults(constraints) : undefined,
+    constraints && Object.keys(constraints).length > 0
+      ? mergeConstraintsWithDefaults(constraints)
+      : undefined,
     externalUserName
   );
 

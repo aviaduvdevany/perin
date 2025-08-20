@@ -67,7 +67,7 @@ export default function DelegationChat({
     }
   };
 
-  const MeetingTypeIcon = getMeetingTypeIcon(session.constraints.meetingType);
+  const MeetingTypeIcon = getMeetingTypeIcon(session.constraints?.meetingType);
 
   const handleSendMessage = async () => {
     if (!inputMessage.trim() || isLoading) return;
@@ -171,27 +171,35 @@ export default function DelegationChat({
           </div>
         </div>
 
-        {/* Meeting Preferences */}
-        <div className="mt-4 p-3 bg-[var(--background-secondary)]/30 rounded-lg">
-          <div className="flex items-center gap-2 text-sm text-[var(--foreground-muted)] mb-2">
-            <MeetingTypeIcon className="w-4 h-4" />
-            <span>Meeting Preferences</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <span className="text-[var(--foreground-muted)]">Duration: </span>
-              <span className="text-[var(--cta-text)]">
-                {session.constraints.durationMinutes} minutes
-              </span>
+        {/* Meeting Preferences - Only show if constraints are set */}
+        {session.constraints && Object.keys(session.constraints).length > 0 && (
+          <div className="mt-4 p-3 bg-[var(--background-secondary)]/30 rounded-lg">
+            <div className="flex items-center gap-2 text-sm text-[var(--foreground-muted)] mb-2">
+              <MeetingTypeIcon className="w-4 h-4" />
+              <span>Meeting Preferences</span>
             </div>
-            <div>
-              <span className="text-[var(--foreground-muted)]">Type: </span>
-              <span className="text-[var(--cta-text)] capitalize">
-                {session.constraints.meetingType?.replace("_", " ")}
-              </span>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              {session.constraints?.durationMinutes && (
+                <div>
+                  <span className="text-[var(--foreground-muted)]">
+                    Duration:{" "}
+                  </span>
+                  <span className="text-[var(--cta-text)]">
+                    {session.constraints.durationMinutes} minutes
+                  </span>
+                </div>
+              )}
+              {session.constraints.meetingType && (
+                <div>
+                  <span className="text-[var(--foreground-muted)]">Type: </span>
+                  <span className="text-[var(--cta-text)] capitalize">
+                    {session.constraints.meetingType.replace("_", " ")}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
       </Glass>
 
       {/* Messages */}

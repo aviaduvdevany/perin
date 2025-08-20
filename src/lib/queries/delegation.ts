@@ -12,7 +12,7 @@ import type {
 export const createDelegationSession = async (
   ownerUserId: string,
   ttlExpiresAt: Date,
-  constraints: MeetingConstraints = {},
+  constraints?: MeetingConstraints,
   externalUserName?: string,
   externalUserEmail?: string
 ): Promise<DelegationSession> => {
@@ -306,7 +306,7 @@ export const expireOldDelegationSessions = async (): Promise<number> => {
      WHERE status = 'active' AND ttl_expires_at < now()`
   );
 
-  return (result.rowCount ?? 0);
+  return result.rowCount ?? 0;
 };
 
 /**
