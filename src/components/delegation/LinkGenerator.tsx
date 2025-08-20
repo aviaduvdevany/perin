@@ -25,6 +25,8 @@ import {
   Share2,
   Check,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface LinkGeneratorProps {
@@ -41,6 +43,7 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
   // Form state
   const [ttlHours, setTtlHours] = useState(24);
   const [externalUserName, setExternalUserName] = useState("");
+  const [showPreferences, setShowPreferences] = useState(false);
   const [constraints, setConstraints] = useState<Partial<MeetingConstraints>>({
     durationMinutes: 30,
     meetingType: "video",
@@ -125,10 +128,10 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
               <Check className="w-8 h-8 text-[var(--success)]" />
             </div>
             <h3 className="text-xl font-semibold text-[var(--cta-text)] mb-2">
-              Link Generated Successfully!
+              🎉 Link Generated Successfully!
             </h3>
             <p className="text-[var(--foreground-muted)]">
-              Share this link with others to let them talk to your Perin
+              Share this link with others to let them chat with your Perin AI
             </p>
           </div>
 
@@ -206,9 +209,13 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
       className="space-y-6"
     >
       <Glass variant="default" border={true} glow={true} className="p-6">
-        <h3 className="text-xl font-semibold text-[var(--cta-text)] mb-6">
+        <h3 className="text-xl font-semibold text-[var(--cta-text)] mb-2">
           Generate Delegation Link
         </h3>
+        <p className="text-sm text-[var(--foreground-muted)] mb-6">
+          Create a secure link that lets others chat with your Perin AI for
+          scheduling. Just set the expiration time and you&apos;re ready to go!
+        </p>
 
         {error && (
           <motion.div
@@ -255,98 +262,134 @@ export default function LinkGenerator({ onGenerate }: LinkGeneratorProps) {
           />
         </div>
 
-        {/* Meeting Constraints */}
+        {/* Meeting Preferences - Collapsible */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-[var(--foreground-muted)] mb-3">
-            <Calendar className="w-4 h-4 inline mr-2" />
-            Meeting Preferences
-          </label>
+          <button
+            type="button"
+            onClick={() => setShowPreferences(!showPreferences)}
+            className="flex items-center justify-between w-full p-3 bg-[var(--background-secondary)]/30 border border-[var(--card-border)] rounded-lg hover:bg-[var(--background-secondary)]/50 transition-colors"
+          >
+            <div className="flex items-center">
+              <Calendar className="w-4 h-4 mr-2 text-[var(--foreground-muted)]" />
+              <span className="text-sm font-medium text-[var(--foreground-muted)]">
+                Meeting Preferences (Optional)
+              </span>
+              <span className="text-xs text-[var(--foreground-muted)] ml-2">
+                Duration, type, notice period
+              </span>
+            </div>
+            {showPreferences ? (
+              <ChevronUp className="w-4 h-4 text-[var(--foreground-muted)]" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-[var(--foreground-muted)]" />
+            )}
+          </button>
 
-          {/* Duration */}
-          <div className="mb-4">
-            <label className="block text-xs text-[var(--foreground-muted)] mb-2">
-              Duration (minutes)
-            </label>
-            <input
-              type="number"
-              value={constraints.durationMinutes || 30}
-              onChange={(e) =>
-                updateConstraint("durationMinutes", parseInt(e.target.value))
-              }
-              min="15"
-              max="480"
-              className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
-            />
-          </div>
+          {showPreferences && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mt-4 p-4 bg-[var(--background-secondary)]/20 border border-[var(--card-border)] rounded-lg"
+            >
+              {/* Duration */}
+              <div className="mb-4">
+                <label className="block text-xs text-[var(--foreground-muted)] mb-2">
+                  Duration (minutes)
+                </label>
+                <input
+                  type="number"
+                  value={constraints.durationMinutes || 30}
+                  onChange={(e) =>
+                    updateConstraint(
+                      "durationMinutes",
+                      parseInt(e.target.value)
+                    )
+                  }
+                  min="15"
+                  max="480"
+                  className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
+                />
+              </div>
 
-          {/* Meeting Type */}
-          <div className="mb-4">
-            <label className="block text-xs text-[var(--foreground-muted)] mb-2">
-              Meeting Type
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {meetingTypes.map((type) => {
-                const Icon = type.icon;
-                return (
-                  <Button
-                    key={type.value}
-                    variant={
-                      constraints.meetingType === type.value
-                        ? "default"
-                        : "outline"
+              {/* Meeting Type */}
+              <div className="mb-4">
+                <label className="block text-xs text-[var(--foreground-muted)] mb-2">
+                  Meeting Type
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {meetingTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <Button
+                        key={type.value}
+                        variant={
+                          constraints.meetingType === type.value
+                            ? "default"
+                            : "outline"
+                        }
+                        onClick={() =>
+                          updateConstraint("meetingType", type.value)
+                        }
+                        className="justify-start text-xs"
+                      >
+                        <Icon className="w-3 h-3 mr-1" />
+                        {type.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Notice Period */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-[var(--foreground-muted)] mb-2">
+                    Min Notice (hours)
+                  </label>
+                  <input
+                    type="number"
+                    value={constraints.minNoticeHours || 1}
+                    onChange={(e) =>
+                      updateConstraint(
+                        "minNoticeHours",
+                        parseInt(e.target.value)
+                      )
                     }
-                    onClick={() => updateConstraint("meetingType", type.value)}
-                    className="justify-start text-xs"
-                  >
-                    <Icon className="w-3 h-3 mr-1" />
-                    {type.label}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Notice Period */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-[var(--foreground-muted)] mb-2">
-                Min Notice (hours)
-              </label>
-              <input
-                type="number"
-                value={constraints.minNoticeHours || 1}
-                onChange={(e) =>
-                  updateConstraint("minNoticeHours", parseInt(e.target.value))
-                }
-                min="0"
-                max="720"
-                className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-[var(--foreground-muted)] mb-2">
-                Max Notice (hours)
-              </label>
-              <input
-                type="number"
-                value={constraints.maxNoticeHours || 168}
-                onChange={(e) =>
-                  updateConstraint("maxNoticeHours", parseInt(e.target.value))
-                }
-                min="0"
-                max="720"
-                className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
-              />
-            </div>
-          </div>
+                    min="0"
+                    max="720"
+                    className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-[var(--foreground-muted)] mb-2">
+                    Max Notice (hours)
+                  </label>
+                  <input
+                    type="number"
+                    value={constraints.maxNoticeHours || 168}
+                    onChange={(e) =>
+                      updateConstraint(
+                        "maxNoticeHours",
+                        parseInt(e.target.value)
+                      )
+                    }
+                    min="0"
+                    max="720"
+                    className="w-full px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] focus:outline-none focus:border-[var(--accent-primary)]"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
         </div>
 
         <Button
           onClick={handleGenerate}
           disabled={isLoading}
-          className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/80"
+          className="w-full bg-[var(--accent-primary)] hover:bg-[var(--accent-primary)]/80 text-lg font-medium py-3"
         >
-          {isLoading ? "Generating..." : "Generate Link"}
+          {isLoading ? "Generating..." : "✨ Generate Link"}
         </Button>
       </Glass>
     </motion.div>

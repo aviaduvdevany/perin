@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import BaseModal from "@/components/ui/BaseModal";
 import LinkGenerator from "@/components/delegation/LinkGenerator";
 import type { CreateDelegationResponse } from "@/types/delegation";
