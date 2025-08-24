@@ -1,16 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import {
   CheckCircle,
   Circle,
   AlertCircle,
   Clock,
-  ArrowRight,
   Zap,
   Brain,
   Sparkles,
+  Play,
+  Pause,
 } from "lucide-react";
 import { Glass } from "./Glass";
 import { cn } from "@/lib/utils";
@@ -36,58 +37,215 @@ interface MultiStepMessageProps {
   showTimings?: boolean;
 }
 
+interface CinematicStep extends Step {
+  cinematicStatus:
+    | "hidden"
+    | "revealing"
+    | "processing"
+    | "completing"
+    | "completed"
+    | "failed";
+  cinematicProgress: number; // 0-100
+  emotionalDelay: number; // ms to wait before showing
+}
+
 export function MultiStepMessage({
   steps,
-  currentStepIndex,
-  status,
-  progressMessages,
+  currentStepIndex: _currentStepIndex,
+  status: _status,
+  progressMessages: _progressMessages,
   className = "",
   onStepClick,
-  showTimings = false,
+  showTimings: _showTimings = false,
 }: MultiStepMessageProps) {
-  const [visibleSteps, setVisibleSteps] = useState<number>(1);
-  const [heartbeat, setHeartbeat] = useState(false);
+  const [cinematicSteps, setCinematicSteps] = useState<CinematicStep[]>([]);
+  const [cinematicIndex, setCinematicIndex] = useState(-1);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [userCanControl, setUserCanControl] = useState(false);
   const [celebrationMode, setCelebrationMode] = useState(false);
-  const progressRef = useRef<HTMLDivElement>(null);
+  const [currentProgressMessage, setCurrentProgressMessage] = useState("");
+
+  const cinematicTimeouts = useRef<(NodeJS.Timeout)[]>([]);
   const controls = useAnimation();
+  const progressRef = useRef<HTMLDivElement>(null);
 
-  // Emotional state management
+  // Enhanced timing configuration for emotional pacing
+  const CINEMATIC_TIMING = useRef({
+    STEP_REVEAL_DELAY: 800, // Time between step reveals
+    PROCESSING_DURATION: 2000, // How long to show "processing"
+    COMPLETION_PAUSE: 1200, // Pause to celebrate completion
+    PROGRESS_UPDATE_INTERVAL: 100, // Progress bar smoothness
+    EMOTIONAL_SETTLE_TIME: 500, // Time for user to absorb
+  }).current;
+
+  // Initialize cinematic steps from real steps
   useEffect(() => {
-    if (status === "completed") {
-      setCelebrationMode(true);
-      controls.start({
-        scale: [1, 1.05, 1],
-        transition: { duration: 0.6, ease: "easeOut" },
-      });
-      setTimeout(() => setCelebrationMode(false), 2000);
+    const newCinematicSteps: CinematicStep[] = steps.map((step, index) => ({
+      ...step,
+      cinematicStatus: "hidden",
+      cinematicProgress: 0,
+      emotionalDelay: index * CINEMATIC_TIMING.STEP_REVEAL_DELAY,
+    }));
+
+    setCinematicSteps(newCinematicSteps);
+    setUserCanControl(steps.length > 0);
+  }, [steps]);
+
+  // Cinematic orchestration - the heart of the emotional experience
+  const startCinematicSequence = useCallback(() => {
+    if (!isPlaying || cinematicSteps.length === 0) return;
+
+    // Clear any existing timeouts
+    cinematicTimeouts.current.forEach(clearTimeout);
+    cinematicTimeouts.current = [];
+
+    const orchestrateStep = (stepIndex: number) => {
+      if (stepIndex >= cinematicSteps.length) {
+        // All steps revealed, trigger completion sequence
+        setTimeout(() => {
+          setCelebrationMode(true);
+          controls.start({
+            scale: [1, 1.02, 1],
+            transition: { duration: 0.8, ease: "easeOut" },
+          });
+        }, CINEMATIC_TIMING.EMOTIONAL_SETTLE_TIME);
+        return;
+      }
+
+      const realStep = steps[stepIndex];
+
+      // Phase 1: Reveal the step
+      setCinematicIndex(stepIndex);
+      setCinematicSteps((prev) =>
+        prev.map((s, i) =>
+          i === stepIndex ? { ...s, cinematicStatus: "revealing" } : s
+        )
+      );
+
+      // Phase 2: Start processing animation
+      const processingTimeout = setTimeout(() => {
+        setCinematicSteps((prev) =>
+          prev.map((s, i) =>
+            i === stepIndex
+              ? { ...s, cinematicStatus: "processing", cinematicProgress: 0 }
+              : s
+          )
+        );
+
+        // Animate progress bar with realistic feel
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress += Math.random() * 15 + 5; // Organic progress increments
+
+          if (progress >= 100) {
+            progress = 100;
+            clearInterval(progressInterval);
+
+            // Phase 3: Complete the step
+            setTimeout(() => {
+              const finalStatus =
+                realStep.status === "failed" ? "failed" : "completed";
+              setCinematicSteps((prev) =>
+                prev.map((s, i) =>
+                  i === stepIndex
+                    ? {
+                        ...s,
+                        cinematicStatus: finalStatus,
+                        cinematicProgress: 100,
+                        progressMessage: realStep.progressMessage,
+                      }
+                    : s
+                )
+              );
+
+              // Show progress message with typing effect
+              if (realStep.progressMessage) {
+                let messageIndex = 0;
+                const typingInterval = setInterval(() => {
+                  setCurrentProgressMessage(
+                    realStep.progressMessage!.substring(0, messageIndex)
+                  );
+                  messageIndex++;
+
+                  if (messageIndex > realStep.progressMessage!.length) {
+                    clearInterval(typingInterval);
+
+                    // Move to next step after emotional pause
+                    setTimeout(() => {
+                      setCurrentProgressMessage("");
+                      orchestrateStep(stepIndex + 1);
+                    }, CINEMATIC_TIMING.COMPLETION_PAUSE);
+                  }
+                }, 30); // Typing speed
+              } else {
+                // No message, continue after pause
+                setTimeout(() => {
+                  orchestrateStep(stepIndex + 1);
+                }, CINEMATIC_TIMING.COMPLETION_PAUSE);
+              }
+            }, CINEMATIC_TIMING.EMOTIONAL_SETTLE_TIME);
+          } else {
+            setCinematicSteps((prev) =>
+              prev.map((s, i) =>
+                i === stepIndex
+                  ? { ...s, cinematicProgress: Math.min(progress, 100) }
+                  : s
+              )
+            );
+          }
+        }, CINEMATIC_TIMING.PROGRESS_UPDATE_INTERVAL);
+
+        cinematicTimeouts.current.push(progressInterval);
+      }, CINEMATIC_TIMING.STEP_REVEAL_DELAY);
+
+      cinematicTimeouts.current.push(processingTimeout);
+    };
+
+    // Start the sequence
+    orchestrateStep(0);
+  }, [cinematicSteps, isPlaying, steps, controls]);
+
+  // Auto-start cinematic sequence when steps are loaded
+  useEffect(() => {
+    if (cinematicSteps.length > 0 && cinematicIndex === -1 && isPlaying) {
+      startCinematicSequence();
     }
-  }, [status, controls]);
+  }, [cinematicSteps, cinematicIndex, startCinematicSequence, isPlaying]);
 
-  // Heartbeat effect for active steps
+  // Cleanup timeouts on unmount
   useEffect(() => {
-    if (status === "running") {
-      setHeartbeat(true);
-      const interval = setInterval(() => {
-        setHeartbeat((prev) => !prev);
-      }, 1500);
-      return () => clearInterval(interval);
+    return () => {
+      cinematicTimeouts.current.forEach(clearTimeout);
+    };
+  }, []);
+
+  const togglePlayback = () => {
+    setIsPlaying(!isPlaying);
+    if (!isPlaying) {
+      startCinematicSequence();
     } else {
-      setHeartbeat(false);
+      cinematicTimeouts.current.forEach(clearTimeout);
     }
-  }, [status]);
+  };
 
-  // Gradually reveal steps as they become active
-  useEffect(() => {
-    if (currentStepIndex >= visibleSteps - 1) {
-      setVisibleSteps(Math.min(currentStepIndex + 2, steps.length));
-    }
-  }, [currentStepIndex, steps.length, visibleSteps]);
+  const skipToEnd = () => {
+    cinematicTimeouts.current.forEach(clearTimeout);
+    setCinematicSteps((prev) =>
+      prev.map((step, index) => ({
+        ...step,
+        cinematicStatus:
+          steps[index]?.status === "failed" ? "failed" : "completed",
+        cinematicProgress: 100,
+      }))
+    );
+    setCinematicIndex(steps.length - 1);
+    setCelebrationMode(true);
+  };
 
-  const getStepIcon = (step: Step, index: number) => {
-    const isActive = index === currentStepIndex;
-    const iconClass = "w-5 h-5 transition-all duration-300";
+  const getStepIcon = (step: CinematicStep, index: number) => {
+    const iconClass = "w-5 h-5 transition-all duration-500";
 
-    switch (step.status) {
+    switch (step.cinematicStatus) {
       case "completed":
         return (
           <motion.div
@@ -97,11 +255,15 @@ export function MultiStepMessage({
             className="relative"
           >
             <CheckCircle className={cn(iconClass, "text-[var(--success)]")} />
-            {celebrationMode && (
+            {celebrationMode && index <= cinematicIndex && (
               <motion.div
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: [0, 1.5, 0], opacity: [0, 1, 0] }}
-                transition={{ duration: 1, ease: "easeOut" }}
+                transition={{
+                  duration: 1.5,
+                  delay: index * 0.2,
+                  ease: "easeOut",
+                }}
                 className="absolute -inset-2"
               >
                 <Sparkles className="w-9 h-9 text-[var(--success)]" />
@@ -114,22 +276,21 @@ export function MultiStepMessage({
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            whileHover={{ scale: 1.1 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
           >
             <AlertCircle className={cn(iconClass, "text-[var(--error)]")} />
           </motion.div>
         );
-      case "running":
+      case "processing":
         return (
           <motion.div
             animate={{
               rotate: 360,
-              scale: heartbeat ? 1.1 : 1,
+              scale: [1, 1.1, 1],
             }}
             transition={{
               rotate: { duration: 2, repeat: Infinity, ease: "linear" },
-              scale: { duration: 0.8, ease: "easeInOut" },
+              scale: { duration: 1, repeat: Infinity, ease: "easeInOut" },
             }}
             className="relative"
           >
@@ -137,7 +298,7 @@ export function MultiStepMessage({
             <motion.div
               className="absolute -inset-1 rounded-full border-2 border-[var(--accent-primary)]"
               animate={{
-                scale: [1, 1.3, 1],
+                scale: [1, 1.4, 1],
                 opacity: [0.8, 0.2, 0.8],
               }}
               transition={{
@@ -148,103 +309,81 @@ export function MultiStepMessage({
             />
           </motion.div>
         );
-      case "skipped":
+      case "revealing":
         return (
           <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 0.6, x: 0 }}
-            transition={{ duration: 0.3 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
-            <ArrowRight
-              className={cn(iconClass, "text-[var(--foreground-subtle)]")}
-            />
+            <Circle className={cn(iconClass, "text-[var(--accent-primary)]")} />
           </motion.div>
         );
       default:
         return (
-          <motion.div
-            animate={{
-              scale: isActive ? 1.1 : 1,
-              opacity: isActive ? 1 : 0.6,
-            }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-          >
-            <Circle
-              className={cn(
-                iconClass,
-                isActive
-                  ? "text-[var(--accent-primary)]"
-                  : "text-[var(--foreground-subtle)]"
-              )}
-            />
-          </motion.div>
+          <Circle
+            className={cn(
+              iconClass,
+              "text-[var(--foreground-subtle)] opacity-30"
+            )}
+          />
         );
     }
-  };
-
-  const getStepVariant = (step: Step, index: number) => {
-    const isActive = index === currentStepIndex;
-
-    switch (step.status) {
-      case "completed":
-        return "success";
-      case "failed":
-        return "error";
-      case "running":
-        return "active";
-      default:
-        return isActive ? "pending" : "inactive";
-    }
-  };
-
-  const formatDuration = (start?: Date, end?: Date) => {
-    if (!start || !end) return null;
-    const duration = Math.round((end.getTime() - start.getTime()) / 1000);
-    return `${duration}s`;
   };
 
   const getOverallProgress = () => {
-    const completed = steps.filter((s) => s.status === "completed").length;
-    const failed = steps.filter((s) => s.status === "failed").length;
-    const total = steps.length;
+    if (cinematicSteps.length === 0) return 0;
 
-    if (status === "completed") return 100;
-    if (status === "failed")
-      return Math.round(((completed + failed) / total) * 100);
-    return Math.round((completed / total) * 100);
+    const completedSteps = cinematicSteps.filter(
+      (s) => s.cinematicStatus === "completed" || s.cinematicStatus === "failed"
+    ).length;
+
+    const currentStepProgress =
+      cinematicIndex >= 0 && cinematicIndex < cinematicSteps.length
+        ? cinematicSteps[cinematicIndex]?.cinematicProgress || 0
+        : 0;
+
+    const baseProgress = (completedSteps / cinematicSteps.length) * 100;
+    const currentContribution =
+      cinematicIndex >= 0 ? currentStepProgress / cinematicSteps.length : 0;
+
+    return Math.min(baseProgress + currentContribution, 100);
   };
 
   const getStatusConfig = () => {
-    switch (status) {
-      case "completed":
-        return {
-          color: "var(--success)",
-          icon: Sparkles,
-          label: "Completed",
-          glow: "success",
-        };
-      case "failed":
-        return {
-          color: "var(--error)",
-          icon: AlertCircle,
-          label: "Failed",
-          glow: "custom",
-        };
-      case "running":
-        return {
-          color: "var(--accent-primary)",
-          icon: Zap,
-          label: "Processing",
-          glow: "primary",
-        };
-      default:
-        return {
-          color: "var(--foreground-muted)",
-          icon: Clock,
-          label: "Paused",
-          glow: "custom",
-        };
+    if (celebrationMode) {
+      return {
+        color: "var(--success)",
+        icon: Sparkles,
+        label: "Completed",
+        glow: "success",
+      };
     }
+
+    if (cinematicSteps.some((s) => s.cinematicStatus === "failed")) {
+      return {
+        color: "var(--error)",
+        icon: AlertCircle,
+        label: "Failed",
+        glow: "custom",
+      };
+    }
+
+    if (cinematicIndex >= 0 && cinematicIndex < cinematicSteps.length) {
+      return {
+        color: "var(--accent-primary)",
+        icon: Zap,
+        label: "Processing",
+        glow: "primary",
+      };
+    }
+
+    return {
+      color: "var(--foreground-muted)",
+      icon: Clock,
+      label: "Ready",
+      glow: "custom",
+    };
   };
 
   const statusConfig = getStatusConfig();
@@ -252,10 +391,10 @@ export function MultiStepMessage({
 
   return (
     <motion.div className={cn("space-y-6", className)} animate={controls}>
-      {/* Header with Status and Progress */}
+      {/* Cinematic Header with Playback Controls */}
       <Glass
         variant="default"
-        glow={status === "running"}
+        glow={cinematicIndex >= 0}
         glowColor={
           statusConfig.glow as "primary" | "secondary" | "success" | "custom"
         }
@@ -266,7 +405,7 @@ export function MultiStepMessage({
           <div className="flex items-center space-x-3">
             <motion.div
               animate={
-                status === "running"
+                cinematicIndex >= 0
                   ? {
                       scale: [1, 1.1, 1],
                       rotate: [0, 180, 360],
@@ -275,7 +414,7 @@ export function MultiStepMessage({
               }
               transition={{
                 duration: 2,
-                repeat: status === "running" ? Infinity : 0,
+                repeat: cinematicIndex >= 0 ? Infinity : 0,
                 ease: "easeInOut",
               }}
             >
@@ -288,66 +427,91 @@ export function MultiStepMessage({
               <div className="text-sm font-medium text-[var(--cta-text)]">
                 AI Multi-Step Process
               </div>
-              <motion.div
-                className="px-3 py-1 rounded-full text-xs font-medium mt-1"
-                style={{
-                  backgroundColor: `${statusConfig.color}20`,
-                  color: statusConfig.color,
-                  border: `1px solid ${statusConfig.color}40`,
-                }}
-                animate={
-                  status === "running"
-                    ? {
-                        boxShadow: [
-                          `0 0 0 0 ${statusConfig.color}40`,
-                          `0 0 0 8px ${statusConfig.color}10`,
-                          `0 0 0 0 ${statusConfig.color}40`,
-                        ],
-                      }
-                    : {}
-                }
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                {statusConfig.label}
-              </motion.div>
+              <div className="flex items-center space-x-2 mt-1">
+                <motion.div
+                  className="px-3 py-1 rounded-full text-xs font-medium"
+                  style={{
+                    backgroundColor: `${statusConfig.color}20`,
+                    color: statusConfig.color,
+                    border: `1px solid ${statusConfig.color}40`,
+                  }}
+                  animate={
+                    cinematicIndex >= 0
+                      ? {
+                          boxShadow: [
+                            `0 0 0 0 ${statusConfig.color}40`,
+                            `0 0 0 8px ${statusConfig.color}10`,
+                            `0 0 0 0 ${statusConfig.color}40`,
+                          ],
+                        }
+                      : {}
+                  }
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  {statusConfig.label}
+                </motion.div>
+
+                {userCanControl && (
+                  <div className="flex items-center space-x-1">
+                    <Glass
+                      variant="subtle"
+                      className="p-1 cursor-pointer"
+                      onClick={togglePlayback}
+                    >
+                      {isPlaying ? (
+                        <Pause className="w-3 h-3 text-[var(--foreground-muted)]" />
+                      ) : (
+                        <Play className="w-3 h-3 text-[var(--foreground-muted)]" />
+                      )}
+                    </Glass>
+                    <Glass
+                      variant="subtle"
+                      className="px-2 py-1 cursor-pointer"
+                      onClick={skipToEnd}
+                    >
+                      <span className="text-xs text-[var(--foreground-muted)]">
+                        Skip
+                      </span>
+                    </Glass>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="text-right">
             <div className="text-lg font-semibold text-[var(--cta-text)]">
-              {getOverallProgress()}%
+              {Math.round(getOverallProgress())}%
             </div>
             <div className="text-xs text-[var(--foreground-muted)]">
-              {steps.filter((s) => s.status === "completed").length} of{" "}
-              {steps.length} steps
+              Step {Math.max(cinematicIndex + 1, 1)} of {cinematicSteps.length}
             </div>
           </div>
         </div>
 
-        {/* Animated Progress Bar */}
-        <div className="relative h-2 bg-[var(--card-border)] rounded-full overflow-hidden">
+        {/* Cinematic Progress Bar */}
+        <div className="relative h-3 bg-[var(--card-border)] rounded-full overflow-hidden">
           <motion.div
             ref={progressRef}
             className="h-full rounded-full relative overflow-hidden"
             style={{
-              background:
-                status === "completed"
-                  ? `linear-gradient(90deg, var(--success), #00ffc2b0)`
-                  : status === "failed"
-                  ? `linear-gradient(90deg, var(--error), #ff4b4bb0)`
-                  : `linear-gradient(90deg, var(--accent-primary), #4c5bffb0)`,
+              background: celebrationMode
+                ? `linear-gradient(90deg, var(--success), #00ffc2b0)`
+                : cinematicSteps.some((s) => s.cinematicStatus === "failed")
+                ? `linear-gradient(90deg, var(--error), #ff4b4bb0)`
+                : `linear-gradient(90deg, var(--accent-primary), #4c5bffb0)`,
             }}
             initial={{ width: 0 }}
             animate={{ width: `${getOverallProgress()}%` }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
           >
             {/* Animated shimmer effect */}
-            {status === "running" && (
+            {cinematicIndex >= 0 && !celebrationMode && (
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
                 animate={{ x: ["-100%", "100%"] }}
                 transition={{
-                  duration: 1.5,
+                  duration: 2,
                   repeat: Infinity,
                   ease: "easeInOut",
                 }}
@@ -357,60 +521,63 @@ export function MultiStepMessage({
         </div>
       </Glass>
 
-      {/* Steps Container */}
+      {/* Cinematic Steps Reveal */}
       <div className="space-y-3">
         <AnimatePresence mode="popLayout">
-          {steps.slice(0, visibleSteps).map((step, index) => {
-            const variant = getStepVariant(step, index);
-            const isActive = index === currentStepIndex;
+          {cinematicSteps.map((step, index) => {
+            if (step.cinematicStatus === "hidden") return null;
 
             return (
               <motion.div
                 key={step.id}
                 layout
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -10, scale: 0.95 }}
                 transition={{
-                  duration: 0.4,
-                  delay: index * 0.1,
+                  duration: 0.6,
                   type: "spring",
-                  stiffness: 400,
+                  stiffness: 300,
                   damping: 25,
                 }}
               >
                 <Glass
-                  variant={variant === "active" ? "strong" : "default"}
-                  glow={isActive && status === "running"}
+                  variant={index === cinematicIndex ? "strong" : "default"}
+                  glow={
+                    index === cinematicIndex &&
+                    step.cinematicStatus === "processing"
+                  }
                   glowColor="primary"
                   className={cn(
-                    "p-4 transition-all duration-300",
+                    "p-4 transition-all duration-500",
                     onStepClick && "cursor-pointer",
-                    isActive && "ring-1 ring-[var(--accent-primary)]/30",
-                    step.status === "completed" &&
+                    index === cinematicIndex &&
+                      "ring-1 ring-[var(--accent-primary)]/30",
+                    step.cinematicStatus === "completed" &&
                       "bg-[var(--success)]/5 border-[var(--success)]/20",
-                    step.status === "failed" &&
+                    step.cinematicStatus === "failed" &&
                       "bg-[var(--error)]/5 border-[var(--error)]/20"
                   )}
                   onClick={() => onStepClick?.(index)}
                   interactive={!!onStepClick}
                 >
                   <div className="flex items-start space-x-4">
-                    {/* Step Icon with Connection Line */}
+                    {/* Cinematic Icon with Connection */}
                     <div className="flex flex-col items-center">
                       <div className="relative z-10 p-2 rounded-full bg-[var(--card-background)] border border-[var(--card-border)]">
                         {getStepIcon(step, index)}
                       </div>
 
-                      {/* Connection line to next step */}
-                      {index < steps.length - 1 && (
+                      {/* Animated connection line */}
+                      {index < cinematicSteps.length - 1 && (
                         <motion.div
                           className="w-0.5 h-8 mt-2 bg-gradient-to-b from-[var(--card-border)] to-transparent"
                           initial={{ scaleY: 0 }}
                           animate={{
-                            scaleY: index <= currentStepIndex ? 1 : 0.3,
+                            scaleY: index <= cinematicIndex ? 1 : 0.3,
+                            opacity: index <= cinematicIndex ? 1 : 0.5,
                           }}
-                          transition={{ duration: 0.5, delay: 0.2 }}
+                          transition={{ duration: 0.8, delay: 0.3 }}
                         />
                       )}
                     </div>
@@ -418,18 +585,11 @@ export function MultiStepMessage({
                     {/* Step Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          <h4 className="text-sm font-semibold text-[var(--cta-text)]">
-                            {step.name}
-                          </h4>
-                          {showTimings && step.startTime && step.endTime && (
-                            <span className="text-xs text-[var(--foreground-muted)] bg-[var(--card-background)] px-2 py-1 rounded-full">
-                              {formatDuration(step.startTime, step.endTime)}
-                            </span>
-                          )}
-                        </div>
+                        <h4 className="text-sm font-semibold text-[var(--cta-text)]">
+                          {step.name}
+                        </h4>
                         <span className="text-xs text-[var(--foreground-subtle)] font-mono">
-                          {index + 1}/{steps.length}
+                          {index + 1}/{cinematicSteps.length}
                         </span>
                       </div>
 
@@ -437,52 +597,49 @@ export function MultiStepMessage({
                         {step.description}
                       </p>
 
-                      {/* Progress/Result Messages */}
-                      <AnimatePresence>
-                        {step.progressMessage && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="mt-3"
-                          >
-                            <Glass
-                              variant="subtle"
-                              className={cn(
-                                "p-3 text-sm font-medium",
-                                step.status === "completed" &&
-                                  "text-[var(--success)]",
-                                step.status === "failed" &&
-                                  "text-[var(--error)]",
-                                step.status === "running" &&
-                                  "text-[var(--accent-primary)]"
-                              )}
-                            >
-                              {step.progressMessage}
-                            </Glass>
-                          </motion.div>
-                        )}
+                      {/* Cinematic Progress Bar for Current Step */}
+                      {step.cinematicStatus === "processing" && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          className="mb-3"
+                        >
+                          <div className="h-1.5 bg-[var(--card-border)] rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-[var(--accent-primary)] rounded-full"
+                              initial={{ width: 0 }}
+                              animate={{ width: `${step.cinematicProgress}%` }}
+                              transition={{ duration: 0.3, ease: "easeOut" }}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
 
-                        {step.error && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.3 }}
-                            className="mt-3"
-                          >
-                            <Glass
-                              variant="subtle"
-                              className="p-3 text-sm text-[var(--error)] bg-[var(--error)]/10"
+                      {/* Cinematic Result Messages */}
+                      <AnimatePresence>
+                        {step.progressMessage &&
+                          step.cinematicStatus !== "processing" && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="mt-3"
                             >
-                              <div className="flex items-start space-x-2">
-                                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                <span>{step.error}</span>
-                              </div>
-                            </Glass>
-                          </motion.div>
-                        )}
+                              <Glass
+                                variant="subtle"
+                                className={cn(
+                                  "p-3 text-sm font-medium",
+                                  step.cinematicStatus === "completed" &&
+                                    "text-[var(--success)]",
+                                  step.cinematicStatus === "failed" &&
+                                    "text-[var(--error)]"
+                                )}
+                              >
+                                {step.progressMessage}
+                              </Glass>
+                            </motion.div>
+                          )}
                       </AnimatePresence>
                     </div>
                   </div>
@@ -493,39 +650,31 @@ export function MultiStepMessage({
         </AnimatePresence>
       </div>
 
-      {/* Live Updates Ticker */}
-      {progressMessages.length > 0 && (
-        <Glass variant="subtle" className="p-4">
-          <div className="flex items-center space-x-2 mb-3">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-            >
-              <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
-            </motion.div>
-            <span className="text-xs font-medium text-[var(--foreground-muted)] uppercase tracking-wide">
-              Live Updates
-            </span>
-          </div>
-
-          <div className="max-h-24 overflow-y-auto scrollbar-thin space-y-2">
-            <AnimatePresence>
-              {progressMessages.slice(-3).map((message, index) => (
+      {/* Live Progress Message Ticker */}
+      <AnimatePresence>
+        {currentProgressMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Glass variant="subtle" className="p-4">
+              <div className="flex items-center space-x-3">
                 <motion.div
-                  key={`${message}-${index}`}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="text-sm text-[var(--foreground-muted)] bg-[var(--card-background)] rounded-lg px-3 py-2 border border-[var(--card-border)]"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 >
-                  {message}
+                  <Zap className="w-4 h-4 text-[var(--accent-primary)]" />
                 </motion.div>
-              ))}
-            </AnimatePresence>
-          </div>
-        </Glass>
-      )}
+                <span className="text-sm text-[var(--foreground-muted)] font-medium">
+                  {currentProgressMessage}
+                </span>
+              </div>
+            </Glass>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

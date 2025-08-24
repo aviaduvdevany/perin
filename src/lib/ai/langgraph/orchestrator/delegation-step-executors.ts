@@ -273,13 +273,6 @@ export function createDelegationSteps(requestData: {
 }): StepDefinitionWithData[] {
   return [
     {
-      id: "analyze_request",
-      name: "Analyze Request",
-      description: "Understanding your meeting request and extracting details",
-      required: true,
-      estimatedDuration: 2,
-    },
-    {
       id: "check_availability",
       name: "Check Availability",
       description: "Checking the owner's calendar for availability",

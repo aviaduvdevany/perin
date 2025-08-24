@@ -20,6 +20,26 @@ interface MultiStepState {
   sessionId?: string;
   totalProcessingTime?: number;
   averageStepTime?: number;
+
+  // Cinematic buffering
+  cinematicMode: boolean;
+  bufferedSteps: Step[];
+  realTimeComplete: boolean;
+}
+
+interface ParsedUpdate {
+  type:
+    | "step_start"
+    | "step_progress"
+    | "step_result"
+    | "step_end"
+    | "complete";
+  stepId?: string;
+  stepName?: string;
+  status?: string;
+  message?: string;
+  result?: string;
+  timestamp: Date;
 }
 
 const CONTROL_TOKEN_PATTERNS = {
@@ -37,10 +57,14 @@ export function useMultiStepParser() {
     currentStepIndex: 0,
     status: "running",
     progressMessages: [],
+    cinematicMode: true, // Enable cinematic mode by default
+    bufferedSteps: [],
+    realTimeComplete: false,
   });
 
   const processStartTimeRef = useRef<Date | null>(null);
   const stepTimesRef = useRef<number[]>([]);
+  const updateBufferRef = useRef<ParsedUpdate[]>([]);
 
   const parseControlTokens = useCallback(
     (
@@ -71,7 +95,10 @@ export function useMultiStepParser() {
         processStartTimeRef.current = new Date();
       }
 
-      // Parse STEP_START tokens with enhanced emotional feedback
+      // Parse all control tokens and buffer them for cinematic playback
+      const updates: ParsedUpdate[] = [];
+
+      // Parse STEP_START tokens
       let match;
       while (
         (match = CONTROL_TOKEN_PATTERNS.STEP_START.exec(content)) !== null
@@ -81,53 +108,18 @@ export function useMultiStepParser() {
         emotionalContext.progressDirection = "forward";
         emotionalContext.urgency = "high";
 
-        setMultiStepState((prev) => {
-          const existingStepIndex = prev.steps.findIndex(
-            (s) => s.id === stepId
-          );
-
-          if (existingStepIndex >= 0) {
-            // Update existing step with emotional enhancement
-            const updatedSteps = [...prev.steps];
-            updatedSteps[existingStepIndex] = {
-              ...updatedSteps[existingStepIndex],
-              status: "running",
-              startTime: new Date(),
-              description: `🧠 ${stepName}...`,
-            };
-
-            return {
-              ...prev,
-              isMultiStep: true,
-              steps: updatedSteps,
-              currentStepIndex: existingStepIndex,
-              status: "running",
-            };
-          } else {
-            // Add new step with emotional enhancement
-            const newStep: Step = {
-              id: stepId,
-              name: stepName,
-              description: `✨ Processing ${stepName.toLowerCase()}...`,
-              status: "running",
-              startTime: new Date(),
-            };
-
-            return {
-              ...prev,
-              isMultiStep: true,
-              steps: [...prev.steps, newStep],
-              currentStepIndex: prev.steps.length,
-              status: "running",
-            };
-          }
+        updates.push({
+          type: "step_start",
+          stepId,
+          stepName,
+          timestamp: new Date(),
         });
 
         cleanContent = cleanContent.replace(fullMatch, "");
       }
       CONTROL_TOKEN_PATTERNS.STEP_START.lastIndex = 0;
 
-      // Parse STEP_PROGRESS tokens with sentiment analysis
+      // Parse STEP_PROGRESS tokens
       while (
         (match = CONTROL_TOKEN_PATTERNS.STEP_PROGRESS.exec(content)) !== null
       ) {
@@ -161,30 +153,23 @@ export function useMultiStepParser() {
           emotionalContext.sentiment = "negative";
         }
 
-        setMultiStepState((prev) => ({
-          ...prev,
-          progressMessages: [
-            ...prev.progressMessages.slice(-4), // Keep only last 5 messages
-            `${new Date().toLocaleTimeString([], {
-              hour12: false,
-              minute: "2-digit",
-              second: "2-digit",
-            })} • ${message}`,
-          ],
-        }));
+        updates.push({
+          type: "step_progress",
+          message,
+          timestamp: new Date(),
+        });
 
         cleanContent = cleanContent.replace(fullMatch, "");
       }
       CONTROL_TOKEN_PATTERNS.STEP_PROGRESS.lastIndex = 0;
 
-      // Parse STEP_RESULT tokens with enhanced status tracking
+      // Parse STEP_RESULT tokens
       while (
         (match = CONTROL_TOKEN_PATTERNS.STEP_RESULT.exec(content)) !== null
       ) {
         hasControlTokens = true;
         const [fullMatch, stepId, status, result] = match;
 
-        // Update emotional context based on result
         if (status === "completed") {
           emotionalContext.sentiment = "positive";
           emotionalContext.urgency = "low";
@@ -193,81 +178,34 @@ export function useMultiStepParser() {
           emotionalContext.urgency = "high";
         }
 
-        setMultiStepState((prev) => {
-          const stepIndex = prev.steps.findIndex((s) => s.id === stepId);
-          if (stepIndex >= 0) {
-            const updatedSteps = [...prev.steps];
-            const stepEndTime = new Date();
-            const stepStartTime = updatedSteps[stepIndex].startTime;
-
-            // Calculate step duration for analytics
-            if (stepStartTime) {
-              const duration = stepEndTime.getTime() - stepStartTime.getTime();
-              stepTimesRef.current.push(duration);
-            }
-
-            updatedSteps[stepIndex] = {
-              ...updatedSteps[stepIndex],
-              status: status as Step["status"],
-              endTime: stepEndTime,
-              progressMessage:
-                result || updatedSteps[stepIndex].progressMessage,
-              ...(status === "failed" && result ? { error: result } : {}),
-            };
-
-            // Calculate average step time for emotional pacing
-            const avgTime =
-              stepTimesRef.current.length > 0
-                ? stepTimesRef.current.reduce((a, b) => a + b, 0) /
-                  stepTimesRef.current.length
-                : 0;
-
-            return {
-              ...prev,
-              steps: updatedSteps,
-              averageStepTime: avgTime,
-            };
-          }
-          return prev;
+        updates.push({
+          type: "step_result",
+          stepId,
+          status,
+          result,
+          timestamp: new Date(),
         });
 
         cleanContent = cleanContent.replace(fullMatch, "");
       }
       CONTROL_TOKEN_PATTERNS.STEP_RESULT.lastIndex = 0;
 
-      // Parse STEP_END tokens with completion celebrations
+      // Parse STEP_END tokens
       while ((match = CONTROL_TOKEN_PATTERNS.STEP_END.exec(content)) !== null) {
         hasControlTokens = true;
         const [fullMatch, stepId] = match;
 
-        setMultiStepState((prev) => {
-          const stepIndex = prev.steps.findIndex((s) => s.id === stepId);
-          if (stepIndex >= 0) {
-            const updatedSteps = [...prev.steps];
-            if (updatedSteps[stepIndex].status === "running") {
-              updatedSteps[stepIndex] = {
-                ...updatedSteps[stepIndex],
-                status: "completed",
-                endTime: new Date(),
-                progressMessage:
-                  updatedSteps[stepIndex].progressMessage ||
-                  `✅ ${updatedSteps[stepIndex].name} completed successfully!`,
-              };
-            }
-
-            return {
-              ...prev,
-              steps: updatedSteps,
-            };
-          }
-          return prev;
+        updates.push({
+          type: "step_end",
+          stepId,
+          timestamp: new Date(),
         });
 
         cleanContent = cleanContent.replace(fullMatch, "");
       }
       CONTROL_TOKEN_PATTERNS.STEP_END.lastIndex = 0;
 
-      // Parse MULTI_STEP_COMPLETE tokens with celebration mode
+      // Parse MULTI_STEP_COMPLETE tokens
       while (
         (match = CONTROL_TOKEN_PATTERNS.MULTI_STEP_COMPLETE.exec(content)) !==
         null
@@ -278,25 +216,24 @@ export function useMultiStepParser() {
         emotionalContext.urgency = "low";
         emotionalContext.progressDirection = "forward";
 
-        setMultiStepState((prev) => {
-          const totalTime = processStartTimeRef.current
-            ? new Date().getTime() - processStartTimeRef.current.getTime()
-            : 0;
-
-          return {
-            ...prev,
-            status: "completed",
-            totalProcessingTime: totalTime,
-            progressMessages: [
-              ...prev.progressMessages,
-              `🎉 Process completed in ${Math.round(totalTime / 1000)}s!`,
-            ],
-          };
+        updates.push({
+          type: "complete",
+          timestamp: new Date(),
         });
 
         cleanContent = cleanContent.replace(fullMatch, "");
       }
       CONTROL_TOKEN_PATTERNS.MULTI_STEP_COMPLETE.lastIndex = 0;
+
+      // Process updates based on mode
+      if (multiStepState.cinematicMode) {
+        // Buffer updates for cinematic playback
+        updateBufferRef.current.push(...updates);
+        processBufferedUpdates();
+      } else {
+        // Process updates immediately (legacy mode)
+        processUpdatesImmediately(updates);
+      }
 
       return {
         cleanContent: cleanContent.trim(),
@@ -304,8 +241,212 @@ export function useMultiStepParser() {
         emotionalContext,
       };
     },
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [multiStepState.cinematicMode]
   );
+
+  const processBufferedUpdates = useCallback(() => {
+    const updates = updateBufferRef.current;
+    if (updates.length === 0) return;
+
+    // Build complete step structure from buffered updates
+    const stepsMap = new Map<string, Step>();
+    let isComplete = false;
+    const messages: string[] = [];
+
+    updates.forEach((update) => {
+      switch (update.type) {
+        case "step_start":
+          if (update.stepId && update.stepName) {
+            stepsMap.set(update.stepId, {
+              id: update.stepId,
+              name: update.stepName,
+              description: `Processing ${update.stepName.toLowerCase()}...`,
+              status: "pending",
+              startTime: update.timestamp,
+            });
+          }
+          break;
+
+        case "step_progress":
+          if (update.message) {
+            messages.push(
+              `${update.timestamp.toLocaleTimeString([], {
+                hour12: false,
+                minute: "2-digit",
+                second: "2-digit",
+              })} • ${update.message}`
+            );
+          }
+          break;
+
+        case "step_result":
+          if (update.stepId && update.status) {
+            const step = stepsMap.get(update.stepId);
+            if (step) {
+              step.status = update.status as Step["status"];
+              step.progressMessage = update.result || step.progressMessage;
+              if (update.status === "failed" && update.result) {
+                step.error = update.result;
+              }
+            }
+          }
+          break;
+
+        case "step_end":
+          if (update.stepId) {
+            const step = stepsMap.get(update.stepId);
+            if (step && step.status === "pending") {
+              step.status = "completed";
+              step.endTime = update.timestamp;
+            }
+          }
+          break;
+
+        case "complete":
+          isComplete = true;
+          break;
+      }
+    });
+
+    // Update state with buffered data
+    setMultiStepState((prev) => ({
+      ...prev,
+      isMultiStep: true,
+      bufferedSteps: Array.from(stepsMap.values()),
+      steps: Array.from(stepsMap.values()), // For cinematic component to use
+      progressMessages: messages,
+      realTimeComplete: isComplete,
+      status: isComplete ? "completed" : "running",
+    }));
+  }, []);
+
+  const processUpdatesImmediately = useCallback((updates: ParsedUpdate[]) => {
+    updates.forEach((update) => {
+      switch (update.type) {
+        case "step_start":
+          if (update.stepId && update.stepName) {
+            setMultiStepState((prev) => {
+              const existingStepIndex = prev.steps.findIndex(
+                (s) => s.id === update.stepId
+              );
+
+              if (existingStepIndex >= 0) {
+                const updatedSteps = [...prev.steps];
+                updatedSteps[existingStepIndex] = {
+                  ...updatedSteps[existingStepIndex],
+                  status: "running",
+                  startTime: update.timestamp,
+                };
+
+                return {
+                  ...prev,
+                  isMultiStep: true,
+                  steps: updatedSteps,
+                  currentStepIndex: existingStepIndex,
+                  status: "running",
+                };
+              } else {
+                const newStep: Step = {
+                  id: update.stepId!,
+                  name: update.stepName!,
+                  description: `Processing ${update.stepName!.toLowerCase()}...`,
+                  status: "running",
+                  startTime: update.timestamp,
+                };
+
+                return {
+                  ...prev,
+                  isMultiStep: true,
+                  steps: [...prev.steps, newStep],
+                  currentStepIndex: prev.steps.length,
+                  status: "running",
+                };
+              }
+            });
+          }
+          break;
+
+        case "step_progress":
+          if (update.message) {
+            setMultiStepState((prev) => ({
+              ...prev,
+              progressMessages: [
+                ...prev.progressMessages.slice(-4),
+                `${update.timestamp.toLocaleTimeString([], {
+                  hour12: false,
+                  minute: "2-digit",
+                  second: "2-digit",
+                })} • ${update.message}`,
+              ],
+            }));
+          }
+          break;
+
+        case "step_result":
+          if (update.stepId && update.status) {
+            setMultiStepState((prev) => {
+              const stepIndex = prev.steps.findIndex(
+                (s) => s.id === update.stepId
+              );
+              if (stepIndex >= 0) {
+                const updatedSteps = [...prev.steps];
+                updatedSteps[stepIndex] = {
+                  ...updatedSteps[stepIndex],
+                  status: update.status as Step["status"],
+                  endTime: update.timestamp,
+                  progressMessage:
+                    update.result || updatedSteps[stepIndex].progressMessage,
+                  ...(update.status === "failed" && update.result
+                    ? { error: update.result }
+                    : {}),
+                };
+
+                return {
+                  ...prev,
+                  steps: updatedSteps,
+                };
+              }
+              return prev;
+            });
+          }
+          break;
+
+        case "step_end":
+          if (update.stepId) {
+            setMultiStepState((prev) => {
+              const stepIndex = prev.steps.findIndex(
+                (s) => s.id === update.stepId
+              );
+              if (stepIndex >= 0) {
+                const updatedSteps = [...prev.steps];
+                if (updatedSteps[stepIndex].status === "running") {
+                  updatedSteps[stepIndex] = {
+                    ...updatedSteps[stepIndex],
+                    status: "completed",
+                    endTime: update.timestamp,
+                  };
+                }
+
+                return {
+                  ...prev,
+                  steps: updatedSteps,
+                };
+              }
+              return prev;
+            });
+          }
+          break;
+
+        case "complete":
+          setMultiStepState((prev) => ({
+            ...prev,
+            status: "completed",
+          }));
+          break;
+      }
+    });
+  }, []);
 
   const resetMultiStepState = useCallback(() => {
     setMultiStepState({
@@ -314,9 +455,20 @@ export function useMultiStepParser() {
       currentStepIndex: 0,
       status: "running",
       progressMessages: [],
+      cinematicMode: true,
+      bufferedSteps: [],
+      realTimeComplete: false,
     });
     processStartTimeRef.current = null;
     stepTimesRef.current = [];
+    updateBufferRef.current = [];
+  }, []);
+
+  const toggleCinematicMode = useCallback(() => {
+    setMultiStepState((prev) => ({
+      ...prev,
+      cinematicMode: !prev.cinematicMode,
+    }));
   }, []);
 
   const pauseProcessing = useCallback(() => {
@@ -354,6 +506,7 @@ export function useMultiStepParser() {
               ((steps.length * averageStepTime) / totalProcessingTime) * 100
             )
           : 0,
+      realTimeComplete: multiStepState.realTimeComplete,
     };
   }, [multiStepState]);
 
@@ -361,6 +514,7 @@ export function useMultiStepParser() {
     multiStepState,
     parseControlTokens,
     resetMultiStepState,
+    toggleCinematicMode,
     pauseProcessing,
     resumeProcessing,
     getProcessingInsights,
