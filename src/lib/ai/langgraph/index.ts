@@ -12,7 +12,7 @@ import type { IntegrationType } from "@/types/integrations";
 import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
-import { TOOL_SPECS, getToolSpecsForContext } from "../tools/registry";
+import { getToolSpecsForContext } from "../tools/registry";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -341,11 +341,19 @@ export const executePerinChatWithLangGraph = async (
               }))
             );
 
+            // Rebuild system prompt with updated state (including user timezone)
+            const updatedSystemPrompt = buildSystemPrompt(state);
+
+            console.log(
+              "Responder phase - User timezone:",
+              state.user?.timezone
+            );
+
             const responderMessages: ChatMessage[] = [
               {
                 role: "system",
                 content:
-                  systemPrompt +
+                  updatedSystemPrompt +
                   "\n[system-note] Summarize the actions taken and provide a helpful response to the user.",
               },
               ...filteredMessages,

@@ -63,26 +63,50 @@ const calendarContextLoader = async (
   userId: string
 ): Promise<CalendarData[]> => {
   try {
+    // Get user's timezone
+    const user = await import("@/lib/queries/users").then((m) =>
+      m.getUserById(userId)
+    );
+    const userTimezone = user?.timezone || "UTC";
+
     // Fetch recent events across all connected calendar accounts
     const events = await fetchRecentEventsFromAll(userId, 7, 5);
 
-    return events.map(
-      (event) =>
-        ({
-          id: event.id,
-          summary: event.summary,
-          description: event.description || "",
-          start: event.start,
-          end: event.end,
-          location: event.location || "",
-          isAllDay: event.isAllDay,
-          attendees: event.attendees?.length || 0,
-          ...(event.__accountId ? { __accountId: event.__accountId } : {}),
-          ...(event.__accountEmail
-            ? { __accountEmail: event.__accountEmail }
-            : {}),
-        } as unknown as CalendarData)
-    );
+    return events.map((event) => {
+      // Convert times to user's timezone
+      const convertToUserTimezone = (isoString: string) => {
+        if (!isoString) return isoString;
+        try {
+          const date = new Date(isoString);
+          return date.toLocaleString("en-US", {
+            timeZone: userTimezone,
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          });
+        } catch {
+          return isoString;
+        }
+      };
+
+      return {
+        id: event.id,
+        summary: event.summary,
+        description: event.description || "",
+        start: convertToUserTimezone(event.start),
+        end: convertToUserTimezone(event.end),
+        location: event.location || "",
+        isAllDay: event.isAllDay,
+        attendees: event.attendees?.length || 0,
+        ...(event.__accountId ? { __accountId: event.__accountId } : {}),
+        ...(event.__accountEmail
+          ? { __accountEmail: event.__accountEmail }
+          : {}),
+      } as unknown as CalendarData;
+    });
   } catch (error) {
     console.error("Error in Calendar context loader:", error);
     // Propagate so upstream can signal reauth and stop LLM streaming

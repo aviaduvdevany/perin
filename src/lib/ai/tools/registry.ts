@@ -27,6 +27,11 @@ import {
   scheduleWithOwnerHandler,
   scheduleWithOwnerSchema,
 } from "./delegation";
+import {
+  createSoloEventSpec,
+  createSoloEventHandler,
+  createSoloEventSchema,
+} from "./calendar";
 
 /**
  * OpenAI tool specifications for the LLM planner phase
@@ -35,6 +40,7 @@ export const TOOL_SPECS: ToolSpec[] = [
   scheduleMeetingSpec,
   confirmMeetingSpec,
   resolveNotificationSpec,
+  createSoloEventSpec,
   // More tools will be added here...
 ];
 
@@ -78,6 +84,11 @@ export const TOOL_HANDLERS = {
     spec: scheduleWithOwnerSpec,
     handler: scheduleWithOwnerHandler,
     schema: scheduleWithOwnerSchema,
+  },
+  calendar_create_solo_event: {
+    spec: createSoloEventSpec,
+    handler: createSoloEventHandler,
+    schema: createSoloEventSchema,
   },
   // More handlers will be added here...
 } as const;

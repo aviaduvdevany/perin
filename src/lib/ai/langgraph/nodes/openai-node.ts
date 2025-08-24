@@ -108,17 +108,30 @@ ${
 - Prefer tools over conversation for scheduling and coordination tasks
 - If information is missing for tool calls, ask ONE concise clarifying question and proceed
 - Never fabricate IDs; always use human names/emails - the system resolves them securely
-- Respect timezones explicitly; if the user mentions a region (e.g., "Israel time"), use the tzHint parameter
+- Respect timezones explicitly; always use the user's timezone (${
+        user?.timezone || "UTC"
+      }) in responses, not UTC
+- If the user mentions a region (e.g., "Israel time"), use the tzHint parameter
 - After tool actions, summarize what you did and explain what happens next
 - For meeting confirmations, you can select by index (0-based) or specify custom times
-- Available tools include: schedule meetings, confirm meetings, resolve notifications`
+- Available tools include: schedule meetings (with others), create solo events, confirm meetings, resolve notifications
+- Use "calendar_create_solo_event" for personal events/meetings with yourself
+- Use "network_schedule_meeting" for meetings with other people`
 }
 
 Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
 User Preferences:
-- Timezone: ${user?.timezone || "UTC"}
+- Timezone: ${
+    user?.timezone || "UTC"
+  } (All times in calendar context are in this timezone)
 - Preferred Hours: ${JSON.stringify(user?.preferred_hours || {}, null, 2)}
+
+IMPORTANT: Always refer to times in the user's timezone (${
+    user?.timezone || "UTC"
+  }), never say "UTC" unless the user specifically asks for UTC time.
+
+DEBUG: User timezone is "${user?.timezone || "UTC"}"
 
 Email Context: ${
     emailContext && emailContext.recentEmails
@@ -141,7 +154,11 @@ Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
 
 Calendar Context: ${
     calendarContext && calendarContext.recentEvents
-      ? `You have access to recent calendar events:
+      ? `You have access to recent calendar events (all times are in ${
+          user?.timezone || "UTC"
+        } timezone). When the user says "tomorrow", "today", etc., interpret these relative to ${
+          user?.timezone || "UTC"
+        } timezone:
 ${calendarContext.recentEvents
   .map(
     (event, index) =>
@@ -161,7 +178,11 @@ Next event: ${
         }
 Has upcoming events: ${calendarContext.hasUpcomingEvents ? "Yes" : "No"}
 
-IMPORTANT: Use this calendar context to answer questions about meetings and events. Do NOT try to call calendar tools - the information is already available here.`
+IMPORTANT: Use this calendar context to answer questions about meetings and events. Do NOT try to call calendar tools - the information is already available here.
+
+TIMEZONE INTERPRETATION: When the user says "tomorrow", "today", "next week", etc., interpret these relative to the user's timezone (${
+          user?.timezone || "UTC"
+        }). For example, if it's currently 11 PM in the user's timezone and they say "tomorrow", that means the next calendar day in their timezone.`
       : "No recent calendar context available"
   }
 
