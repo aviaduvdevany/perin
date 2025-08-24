@@ -142,12 +142,21 @@ export const executePerinChatWithLangGraph = async (
             ...(memoryResult as Partial<LangGraphChatState>),
           };
 
-          // Step 2: Load all relevant integration contexts
-          const integrationResult = await multiIntegrationNode(state);
-          state = {
-            ...state,
-            ...(integrationResult as Partial<LangGraphChatState>),
-          };
+          // Step 2: Load all relevant integration contexts (skip for delegation)
+          if (!state.delegationContext?.isDelegation) {
+            const integrationResult = await multiIntegrationNode(state);
+            state = {
+              ...state,
+              ...(integrationResult as Partial<LangGraphChatState>),
+            };
+          } else {
+            // For delegation, just set empty integrations
+            state = {
+              ...state,
+              integrations: {},
+              currentStep: "delegation_mode_skip_integrations",
+            };
+          }
 
           // If Gmail requires reauth, emit a control token for the UI to react seamlessly
           try {
@@ -187,15 +196,20 @@ export const executePerinChatWithLangGraph = async (
             }
           } catch {}
 
-          // Step 2a: Load notifications context so Perin knows about actionable items
-          const notifResult = await notificationsContextNode(state);
-          state = {
-            ...state,
-            ...(notifResult as Partial<LangGraphChatState>),
-          };
+          // Step 2a: Load notifications context so Perin knows about actionable items (skip for delegation)
+          if (!state.delegationContext?.isDelegation) {
+            const notifResult = await notificationsContextNode(state);
+            state = {
+              ...state,
+              ...(notifResult as Partial<LangGraphChatState>),
+            };
+          }
 
-          // Step 2.5: Network negotiation if scheduling intent
-          if (specialization === "scheduling") {
+          // Step 2.5: Network negotiation if scheduling intent (skip for delegation)
+          if (
+            specialization === "scheduling" &&
+            !state.delegationContext?.isDelegation
+          ) {
             const netResult = await networkNegotiationNode(state, {
               intent: "schedule",
               counterpartUserId: counterpartUserId || "",
@@ -205,12 +219,14 @@ export const executePerinChatWithLangGraph = async (
             state = { ...state, ...(netResult as Partial<LangGraphChatState>) };
           }
 
-          // Step 2.6: If user responds with a selection like "confirm 2", try to act on notification
-          const notifActionResult = await notificationsActionNode(state);
-          state = {
-            ...state,
-            ...(notifActionResult as Partial<LangGraphChatState>),
-          };
+          // Step 2.6: If user responds with a selection like "confirm 2", try to act on notification (skip for delegation)
+          if (!state.delegationContext?.isDelegation) {
+            const notifActionResult = await notificationsActionNode(state);
+            state = {
+              ...state,
+              ...(notifActionResult as Partial<LangGraphChatState>),
+            };
+          }
 
           // Step 3: Decide execution mode (tool-calling vs direct streaming)
           const useToolMode = shouldUseToolMode(messages, specialization);
@@ -344,10 +360,7 @@ export const executePerinChatWithLangGraph = async (
             // Rebuild system prompt with updated state (including user timezone)
             const updatedSystemPrompt = buildSystemPrompt(state);
 
-            console.log(
-              "Responder phase - User timezone:",
-              state.user?.timezone
-            );
+            // Debug logging removed for cleaner logs
 
             const responderMessages: ChatMessage[] = [
               {
