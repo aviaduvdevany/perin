@@ -325,38 +325,83 @@ export const executePerinChatWithLangGraph = async (
             try {
               const calendarNode = createIntegrationNode("calendar");
               const calendarResult = await calendarNode(state);
-              state = {
-                ...state,
-                integrations: {
-                  calendar: (
-                    calendarResult as {
-                      calendarContext?: Record<string, unknown>;
-                    }
-                  ).calendarContext || {
-                    isConnected: false,
-                    data: [],
-                    count: 0,
+
+              // Check if calendar needs reauth
+              const calendarContext = (
+                calendarResult as { calendarContext?: Record<string, unknown> }
+              ).calendarContext;
+
+              if (
+                calendarContext?.error &&
+                typeof calendarContext.error === "string" &&
+                calendarContext.error.includes("REAUTH_REQUIRED")
+              ) {
+                // Calendar needs reauth - provide clear error message
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error: "CALENDAR_REAUTH_REQUIRED",
+                    },
                   },
-                },
-                currentStep: "delegation_calendar_loaded",
-              };
+                  currentStep: "delegation_calendar_reauth_required",
+                };
+              } else {
+                // Calendar loaded successfully or failed for other reasons
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: calendarContext || {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                    },
+                  },
+                  currentStep: "delegation_calendar_loaded",
+                };
+              }
             } catch (error) {
               console.error("Error loading calendar for delegation:", error);
-              state = {
-                ...state,
-                integrations: {
-                  calendar: {
-                    isConnected: false,
-                    data: [],
-                    count: 0,
-                    error:
-                      error instanceof Error
-                        ? error.message
-                        : "Calendar loading failed",
+
+              // Check if it's a reauth error
+              if (
+                error instanceof Error &&
+                (error.message.includes("REAUTH_REQUIRED") ||
+                  error.message.includes("invalid_grant") ||
+                  error.message.includes("INVALID_GRANT"))
+              ) {
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error: "CALENDAR_REAUTH_REQUIRED",
+                    },
                   },
-                },
-                currentStep: "delegation_calendar_error",
-              };
+                  currentStep: "delegation_calendar_reauth_required",
+                };
+              } else {
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : "Calendar loading failed",
+                    },
+                  },
+                  currentStep: "delegation_calendar_error",
+                };
+              }
             }
           }
 
@@ -372,6 +417,7 @@ export const executePerinChatWithLangGraph = async (
             const calCtx = integrationsObj["calendar"] as
               | { error?: string }
               | undefined;
+
             if (
               gmailCtx?.error === "GMAIL_REAUTH_REQUIRED" ||
               gmailCtx?.error === "GMAIL_NOT_CONNECTED"

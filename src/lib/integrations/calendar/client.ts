@@ -130,6 +130,7 @@ export const fetchRecentEventsFromAll = async (
   const results: Array<
     CalendarEvent & { __accountId: string; __accountEmail?: string }
   > = [];
+  let reauthErrorCount = 0;
 
   for (const integ of calIntegrations) {
     try {
@@ -194,8 +195,26 @@ export const fetchRecentEventsFromAll = async (
       });
     } catch (err) {
       console.error("Calendar account fetch failed:", err);
+      const code = (err as { code?: string })?.code;
+      if (code === "INVALID_GRANT") {
+        reauthErrorCount++;
+        continue;
+      }
       continue;
     }
+  }
+
+  // If all calendar accounts need reauth, throw an appropriate error
+  if (
+    reauthErrorCount > 0 &&
+    results.length === 0 &&
+    calIntegrations.length > 0
+  ) {
+    throw createIntegrationError(
+      IntegrationType.CALENDAR,
+      IntegrationErrorType.REAUTH_REQUIRED,
+      "Calendar token refresh failed - reauth required"
+    );
   }
 
   return results;
