@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Glass } from "@/components/ui/Glass";
 import PerinAvatar from "@/components/ui/PerinAvatar";
-import { sendDelegationChatService } from "@/app/services/delegation";
-import type { DelegationSession, DelegationMessage } from "@/types/delegation";
+import { sendDelegationChatStreamingService } from "@/app/services/delegation";
+import { useMultiStepParser } from "@/hooks/useMultiStepParser";
+import { MultiStepMessage } from "@/components/ui/MultiStepMessage";
+import type { DelegationSession } from "@/types/delegation";
 import {
   Send,
   Clock,
@@ -30,6 +32,7 @@ interface ChatMessage {
   fromExternal: boolean;
   timestamp: Date;
   isLoading?: boolean;
+  isMultiStep?: boolean;
 }
 
 export default function DelegationChat({
@@ -42,8 +45,13 @@ export default function DelegationChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userTimezone, setUserTimezone] = useState<string>("UTC");
+  const [streamingMessage, setStreamingMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Multi-step parsing hook
+  const { multiStepState, parseControlTokens, resetMultiStepState } =
+    useMultiStepParser();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -60,8 +68,8 @@ export default function DelegationChat({
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setUserTimezone(timezone);
-    } catch (error) {
-      console.warn("Could not detect timezone, using UTC");
+    } catch (err) {
+      console.warn("Could not detect timezone, using UTC", err);
       setUserTimezone("UTC");
     }
   }, []);
@@ -103,6 +111,8 @@ export default function DelegationChat({
     setInputMessage("");
     setIsLoading(true);
     setError(null);
+    setStreamingMessage("");
+    resetMultiStepState(); // Reset multi-step state for new conversation
 
     try {
       // Get signature from URL if present
@@ -117,16 +127,59 @@ export default function DelegationChat({
         timezone: userTimezone,
       };
 
-      const response = await sendDelegationChatService(requestData);
+      // Use streaming service
+      const stream = await sendDelegationChatStreamingService(requestData);
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
 
-      // Update AI message with response
+      let fullResponse = "";
+      let hasMultiStep = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+
+        // Parse control tokens and get clean content with emotional context
+        const { cleanContent, hasControlTokens, emotionalContext } =
+          parseControlTokens(chunk);
+
+        if (hasControlTokens) {
+          hasMultiStep = true;
+
+          // Provide haptic feedback for mobile users based on emotional context
+          if (emotionalContext?.sentiment === "positive" && navigator.vibrate) {
+            navigator.vibrate([50, 100, 50]); // Success pattern
+          } else if (
+            emotionalContext?.sentiment === "negative" &&
+            navigator.vibrate
+          ) {
+            navigator.vibrate([100, 50, 100, 50, 100]); // Error pattern
+          }
+        }
+
+        if (cleanContent) {
+          fullResponse += cleanContent;
+          setStreamingMessage(fullResponse);
+        }
+      }
+
+      // Update AI message with final response
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === aiMessage.id
-            ? { ...msg, content: response.response, isLoading: false }
+            ? {
+                ...msg,
+                content: fullResponse,
+                isLoading: false,
+                isMultiStep: hasMultiStep,
+              }
             : msg
         )
       );
+
+      setStreamingMessage("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to send message");
 
@@ -244,16 +297,56 @@ export default function DelegationChat({
                   }`}
                 >
                   {message.isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span className="text-sm text-[var(--foreground-muted)]">
-                        Perin is thinking...
-                      </span>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm text-[var(--foreground-muted)]">
+                          Perin is thinking...
+                        </span>
+                      </div>
+
+                      {/* Show multi-step progress during loading */}
+                      {multiStepState.isMultiStep && (
+                        <MultiStepMessage
+                          steps={multiStepState.steps}
+                          currentStepIndex={multiStepState.currentStepIndex}
+                          status={multiStepState.status}
+                          progressMessages={multiStepState.progressMessages}
+                          className="mt-4"
+                          showTimings={false}
+                        />
+                      )}
+
+                      {/* Show streaming content */}
+                      {streamingMessage && (
+                        <div className="mt-2 p-2 bg-[var(--background-primary)]/50 rounded text-xs">
+                          <p className="text-[var(--foreground-muted)]">
+                            {streamingMessage}
+                          </p>
+                        </div>
+                      )}
                     </div>
                   ) : (
-                    <p className="text-sm text-[var(--cta-text)] whitespace-pre-wrap">
-                      {message.content}
-                    </p>
+                    <div className="space-y-3">
+                      {/* Show final multi-step summary if it was a multi-step message */}
+                      {message.isMultiStep && multiStepState.isMultiStep && (
+                        <MultiStepMessage
+                          steps={multiStepState.steps}
+                          currentStepIndex={multiStepState.currentStepIndex}
+                          status={multiStepState.status}
+                          progressMessages={multiStepState.progressMessages}
+                          showTimings={true}
+                          className="mb-4"
+                        />
+                      )}
+
+                      {/* Regular message content */}
+                      {message.content && (
+                        <p className="text-sm text-[var(--cta-text)] whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </Glass>
                 <p className="text-xs text-[var(--foreground-muted)] mt-1 text-center">

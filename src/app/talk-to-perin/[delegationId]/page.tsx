@@ -3,8 +3,8 @@ import { validateAndAccessDelegation } from "@/lib/delegation/session-manager";
 import PublicDelegationClient from "@/components/delegation/PublicDelegationClient";
 
 interface PublicDelegationPageProps {
-  params: { delegationId: string };
-  searchParams: { sig?: string };
+  params: Promise<{ delegationId: string }>;
+  searchParams: Promise<{ sig?: string }>;
 }
 
 export default async function PublicDelegationPage({

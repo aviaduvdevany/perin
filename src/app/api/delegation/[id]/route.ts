@@ -10,8 +10,11 @@ import {
 import { withErrorHandler } from "@/lib/utils/error-handlers";
 
 export const GET = withErrorHandler(
-  async (request: NextRequest, { params }: { params: { id: string } }) => {
-    const delegationId = params.id;
+  async (
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
+    const { id: delegationId } = await params;
 
     // Check authentication
     const session = await getServerSession(authOptions);

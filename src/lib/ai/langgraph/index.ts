@@ -13,6 +13,11 @@ import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
+import { multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
+import {
+  createDelegationSteps,
+  registerDelegationStepExecutors,
+} from "./orchestrator/delegation-step-executors";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -27,6 +32,80 @@ function extractNetworkParams(messages: ChatMessage[]): {
     connectionId: undefined,
     durationMins: undefined,
     conversationText: text.slice(-1000),
+  };
+}
+
+/**
+ * Determine if we should use multi-step processing for delegation
+ */
+function shouldUseMultiStepDelegation(
+  messages: ChatMessage[],
+  delegationContext?: LangGraphChatState["delegationContext"]
+): boolean {
+  if (!delegationContext?.isDelegation) {
+    return false;
+  }
+
+  const lastUserMessage =
+    messages.findLast((m) => m.role === "user")?.content || "";
+  const text = lastUserMessage.toLowerCase();
+
+  // Keywords that suggest scheduling intent requiring multi-step processing
+  const schedulingKeywords = [
+    "schedule",
+    "meeting",
+    "appointment",
+    "book",
+    "reserve",
+    "available",
+    "time",
+    "tomorrow",
+    "today",
+    "next week",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+  ];
+
+  return schedulingKeywords.some((keyword) => text.includes(keyword));
+}
+
+/**
+ * Extract meeting parameters from user message for delegation
+ */
+function extractDelegationMeetingParams(
+  messages: ChatMessage[],
+  delegationContext: LangGraphChatState["delegationContext"]
+): {
+  startTime: string;
+  durationMins: number;
+  title: string;
+  timezone?: string;
+  externalUserName?: string;
+} | null {
+  if (!delegationContext) return null;
+
+  const lastUserMessage =
+    messages.findLast((m) => m.role === "user")?.content || "";
+
+  // Simple extraction - in production, this would use NLP
+  const constraints =
+    (delegationContext.constraints as Record<string, unknown>) || {};
+  const defaultDuration = (constraints.defaultDuration as number) || 30;
+
+  // For now, use a simple heuristic - in production this would be more sophisticated
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  tomorrow.setHours(14, 0, 0, 0); // Default to 2 PM tomorrow
+
+  return {
+    startTime: tomorrow.toISOString(),
+    durationMins: defaultDuration,
+    title: "Meeting",
+    timezone: delegationContext.externalUserTimezone || "UTC",
+    externalUserName: delegationContext.externalUserName,
   };
 }
 
@@ -228,7 +307,67 @@ export const executePerinChatWithLangGraph = async (
             };
           }
 
-          // Step 3: Decide execution mode (tool-calling vs direct streaming)
+          // Step 3: Check if we should use multi-step delegation processing
+          const useMultiStepDelegation = shouldUseMultiStepDelegation(
+            messages,
+            state.delegationContext
+          );
+
+          if (useMultiStepDelegation) {
+            // MULTI-STEP DELEGATION MODE
+            console.log("Using multi-step delegation mode", {
+              userId,
+              delegationId: state.delegationContext?.delegationId,
+            });
+
+            // Register delegation step executors
+            registerDelegationStepExecutors(multiStepOrchestrator);
+
+            // Extract meeting parameters
+            const meetingParams = extractDelegationMeetingParams(
+              messages,
+              state.delegationContext
+            );
+
+            if (meetingParams) {
+              // Create delegation steps
+              const steps = createDelegationSteps(meetingParams);
+
+              // Execute multi-step delegation flow
+              try {
+                const multiStepContext =
+                  await multiStepOrchestrator.executeSteps(
+                    state,
+                    steps,
+                    controller
+                  );
+
+                // Update state with multi-step context
+                state.multiStepContext = multiStepContext;
+
+                controller.close();
+                return;
+              } catch (error) {
+                console.error("Multi-step delegation failed:", error);
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    `I apologize, but I encountered an issue while processing your request: ${
+                      error instanceof Error ? error.message : "Unknown error"
+                    }`
+                  )
+                );
+                controller.close();
+                return;
+              }
+            } else {
+              // Fall back to regular delegation mode if we can't extract parameters
+              console.log(
+                "Could not extract meeting parameters, falling back to regular mode"
+              );
+            }
+          }
+
+          // Step 4: Decide execution mode (tool-calling vs direct streaming)
           const useToolMode = shouldUseToolMode(messages, specialization);
           const openaiClient = initializeOpenAI();
           const systemPrompt = buildSystemPrompt(state);

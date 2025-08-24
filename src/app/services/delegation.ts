@@ -77,7 +77,7 @@ export const revokeDelegationService = async (
 };
 
 /**
- * Send chat message to delegation
+ * Send chat message to delegation (legacy non-streaming)
  */
 export const sendDelegationChatService = async (
   request: DelegationChatRequest
@@ -100,6 +100,32 @@ export const sendDelegationChatService = async (
   }
 
   return response.json();
+};
+
+/**
+ * Send chat message to delegation with streaming support
+ */
+export const sendDelegationChatStreamingService = async (
+  request: DelegationChatRequest
+): Promise<ReadableStream<Uint8Array>> => {
+  const response = await fetch(`${API_BASE}/api/delegation/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error || "Failed to send chat message");
+  }
+
+  if (!response.body) {
+    throw new Error("No response body received");
+  }
+
+  return response.body;
 };
 
 /**

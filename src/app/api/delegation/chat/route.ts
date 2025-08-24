@@ -18,7 +18,7 @@ const chatRequestSchema = z.object({
   timezone: z.string().optional(),
 });
 
-export const POST = withErrorHandler(async (request: NextRequest) => {
+export const POST = async (request: NextRequest) => {
   // Parse and validate request body
   const body = await request.json();
   const validation = chatRequestSchema.safeParse(body);
@@ -79,7 +79,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     }));
 
     // Execute AI chat with delegation context using full LangGraph system
-    const { stream } = await executePerinChatWithLangGraph(
+    const { stream, response } = await executePerinChatWithLangGraph(
       chatMessages,
       session.ownerUserId,
       "friendly",
@@ -99,38 +99,46 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       }
     );
 
-    // Read the stream to get the complete response
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
+    // For delegation, we'll collect the response and store it, but also return the stream
+    // This allows for multi-step processing while maintaining message persistence
     let fullResponse = "";
 
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    // Create a transform stream to capture the response while passing it through
+    const transformStream = new TransformStream({
+      transform(chunk, controller) {
+        const text = new TextDecoder().decode(chunk);
 
-        const chunk = decoder.decode(value);
-        // Skip control tokens for delegation chat
-        if (!chunk.includes("[[PERIN_ACTION:")) {
-          fullResponse += chunk;
+        // Filter out control tokens for storage but pass everything through to client
+        if (!text.includes("[[PERIN_")) {
+          fullResponse += text;
         }
-      }
-    } finally {
-      reader.releaseLock();
-    }
 
-    // Create AI response message
-    await createDelegationMessage(
-      delegationId,
-      false, // fromExternal
-      fullResponse,
-      "text"
-    );
+        controller.enqueue(chunk);
+      },
+      flush() {
+        // Store the final response when stream is complete
+        if (fullResponse.trim()) {
+          createDelegationMessage(
+            delegationId,
+            false, // fromExternal
+            fullResponse,
+            "text"
+          ).catch((error) => {
+            console.error("Error storing delegation message:", error);
+          });
+        }
+      },
+    });
 
-    return NextResponse.json({
-      response: fullResponse,
-      delegationId,
-      externalUserName,
+    // Return the streaming response
+    return new Response(stream.pipeThrough(transformStream), {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Transfer-Encoding": "chunked",
+        "Cache-Control": "no-cache",
+        "X-Delegation-Id": delegationId,
+        "X-External-User": externalUserName || "",
+      },
     });
   } catch (error) {
     console.error("Error in delegation chat:", error);
@@ -148,4 +156,4 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       { status: 500 }
     );
   }
-});
+};
