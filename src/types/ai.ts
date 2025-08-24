@@ -151,6 +151,14 @@ export interface LangGraphChatState {
   integrations?: Record<string, unknown>;
   // Tool execution results
   toolExecutionResults?: Record<string, unknown>;
+  // Delegation context for external users
+  delegationContext?: {
+    delegationId: string;
+    externalUserName?: string;
+    constraints?: Record<string, unknown>;
+    isDelegation: boolean;
+    externalUserTimezone?: string;
+  };
 }
 
 // Gmail integration API types

@@ -12,7 +12,7 @@ import type { IntegrationType } from "@/types/integrations";
 import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
-import { TOOL_SPECS } from "../tools/registry";
+import { TOOL_SPECS, getToolSpecsForContext } from "../tools/registry";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -84,7 +84,16 @@ export const executePerinChatWithLangGraph = async (
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
   },
-  options?: { connectedIntegrationTypes?: IntegrationType[] }
+  options?: {
+    connectedIntegrationTypes?: IntegrationType[];
+    delegationContext?: {
+      delegationId: string;
+      externalUserName?: string;
+      constraints?: Record<string, unknown>;
+      isDelegation: boolean;
+      externalUserTimezone?: string;
+    };
+  }
 ): Promise<PerinChatResponse> => {
   try {
     // Create initial state
@@ -106,6 +115,14 @@ export const executePerinChatWithLangGraph = async (
       state = {
         ...state,
         connectedIntegrationTypes: options.connectedIntegrationTypes,
+      } as unknown as LangGraphChatState;
+    }
+
+    // Add delegation context if provided
+    if (options?.delegationContext) {
+      state = {
+        ...state,
+        delegationContext: options.delegationContext,
       } as unknown as LangGraphChatState;
     }
 
@@ -240,7 +257,9 @@ export const executePerinChatWithLangGraph = async (
                       ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
                     };
                   }),
-                  tools: TOOL_SPECS,
+                  tools: getToolSpecsForContext(
+                    state.delegationContext?.isDelegation
+                  ),
                   tool_choice: "auto",
                   stream: false,
                   temperature: 0.7,
@@ -302,6 +321,26 @@ export const executePerinChatWithLangGraph = async (
             }
 
             // Step 3c: Responder phase (streaming, no tools)
+            // Filter out tool messages that don't have corresponding tool_calls
+            const filteredMessages = state.messages.filter(
+              (msg) => msg.role !== "tool"
+            );
+
+            console.log(
+              "Responder phase - Original messages:",
+              state.messages.map((m) => ({
+                role: m.role,
+                content: m.content?.substring(0, 50),
+              }))
+            );
+            console.log(
+              "Responder phase - Filtered messages:",
+              filteredMessages.map((m) => ({
+                role: m.role,
+                content: m.content?.substring(0, 50),
+              }))
+            );
+
             const responderMessages: ChatMessage[] = [
               {
                 role: "system",
@@ -309,7 +348,7 @@ export const executePerinChatWithLangGraph = async (
                   systemPrompt +
                   "\n[system-note] Summarize the actions taken and provide a helpful response to the user.",
               },
-              ...state.messages,
+              ...filteredMessages,
             ];
 
             const responderResponse = await withRetry(
@@ -327,7 +366,6 @@ export const executePerinChatWithLangGraph = async (
                     return {
                       role: msg.role as "system" | "user" | "assistant",
                       content: msg.content,
-                      ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
                     };
                   }),
                   stream: true,

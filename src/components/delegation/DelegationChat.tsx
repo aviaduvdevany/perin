@@ -41,6 +41,7 @@ export default function DelegationChat({
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>("UTC");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +53,17 @@ export default function DelegationChat({
   // Focus input on mount
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  // Detect user's timezone
+  useEffect(() => {
+    try {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      setUserTimezone(timezone);
+    } catch (error) {
+      console.warn("Could not detect timezone, using UTC");
+      setUserTimezone("UTC");
+    }
   }, []);
 
   const getMeetingTypeIcon = (type?: string) => {
@@ -102,6 +114,7 @@ export default function DelegationChat({
         message: userMessage.content,
         externalUserName: externalUserName || undefined,
         signature: signature || undefined,
+        timezone: userTimezone,
       };
 
       const response = await sendDelegationChatService(requestData);

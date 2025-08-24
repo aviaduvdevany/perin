@@ -23,6 +23,13 @@ export interface ToolContext {
   conversationContext: string;
   memoryContext: Record<string, unknown>;
   integrations: Record<string, unknown>;
+  delegationContext?: {
+    delegationId: string;
+    externalUserName?: string;
+    constraints?: Record<string, unknown>;
+    isDelegation: boolean;
+    externalUserTimezone?: string;
+  };
 }
 
 /**
@@ -70,6 +77,7 @@ export enum ToolErrorCode {
   NOT_FOUND = "NOT_FOUND",
   CONFLICT = "CONFLICT",
   INTERNAL_ERROR = "INTERNAL_ERROR",
+  PERMISSION_DENIED = "PERMISSION_DENIED",
 }
 
 /**

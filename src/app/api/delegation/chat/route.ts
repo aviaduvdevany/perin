@@ -15,6 +15,7 @@ const chatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   externalUserName: z.string().max(100).optional(),
   signature: z.string().optional(),
+  timezone: z.string().optional(),
 });
 
 export const POST = withErrorHandler(async (request: NextRequest) => {
@@ -29,7 +30,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  const { delegationId, message, externalUserName, signature } =
+  const { delegationId, message, externalUserName, signature, timezone } =
     validation.data;
 
   // Rate limiting for delegation chat
@@ -87,7 +88,14 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       undefined, // user data
       {
         // Add delegation context
-        connectedIntegrationTypes: ["calendar", "gmail"],
+        connectedIntegrationTypes: ["calendar"], // Only calendar for external users
+        delegationContext: {
+          delegationId: session.id,
+          externalUserName: externalUserName || session.externalUserName,
+          constraints: session.constraints as Record<string, unknown>,
+          isDelegation: true,
+          externalUserTimezone: timezone,
+        },
       }
     );
 

@@ -16,6 +16,13 @@ export interface SystemPromptContext {
     emailCount?: number;
     hasUnread?: boolean;
   };
+  delegationContext?: {
+    delegationId: string;
+    externalUserName?: string;
+    constraints?: Record<string, unknown>;
+    isDelegation: boolean;
+    externalUserTimezone?: string;
+  };
 }
 
 /**
@@ -30,17 +37,21 @@ export const buildPerinSystemPrompt = (
     currentTime = new Date().toISOString(),
     timezone = user.timezone || "UTC",
     emailContext = {},
+    delegationContext,
   } = context;
 
-  let emailContextPrompt = '';
+  let emailContextPrompt = "";
   if (emailContext?.recentEmails && emailContext.recentEmails.length > 0) {
     emailContextPrompt = `
     Recent Email Context:
     - You have ${emailContext.emailCount} recent emails
-    - ${emailContext.hasUnread ? 'You have unread emails' : 'No unread emails'}
-    - Recent emails: ${emailContext.recentEmails.map((email: { from: string; subject: string }) => 
-      `From: ${email.from}, Subject: "${email.subject}"`
-    ).join(', ')}
+    - ${emailContext.hasUnread ? "You have unread emails" : "No unread emails"}
+    - Recent emails: ${emailContext.recentEmails
+      .map(
+        (email: { from: string; subject: string }) =>
+          `From: ${email.from}, Subject: "${email.subject}"`
+      )
+      .join(", ")}
 
 You can reference these emails naturally in conversation and help with email-related tasks.`;
   }
@@ -55,16 +66,51 @@ You can reference these emails naturally in conversation and help with email-rel
 ## Core Identity
 - **Name**: ${perinName}
 - **Tone**: ${tone}
-- **Role**: Digital delegate with agency and emotional intelligence
+- **Role**: ${
+    delegationContext?.isDelegation
+      ? "Secretary/Assistant acting on behalf of the owner"
+      : "Digital delegate with agency and emotional intelligence"
+  }
 - **Timezone**: ${timezone}
 - **Current Time**: ${currentTime}
+${
+  delegationContext?.isDelegation
+    ? `
+## Delegation Context - IMPORTANT
+You are currently talking to an EXTERNAL PERSON through a delegation link, not the owner.
+- **External User**: ${delegationContext.externalUserName || "Unknown"}
+- **Delegation ID**: ${delegationContext.delegationId}
+- **Your Role**: Act as a secretary/assistant for the owner, not as their full AI assistant
+- **Limited Capabilities**: You can only help with scheduling meetings with the owner
+- **Restrictions**: 
+  - NO email management or reading
+  - NO access to other meetings or calendar events
+  - NO personal information about the owner
+  - ONLY scheduling-related tasks
+- **Meeting Constraints**: ${
+        delegationContext.constraints
+          ? JSON.stringify(delegationContext.constraints)
+          : "None set"
+      }
+- **Behavior**: Be professional, helpful, but limited to scheduling only`
+    : ""
+}
 
 ## Core Capabilities
+${
+  delegationContext?.isDelegation
+    ? `
+- Scheduling meetings with the owner only
+- Professional secretary-like behavior
+- Respect for meeting constraints and preferences
+- Limited to scheduling-related tasks only`
+    : `
 - Natural negotiation and conversation
 - Persistent memory and context awareness
 - Emotionally intelligent, human-like responses
 - Multi-agent coordination when needed
-- Scheduling and delegation tasks
+- Scheduling and delegation tasks`
+}
 
 ## User Preferences
 - **Preferred Hours**: ${JSON.stringify(preferredHours)}
