@@ -77,34 +77,41 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       }
     } else {
       const errorMessage = result.error || "Availability check failed";
-      throw new Error(
+      const errorString =
         typeof errorMessage === "string"
           ? errorMessage
-          : (errorMessage as { message: string }).message
-      );
+          : (errorMessage as { message: string }).message;
+
+      // Check for calendar reauth errors in the tool result
+      if (
+        errorString.includes("Calendar authentication expired") ||
+        errorString.includes("please reconnect") ||
+        errorString.includes("reauth required")
+      ) {
+        return {
+          stepId: step.id,
+          status: "failed",
+          error: "Calendar authentication expired",
+          progressMessage: `❌ Calendar needs to be reconnected. The owner should refresh their calendar access to enable meeting scheduling.`,
+        };
+      }
+
+      return {
+        stepId: step.id,
+        status: "failed",
+        error: errorString,
+        progressMessage: `❌ Failed to check availability: ${errorString}`,
+      };
     }
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
-    // Check for calendar reauth errors
-    if (
-      errorMessage.includes("reauth required") ||
-      errorMessage.includes("invalid_grant")
-    ) {
-      return {
-        stepId: step.id,
-        status: "failed",
-        error: "Calendar authentication expired",
-        progressMessage: `❌ Calendar needs to be reconnected. Please contact the owner to refresh their calendar access.`,
-      };
-    }
-
     return {
       stepId: step.id,
       status: "failed",
       error: errorMessage,
-      progressMessage: `❌ Failed to check availability: ${errorMessage}`,
+      progressMessage: `❌ Unexpected error while checking availability: ${errorMessage}`,
     };
   }
 };

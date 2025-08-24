@@ -1,6 +1,9 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
-import { multiIntegrationNode } from "./nodes/integration-node";
+import {
+  multiIntegrationNode,
+  createIntegrationNode,
+} from "./nodes/integration-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import { toolExecutorNode } from "./nodes/tool-executor-node";
 import type {
@@ -309,20 +312,52 @@ export const executePerinChatWithLangGraph = async (
             ...(memoryResult as Partial<LangGraphChatState>),
           };
 
-          // Step 2: Load all relevant integration contexts (skip for delegation)
+          // Step 2: Load integration contexts
           if (!state.delegationContext?.isDelegation) {
+            // Regular mode: Load all relevant integrations
             const integrationResult = await multiIntegrationNode(state);
             state = {
               ...state,
               ...(integrationResult as Partial<LangGraphChatState>),
             };
           } else {
-            // For delegation, just set empty integrations
-            state = {
-              ...state,
-              integrations: {},
-              currentStep: "delegation_mode_skip_integrations",
-            };
+            // Delegation mode: Load only calendar integration for owner's scheduling
+            try {
+              const calendarNode = createIntegrationNode("calendar");
+              const calendarResult = await calendarNode(state);
+              state = {
+                ...state,
+                integrations: {
+                  calendar: (
+                    calendarResult as {
+                      calendarContext?: Record<string, unknown>;
+                    }
+                  ).calendarContext || {
+                    isConnected: false,
+                    data: [],
+                    count: 0,
+                  },
+                },
+                currentStep: "delegation_calendar_loaded",
+              };
+            } catch (error) {
+              console.error("Error loading calendar for delegation:", error);
+              state = {
+                ...state,
+                integrations: {
+                  calendar: {
+                    isConnected: false,
+                    data: [],
+                    count: 0,
+                    error:
+                      error instanceof Error
+                        ? error.message
+                        : "Calendar loading failed",
+                  },
+                },
+                currentStep: "delegation_calendar_error",
+              };
+            }
           }
 
           // If Gmail requires reauth, emit a control token for the UI to react seamlessly

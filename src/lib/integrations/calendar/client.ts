@@ -6,6 +6,7 @@ import {
   updateIntegrationTokens,
   getUserIntegrations,
 } from "@/lib/queries/integrations";
+import { isReauthError } from "@/lib/integrations/errors";
 import {
   createIntegrationError,
   IntegrationType,
@@ -198,6 +199,118 @@ export const fetchRecentEventsFromAll = async (
   }
 
   return results;
+};
+
+/**
+ * Check availability for a specific time range
+ */
+export const checkCalendarAvailability = async (
+  userId: string,
+  startTime: Date,
+  endTime: Date
+): Promise<{
+  isAvailable: boolean;
+  conflictingEvents: CalendarEvent[];
+}> => {
+  try {
+    // Get user's calendar integration
+    const integration = await getUserIntegration(userId, "calendar");
+
+    if (!integration || !integration.is_active) {
+      throw createIntegrationError(
+        IntegrationType.CALENDAR,
+        IntegrationErrorType.NOT_CONNECTED,
+        "Calendar integration not found or inactive"
+      );
+    }
+
+    // Check if token needs refresh
+    const now = new Date();
+    const expiresAt = new Date(integration.token_expires_at);
+
+    let accessToken = integration.access_token;
+
+    if (now >= expiresAt && integration.refresh_token) {
+      try {
+        const newTokens = await refreshCalendarToken(integration.refresh_token);
+        accessToken = newTokens.access_token;
+
+        // Update tokens in database
+        await updateIntegrationTokens(
+          integration.id,
+          newTokens.access_token,
+          newTokens.expiry_date ? new Date(newTokens.expiry_date) : null
+        );
+      } catch (error) {
+        const code = (error as { code?: string })?.code;
+        if (code === "INVALID_GRANT") {
+          throw createIntegrationError(
+            IntegrationType.CALENDAR,
+            IntegrationErrorType.REAUTH_REQUIRED,
+            "Calendar token refresh failed - reauth required"
+          );
+        }
+        throw error;
+      }
+    }
+
+    // Create calendar client
+    const calendar = createCalendarClient(accessToken);
+
+    // Query events in the specified time range
+    const response = await calendar.events.list({
+      calendarId: "primary",
+      timeMin: startTime.toISOString(),
+      timeMax: endTime.toISOString(),
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+
+    const events = response.data.items || [];
+
+    // Filter out cancelled events and convert to our format
+    const conflictingEvents: CalendarEvent[] = events
+      .filter((event) => event.status !== "cancelled")
+      .map((event) => ({
+        id: event.id!,
+        summary: event.summary || "No Title",
+        description: event.description || "",
+        start: event.start?.dateTime || event.start?.date || "",
+        end: event.end?.dateTime || event.end?.date || "",
+        location: event.location || "",
+        attendees:
+          event.attendees?.map((attendee) => ({
+            email: attendee.email!,
+            name: attendee.displayName || "",
+            responseStatus: attendee.responseStatus || "needsAction",
+          })) || [],
+        organizer: event.organizer
+          ? {
+              email: event.organizer.email!,
+              name: event.organizer.displayName || "",
+            }
+          : null,
+        isAllDay: !event.start?.dateTime,
+        status: event.status || "confirmed",
+      }));
+
+    // Check if the time slot is available (no conflicting events)
+    const isAvailable = conflictingEvents.length === 0;
+
+    return {
+      isAvailable,
+      conflictingEvents,
+    };
+  } catch (error) {
+    if (isReauthError(error)) {
+      throw error;
+    }
+    throw new Error(
+      `Failed to check calendar availability: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 };
 
 /**

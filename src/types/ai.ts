@@ -190,6 +190,7 @@ export interface LangGraphChatState {
   delegationContext?: {
     delegationId: string;
     externalUserName?: string;
+    externalUserEmail?: string;
     constraints?: Record<string, unknown>;
     isDelegation: boolean;
     externalUserTimezone?: string;

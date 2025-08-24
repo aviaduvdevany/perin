@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { validateAndAccessDelegation } from "@/lib/delegation/session-manager";
-import {
-  createDelegationMessage,
-  getDelegationMessages,
-} from "@/lib/queries/delegation";
+import { createDelegationMessage } from "@/lib/queries/delegation";
 import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
-import { withErrorHandler } from "@/lib/utils/error-handlers";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // Validation schema for chat requests
@@ -79,7 +75,7 @@ export const POST = async (request: NextRequest) => {
     ];
 
     // Execute AI chat with delegation context using full LangGraph system
-    const { stream, response } = await executePerinChatWithLangGraph(
+    const { stream } = await executePerinChatWithLangGraph(
       chatMessages,
       session.ownerUserId,
       "friendly",
@@ -92,6 +88,9 @@ export const POST = async (request: NextRequest) => {
         delegationContext: {
           delegationId: session.id,
           externalUserName: externalUserName || session.externalUserName,
+          ...(session.externalUserEmail && {
+            externalUserEmail: session.externalUserEmail,
+          }),
           constraints: session.constraints as Record<string, unknown>,
           isDelegation: true,
           externalUserTimezone: timezone,

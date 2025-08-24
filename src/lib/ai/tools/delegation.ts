@@ -10,15 +10,14 @@ import {
   ToolSpec,
   ToolHandler,
   ToolContext,
-  ToolEnvelope,
   createToolSuccess,
   createToolError,
-  createToolNeeds,
   ToolErrorCode,
 } from "./types";
-import * as userQueries from "@/lib/queries/users";
-import { createCalendarEvent } from "@/lib/integrations/calendar/client";
-import { formatInTimezone } from "@/lib/utils/timezone";
+import {
+  createCalendarEvent,
+  checkCalendarAvailability,
+} from "@/lib/integrations/calendar/client";
 import { isReauthError } from "@/lib/integrations/errors";
 
 /**
@@ -52,6 +51,12 @@ export interface CheckOwnerAvailabilityResult {
   proposedEndTime: string;
   timezone: string;
   eventId?: string;
+  conflictingEvents?: Array<{
+    id: string;
+    summary: string;
+    start: string;
+    end: string;
+  }>;
   alternativeSlots?: Array<{
     start: string;
     end: string;
@@ -124,6 +129,10 @@ export interface ScheduleWithOwnerResult {
   startTime: string;
   endTime: string;
   timezone: string;
+  attendees?: Array<{
+    email: string;
+    name: string;
+  }>;
   message: string;
 }
 
@@ -192,46 +201,59 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
     const startTime = new Date(args.startTime);
     const endTime = new Date(startTime.getTime() + args.durationMins * 60000);
 
-    // For delegation, we'll assume availability since we can't easily check
-    // the owner's calendar without integration context
-    // In a production system, this would check actual availability
-
-    // Since the time is available, let's try to schedule the meeting
-    const eventTitle = `Meeting with ${
-      delegationContext.externalUserName || "external user"
-    }`;
-
+    // Check real calendar availability using the calendar integration
     try {
-      // Try to create calendar event for the owner
-      const event = await createCalendarEvent(userId, {
-        summary: eventTitle,
-        description: `Meeting scheduled via delegation link with ${
-          delegationContext.externalUserName || "external user"
-        }`,
-        start: startTime.toISOString(),
-        end: endTime.toISOString(),
-        timeZone: timezone,
-      });
+      // Use the real availability checking function
+      const availabilityResult = await checkCalendarAvailability(
+        userId,
+        startTime,
+        endTime
+      );
 
-      return createToolSuccess({
-        isAvailable: true,
-        proposedStartTime: startTime.toISOString(),
-        proposedEndTime: endTime.toISOString(),
-        timezone,
-        eventId: event.id,
-        message: `I've checked the owner's availability for ${startTime.toLocaleString()} (${timezone}) and the time is available. I've successfully scheduled the meeting and added it to the owner's calendar.`,
-      });
+      if (availabilityResult.isAvailable) {
+        return createToolSuccess({
+          isAvailable: true,
+          proposedStartTime: startTime.toISOString(),
+          proposedEndTime: endTime.toISOString(),
+          timezone,
+          message: `I've checked the owner's calendar for ${startTime.toLocaleString()} (${timezone}) and the time slot is available.`,
+        });
+      } else {
+        // Time slot has conflicts
+        const conflictCount = availabilityResult.conflictingEvents.length;
+        const conflictSummary = availabilityResult.conflictingEvents
+          .slice(0, 2) // Show at most 2 conflicts
+          .map((event) => event.summary)
+          .join(", ");
+
+        return createToolSuccess({
+          isAvailable: false,
+          proposedStartTime: startTime.toISOString(),
+          proposedEndTime: endTime.toISOString(),
+          timezone,
+          conflictingEvents: availabilityResult.conflictingEvents,
+          message: `The requested time slot conflicts with ${conflictCount} existing event${
+            conflictCount > 1 ? "s" : ""
+          }${
+            conflictSummary ? `: ${conflictSummary}` : ""
+          }. Please suggest alternative times.`,
+        });
+      }
     } catch (error) {
-      // If calendar integration fails, store the meeting request for later
-      // TODO: Store meeting request in delegation_outcomes table
+      // Handle specific calendar errors
+      if (isReauthError(error)) {
+        return createToolError(
+          ToolErrorCode.UNAUTHORIZED,
+          "Calendar authentication expired - please reconnect your calendar to check availability"
+        );
+      }
 
-      return createToolSuccess({
-        isAvailable: true,
-        proposedStartTime: startTime.toISOString(),
-        proposedEndTime: endTime.toISOString(),
-        timezone,
-        message: `I've checked the owner's availability for ${startTime.toLocaleString()} (${timezone}) and the time is available. I've recorded your meeting request and will notify the owner to schedule it in their calendar.`,
-      });
+      return createToolError(
+        ToolErrorCode.INTERNAL_ERROR,
+        `Failed to check calendar availability: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
   } catch (error) {
     if (isReauthError(error)) {
@@ -270,21 +292,56 @@ export const scheduleWithOwnerHandler: ToolHandler<
   try {
     const startTime = new Date(args.startTime);
     const endTime = new Date(startTime.getTime() + args.durationMins * 60000);
-    // Create calendar event for the owner
-    const eventTitle = `${args.title} (with ${
-      args.externalUserName || "external user"
-    })`;
 
-    // Create calendar event for the owner
+    // Prepare event details
+    const eventTitle = `${args.title}`;
+    const externalUserName =
+      args.externalUserName ||
+      delegationContext.externalUserName ||
+      "External User";
+    const externalUserEmail = (
+      delegationContext as typeof delegationContext & {
+        externalUserEmail?: string;
+      }
+    ).externalUserEmail;
+
+    // Prepare attendees list
+    const attendees = [];
+    if (externalUserEmail) {
+      attendees.push({
+        email: externalUserEmail,
+        name: externalUserName,
+      });
+    }
+
+    // Create comprehensive meeting description
+    const description = [
+      `Meeting scheduled via Perin delegation with ${externalUserName}`,
+      `Duration: ${args.durationMins} minutes`,
+      externalUserEmail &&
+        `External attendee: ${externalUserName} (${externalUserEmail})`,
+      `Scheduled on: ${new Date().toLocaleString()}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    // Create calendar event with proper attendee management
     const event = await createCalendarEvent(userId, {
       summary: eventTitle,
-      description: `Meeting scheduled via delegation link with ${
-        delegationContext.externalUserName || "external user"
-      }`,
+      description,
       start: startTime.toISOString(),
       end: endTime.toISOString(),
       timeZone: timezone,
+      attendees: attendees.length > 0 ? attendees : undefined,
     });
+
+    const successMessage = externalUserEmail
+      ? `I've successfully scheduled "${
+          args.title
+        }" for ${startTime.toLocaleString()} (${timezone}). The meeting has been added to the owner's calendar and a calendar invitation has been sent to ${externalUserName} at ${externalUserEmail}.`
+      : `I've successfully scheduled "${
+          args.title
+        }" for ${startTime.toLocaleString()} (${timezone}). The meeting has been added to the owner's calendar. Please share the meeting details with ${externalUserName} separately.`;
 
     return createToolSuccess({
       success: true,
@@ -292,13 +349,8 @@ export const scheduleWithOwnerHandler: ToolHandler<
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
       timezone,
-      message: `I've scheduled a meeting with ${
-        delegationContext.externalUserName || "you"
-      } for ${startTime.toLocaleString()} (${timezone}). The meeting is titled "${
-        args.title
-      }" and will last ${
-        args.durationMins
-      } minutes. The meeting has been added to the owner's calendar.`,
+      attendees: attendees,
+      message: successMessage,
     });
   } catch (error) {
     if (isReauthError(error)) {
