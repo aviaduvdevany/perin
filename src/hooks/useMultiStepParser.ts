@@ -33,7 +33,8 @@ interface ParsedUpdate {
     | "step_progress"
     | "step_result"
     | "step_end"
-    | "complete";
+    | "complete"
+    | "initiated";
   stepId?: string;
   stepName?: string;
   status?: string;
@@ -45,9 +46,10 @@ interface ParsedUpdate {
 const CONTROL_TOKEN_PATTERNS = {
   STEP_START: /\[\[PERIN_STEP:start:([^:]+):([^\]]+)\]\]/g,
   STEP_PROGRESS: /\[\[PERIN_PROGRESS:([^\]]+)\]\]/g,
-  STEP_RESULT: /\[\[PERIN_STEP_RESULT:([^:]+):([^:]+)(?::([^\]]+))?\]\]/g,
+  STEP_RESULT: /\[\[PERIN_STEP_RESULT:([^:]+):([^:]+)(?::([^\]]*))?\]\]/g,
   STEP_END: /\[\[PERIN_STEP:end:([^\]]+)\]\]/g,
   MULTI_STEP_COMPLETE: /\[\[PERIN_MULTI_STEP:complete\]\]/g,
+  MULTI_STEP_INITIATED: /\[\[PERIN_MULTI_STEP:initiated:([^:]+):([^\]]+)\]\]/g,
 };
 
 export function useMultiStepParser() {
@@ -61,6 +63,8 @@ export function useMultiStepParser() {
     bufferedSteps: [],
     realTimeComplete: false,
   });
+
+  const [aiInitiated, setAiInitiated] = useState(false);
 
   const processStartTimeRef = useRef<Date | null>(null);
   const stepTimesRef = useRef<number[]>([]);
@@ -225,14 +229,75 @@ export function useMultiStepParser() {
       }
       CONTROL_TOKEN_PATTERNS.MULTI_STEP_COMPLETE.lastIndex = 0;
 
-      // Process updates based on mode
-      if (multiStepState.cinematicMode) {
-        // Buffer updates for cinematic playback
-        updateBufferRef.current.push(...updates);
-        processBufferedUpdates();
-      } else {
-        // Process updates immediately (legacy mode)
-        processUpdatesImmediately(updates);
+      // Parse MULTI_STEP_INITIATED tokens
+      while (
+        (match = CONTROL_TOKEN_PATTERNS.MULTI_STEP_INITIATED.exec(content)) !==
+        null
+      ) {
+        hasControlTokens = true;
+        const [fullMatch, reasoning, confidence] = match;
+        emotionalContext.sentiment = "positive";
+        emotionalContext.urgency = "medium";
+        emotionalContext.progressDirection = "forward";
+
+        updates.push({
+          type: "initiated",
+          message: reasoning,
+          result: confidence,
+          timestamp: new Date(),
+        });
+
+        cleanContent = cleanContent.replace(fullMatch, "");
+      }
+      CONTROL_TOKEN_PATTERNS.MULTI_STEP_INITIATED.lastIndex = 0;
+
+      // Process updates if we have any
+      if (updates.length > 0) {
+        const hasInitiation = updates.some(
+          (update) => update.type === "initiated"
+        );
+
+        // Check if chunk contains step results or progress that should always be processed
+        const hasStepUpdates = updates.some(
+          (u) =>
+            u.type === "step_result" ||
+            u.type === "step_progress" ||
+            u.type === "step_end" ||
+            u.type === "complete"
+        );
+
+        // If this chunk has initiation OR we already initiated OR has step updates, process them
+        if (hasInitiation || aiInitiated || hasStepUpdates) {
+          // Separate updates: buffer step definitions, but process results immediately
+          const stepDefinitionUpdates = updates.filter(
+            (u) => u.type === "step_start" || u.type === "initiated"
+          );
+          const realTimeUpdates = updates.filter(
+            (u) =>
+              u.type === "step_result" ||
+              u.type === "step_progress" ||
+              u.type === "step_end" ||
+              u.type === "complete"
+          );
+
+          if (
+            multiStepState.cinematicMode &&
+            stepDefinitionUpdates.length > 0
+          ) {
+            updateBufferRef.current.push(...stepDefinitionUpdates);
+            processBufferedUpdates();
+          }
+
+          // Always process status updates immediately for real-time feedback
+          if (realTimeUpdates.length > 0) {
+            processUpdatesImmediately(realTimeUpdates);
+          }
+
+          // If not in cinematic mode, process everything immediately
+          if (!multiStepState.cinematicMode) {
+            processUpdatesImmediately(updates);
+          }
+        }
       }
 
       return {
@@ -247,7 +312,19 @@ export function useMultiStepParser() {
 
   const processBufferedUpdates = useCallback(() => {
     const updates = updateBufferRef.current;
-    if (updates.length === 0) return;
+    if (updates.length === 0) {
+      return;
+    }
+
+    // Check if we have an initiation update locally (don't rely on React state)
+    const hasInitiationUpdate = updates.some(
+      (update) => update.type === "initiated"
+    );
+    const localAiInitiated = aiInitiated || hasInitiationUpdate;
+
+    if (!localAiInitiated) {
+      return;
+    }
 
     // Build complete step structure from buffered updates
     const stepsMap = new Map<string, Step>();
@@ -296,9 +373,9 @@ export function useMultiStepParser() {
         case "step_end":
           if (update.stepId) {
             const step = stepsMap.get(update.stepId);
-            if (step && step.status === "pending") {
-              step.status = "completed";
+            if (step) {
               step.endTime = update.timestamp;
+              // Don't override status - it should be set by step_result
             }
           }
           break;
@@ -306,20 +383,35 @@ export function useMultiStepParser() {
         case "complete":
           isComplete = true;
           break;
+
+        case "initiated":
+          // AI has determined multi-step is needed
+          setAiInitiated(true);
+          if (update.message && update.result) {
+            messages.push(
+              `AI Analysis: ${update.message} (Confidence: ${Math.round(
+                parseFloat(update.result) * 100
+              )}%)`
+            );
+          }
+          break;
       }
     });
 
-    // Update state with buffered data
+    // Update state with buffered data - only set isMultiStep if AI initiated it
+    const newSteps = Array.from(stepsMap.values());
+    const shouldBeMultiStep = localAiInitiated && newSteps.length > 0;
+
     setMultiStepState((prev) => ({
       ...prev,
-      isMultiStep: true,
-      bufferedSteps: Array.from(stepsMap.values()),
-      steps: Array.from(stepsMap.values()), // For cinematic component to use
+      isMultiStep: shouldBeMultiStep,
+      bufferedSteps: newSteps,
+      steps: newSteps, // For cinematic component to use
       progressMessages: messages,
       realTimeComplete: isComplete,
       status: isComplete ? "completed" : "running",
     }));
-  }, []);
+  }, [aiInitiated]);
 
   const processUpdatesImmediately = useCallback((updates: ParsedUpdate[]) => {
     updates.forEach((update) => {
@@ -385,6 +477,12 @@ export function useMultiStepParser() {
 
         case "step_result":
           if (update.stepId && update.status) {
+            console.log(
+              "🔄 IMMEDIATE STEP_RESULT:",
+              update.stepId,
+              update.status,
+              update.result
+            );
             setMultiStepState((prev) => {
               const stepIndex = prev.steps.findIndex(
                 (s) => s.id === update.stepId
@@ -401,6 +499,12 @@ export function useMultiStepParser() {
                     ? { error: update.result }
                     : {}),
                 };
+
+                console.log(
+                  "✅ STEP STATE UPDATED:",
+                  updatedSteps[stepIndex].id,
+                  updatedSteps[stepIndex].status
+                );
 
                 return {
                   ...prev,
@@ -420,13 +524,11 @@ export function useMultiStepParser() {
               );
               if (stepIndex >= 0) {
                 const updatedSteps = [...prev.steps];
-                if (updatedSteps[stepIndex].status === "running") {
-                  updatedSteps[stepIndex] = {
-                    ...updatedSteps[stepIndex],
-                    status: "completed",
-                    endTime: update.timestamp,
-                  };
-                }
+                updatedSteps[stepIndex] = {
+                  ...updatedSteps[stepIndex],
+                  endTime: update.timestamp,
+                  // Don't override status - it should be set by step_result
+                };
 
                 return {
                   ...prev,
@@ -444,6 +546,22 @@ export function useMultiStepParser() {
             status: "completed",
           }));
           break;
+
+        case "initiated":
+          // AI has determined multi-step is needed - set initial state
+          if (update.message && update.result) {
+            setMultiStepState((prev) => ({
+              ...prev,
+              isMultiStep: true,
+              progressMessages: [
+                ...prev.progressMessages.slice(-4),
+                `AI Analysis: ${update.message} (Confidence: ${Math.round(
+                  parseFloat(update.result || "0") * 100
+                )}%)`,
+              ],
+            }));
+          }
+          break;
       }
     });
   }, []);
@@ -459,9 +577,10 @@ export function useMultiStepParser() {
       bufferedSteps: [],
       realTimeComplete: false,
     });
+    setAiInitiated(false); // Reset AI initiation flag
     processStartTimeRef.current = null;
     stepTimesRef.current = [];
-    updateBufferRef.current = [];
+    updateBufferRef.current = []; // Clear the buffer completely
   }, []);
 
   const toggleCinematicMode = useCallback(() => {

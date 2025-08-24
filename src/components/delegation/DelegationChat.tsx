@@ -46,8 +46,14 @@ export default function DelegationChat({
   const [error, setError] = useState<string | null>(null);
   const [userTimezone, setUserTimezone] = useState<string>("UTC");
   const [streamingMessage, setStreamingMessage] = useState("");
+  const [
+    currentSessionInitiatedMultiStep,
+    setCurrentSessionInitiatedMultiStep,
+  ] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // AI now determines multi-step need, no keyword matching required
 
   // Multi-step parsing hook
   const { multiStepState, parseControlTokens, resetMultiStepState } =
@@ -112,7 +118,10 @@ export default function DelegationChat({
     setIsLoading(true);
     setError(null);
     setStreamingMessage("");
-    resetMultiStepState(); // Reset multi-step state for new conversation
+
+    // Always reset multi-step state for new conversations (AI will determine if multi-step is needed)
+    resetMultiStepState();
+    setCurrentSessionInitiatedMultiStep(false);
 
     try {
       // Get signature from URL if present
@@ -134,6 +143,7 @@ export default function DelegationChat({
 
       let fullResponse = "";
       let hasMultiStep = false;
+      let aiInitiatedMultiStep = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -145,17 +155,28 @@ export default function DelegationChat({
         const { cleanContent, hasControlTokens, emotionalContext } =
           parseControlTokens(chunk);
 
-        if (hasControlTokens) {
-          hasMultiStep = true;
+        // Check if this chunk contains the AI initiation token
+        if (chunk.includes("[[PERIN_MULTI_STEP:initiated:")) {
+          aiInitiatedMultiStep = true;
+          setCurrentSessionInitiatedMultiStep(true);
+        }
 
-          // Provide haptic feedback for mobile users based on emotional context
-          if (emotionalContext?.sentiment === "positive" && navigator.vibrate) {
-            navigator.vibrate([50, 100, 50]); // Success pattern
-          } else if (
-            emotionalContext?.sentiment === "negative" &&
-            navigator.vibrate
-          ) {
-            navigator.vibrate([100, 50, 100, 50, 100]); // Error pattern
+        if (hasControlTokens) {
+          if (aiInitiatedMultiStep) {
+            hasMultiStep = true;
+
+            // Provide haptic feedback for mobile users based on emotional context
+            if (
+              emotionalContext?.sentiment === "positive" &&
+              navigator.vibrate
+            ) {
+              navigator.vibrate([50, 100, 50]); // Success pattern
+            } else if (
+              emotionalContext?.sentiment === "negative" &&
+              navigator.vibrate
+            ) {
+              navigator.vibrate([100, 50, 100, 50, 100]); // Error pattern
+            }
           }
         }
 
@@ -173,7 +194,7 @@ export default function DelegationChat({
                 ...msg,
                 content: fullResponse,
                 isLoading: false,
-                isMultiStep: hasMultiStep,
+                isMultiStep: hasMultiStep && aiInitiatedMultiStep,
               }
             : msg
         )
@@ -306,16 +327,17 @@ export default function DelegationChat({
                       </div>
 
                       {/* Show multi-step progress during loading */}
-                      {multiStepState.isMultiStep && (
-                        <MultiStepMessage
-                          steps={multiStepState.steps}
-                          currentStepIndex={multiStepState.currentStepIndex}
-                          status={multiStepState.status}
-                          progressMessages={multiStepState.progressMessages}
-                          className="mt-4"
-                          showTimings={false}
-                        />
-                      )}
+                      {multiStepState.isMultiStep &&
+                        currentSessionInitiatedMultiStep && (
+                          <MultiStepMessage
+                            steps={multiStepState.steps}
+                            currentStepIndex={multiStepState.currentStepIndex}
+                            status={multiStepState.status}
+                            progressMessages={multiStepState.progressMessages}
+                            className="mt-4"
+                            showTimings={false}
+                          />
+                        )}
 
                       {/* Show streaming content */}
                       {streamingMessage && (
@@ -329,16 +351,18 @@ export default function DelegationChat({
                   ) : (
                     <div className="space-y-3">
                       {/* Show final multi-step summary if it was a multi-step message */}
-                      {message.isMultiStep && multiStepState.isMultiStep && (
-                        <MultiStepMessage
-                          steps={multiStepState.steps}
-                          currentStepIndex={multiStepState.currentStepIndex}
-                          status={multiStepState.status}
-                          progressMessages={multiStepState.progressMessages}
-                          showTimings={true}
-                          className="mb-4"
-                        />
-                      )}
+                      {message.isMultiStep &&
+                        multiStepState.isMultiStep &&
+                        currentSessionInitiatedMultiStep && (
+                          <MultiStepMessage
+                            steps={multiStepState.steps}
+                            currentStepIndex={multiStepState.currentStepIndex}
+                            status={multiStepState.status}
+                            progressMessages={multiStepState.progressMessages}
+                            showTimings={true}
+                            className="mb-4"
+                          />
+                        )}
 
                       {/* Regular message content */}
                       {message.content && (

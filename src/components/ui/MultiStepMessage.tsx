@@ -12,6 +12,7 @@ import {
   Sparkles,
   Play,
   Pause,
+  Loader2,
 } from "lucide-react";
 import { Glass } from "./Glass";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,9 @@ interface CinematicStep extends Step {
     | "processing"
     | "completing"
     | "completed"
-    | "failed";
+    | "failed"
+    | "pending"
+    | "running";
   cinematicProgress: number; // 0-100
   emotionalDelay: number; // ms to wait before showing
 }
@@ -65,7 +68,7 @@ export function MultiStepMessage({
   const [celebrationMode, setCelebrationMode] = useState(false);
   const [currentProgressMessage, setCurrentProgressMessage] = useState("");
 
-  const cinematicTimeouts = useRef<(NodeJS.Timeout)[]>([]);
+  const cinematicTimeouts = useRef<NodeJS.Timeout[]>([]);
   const controls = useAnimation();
   const progressRef = useRef<HTMLDivElement>(null);
 
@@ -145,6 +148,7 @@ export function MultiStepMessage({
             setTimeout(() => {
               const finalStatus =
                 realStep.status === "failed" ? "failed" : "completed";
+
               setCinematicSteps((prev) =>
                 prev.map((s, i) =>
                   i === stepIndex
@@ -319,6 +323,27 @@ export function MultiStepMessage({
             <Circle className={cn(iconClass, "text-[var(--accent-primary)]")} />
           </motion.div>
         );
+      case "pending":
+        return (
+          <Circle
+            className={cn(iconClass, "text-[var(--foreground-muted)]/70")}
+          />
+        );
+      case "running":
+        return (
+          <motion.div
+            animate={{
+              rotate: 360,
+            }}
+            transition={{
+              rotate: { duration: 2, repeat: Infinity, ease: "linear" },
+            }}
+          >
+            <Loader2
+              className={cn(iconClass, "text-[var(--accent-primary)]")}
+            />
+          </motion.div>
+        );
       default:
         return (
           <Circle
@@ -424,9 +449,6 @@ export function MultiStepMessage({
               />
             </motion.div>
             <div>
-              <div className="text-sm font-medium text-[var(--cta-text)]">
-                AI Multi-Step Process
-              </div>
               <div className="flex items-center space-x-2 mt-1">
                 <motion.div
                   className="px-3 py-1 rounded-full text-xs font-medium"

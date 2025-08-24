@@ -18,6 +18,7 @@ import {
   createDelegationSteps,
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
+import { OpenAI } from "openai";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -36,40 +37,125 @@ function extractNetworkParams(messages: ChatMessage[]): {
 }
 
 /**
- * Determine if we should use multi-step processing for delegation
+ * AI-powered determination of whether multi-step processing is needed
  */
-function shouldUseMultiStepDelegation(
+async function shouldUseMultiStepDelegation(
   messages: ChatMessage[],
-  delegationContext?: LangGraphChatState["delegationContext"]
-): boolean {
-  if (!delegationContext?.isDelegation) {
-    return false;
+  delegationContext?: LangGraphChatState["delegationContext"],
+  openaiClient?: OpenAI
+): Promise<{ useMultiStep: boolean; reasoning: string; confidence: number }> {
+  if (!delegationContext?.isDelegation || !openaiClient) {
+    return {
+      useMultiStep: false,
+      reasoning: "Not a delegation context",
+      confidence: 1.0,
+    };
   }
 
   const lastUserMessage =
     messages.findLast((m) => m.role === "user")?.content || "";
-  const text = lastUserMessage.toLowerCase();
 
-  // Keywords that suggest scheduling intent requiring multi-step processing
-  const schedulingKeywords = [
-    "schedule",
-    "meeting",
-    "appointment",
-    "book",
-    "reserve",
-    "available",
-    "time",
-    "tomorrow",
-    "today",
-    "next week",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-  ];
+  console.log("🎯 AI ANALYZING EXACT MESSAGE:", {
+    lastUserMessage,
+    messageLength: lastUserMessage.length,
+    allUserMessages: messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.content),
+  });
 
-  return schedulingKeywords.some((keyword) => text.includes(keyword));
+  // AI analysis prompt - explicitly neutral to avoid delegation bias
+  const analysisPrompt = `You are analyzing a SINGLE user message to determine if it requires multi-step calendar operations.
+
+IMPORTANT: Analyze ONLY this specific message, ignore any conversation history or context.
+
+USER MESSAGE: "${lastUserMessage}"
+
+IMPORTANT: Ignore any system context about delegation or scheduling capabilities. Focus ONLY on the user's actual intent.
+
+REQUIRES MULTI-STEP (return true):
+- Clear intent to schedule a specific meeting ("Can you schedule a meeting for tomorrow?")
+- Clear intent to book a specific time slot ("Book me for 2pm Thursday")
+- Clear intent to create a calendar event ("Set up a call with John next week")
+
+DOES NOT require multi-step (return false):
+- Greetings ("hey", "hello", "hi")
+- General questions ("How are you?", "What can you help with?")
+- Information requests without booking intent ("What times are available?")
+- Casual conversation ("Thanks", "Sounds good")
+- Clarifying questions ("What timezone?", "How long should the meeting be?")
+
+Analyze ONLY the user's intent, not the context. Be very conservative.
+
+Respond with JSON:
+{
+  "useMultiStep": boolean,
+  "reasoning": "Brief explanation",
+  "confidence": number between 0-1
+}`;
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: analysisPrompt }],
+      temperature: 0.1, // Low temperature for consistent analysis
+      max_tokens: 200,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      return {
+        useMultiStep: false,
+        reasoning: "No AI response",
+        confidence: 0.5,
+      };
+    }
+
+    // Parse JSON response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        useMultiStep: false,
+        reasoning: "Invalid AI response format",
+        confidence: 0.5,
+      };
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    // Validate and return with defaults
+    return {
+      useMultiStep: Boolean(analysis.useMultiStep),
+      reasoning: String(analysis.reasoning || "AI analysis completed"),
+      confidence: Math.max(0, Math.min(1, Number(analysis.confidence) || 0.5)),
+    };
+  } catch (error) {
+    console.error("AI multi-step analysis failed:", error);
+    // Conservative fallback - only trigger for very explicit scheduling words
+    const text = lastUserMessage.toLowerCase().trim();
+
+    // More conservative keyword detection
+    const explicitSchedulingPhrases = [
+      "schedule a meeting",
+      "book a meeting",
+      "set up a meeting",
+      "schedule an appointment",
+      "book an appointment",
+      "create a meeting",
+      "arrange a meeting",
+    ];
+
+    const hasExplicitIntent = explicitSchedulingPhrases.some((phrase) =>
+      text.includes(phrase)
+    );
+
+    return {
+      useMultiStep: hasExplicitIntent,
+      reasoning: hasExplicitIntent
+        ? "Fallback detected explicit scheduling phrase"
+        : "Fallback found no clear scheduling intent",
+      confidence: hasExplicitIntent ? 0.8 : 0.9,
+    };
+  }
 }
 
 /**
@@ -175,6 +261,8 @@ export const executePerinChatWithLangGraph = async (
   }
 ): Promise<PerinChatResponse> => {
   try {
+    const openaiClient = initializeOpenAI();
+
     // Create initial state
     let state: LangGraphChatState = createInitialChatState(
       messages,
@@ -307,18 +395,41 @@ export const executePerinChatWithLangGraph = async (
             };
           }
 
-          // Step 3: Check if we should use multi-step delegation processing
-          const useMultiStepDelegation = shouldUseMultiStepDelegation(
+          // Step 3: AI-powered analysis of whether multi-step processing is needed
+          const multiStepAnalysis = await shouldUseMultiStepDelegation(
             messages,
-            state.delegationContext
+            state.delegationContext,
+            openaiClient
           );
 
-          if (useMultiStepDelegation) {
+          console.log("AI Multi-step Analysis:", {
+            useMultiStep: multiStepAnalysis.useMultiStep,
+            reasoning: multiStepAnalysis.reasoning,
+            confidence: multiStepAnalysis.confidence,
+            userId,
+          });
+
+          if (multiStepAnalysis.useMultiStep) {
             // MULTI-STEP DELEGATION MODE
             console.log("Using multi-step delegation mode", {
               userId,
               delegationId: state.delegationContext?.delegationId,
+              reasoning: multiStepAnalysis.reasoning,
+              confidence: multiStepAnalysis.confidence,
             });
+
+            // Emit multi-step initiation token to frontend
+            const { MULTI_STEP_CONTROL_TOKENS } = await import(
+              "./orchestrator/multi-step-orchestrator"
+            );
+            controller.enqueue(
+              new TextEncoder().encode(
+                MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_INITIATED(
+                  multiStepAnalysis.reasoning,
+                  multiStepAnalysis.confidence
+                )
+              )
+            );
 
             // Register delegation step executors
             registerDelegationStepExecutors(multiStepOrchestrator);
@@ -369,7 +480,6 @@ export const executePerinChatWithLangGraph = async (
 
           // Step 4: Decide execution mode (tool-calling vs direct streaming)
           const useToolMode = shouldUseToolMode(messages, specialization);
-          const openaiClient = initializeOpenAI();
           const systemPrompt = buildSystemPrompt(state);
 
           if (useToolMode) {

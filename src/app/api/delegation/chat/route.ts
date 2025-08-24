@@ -69,14 +69,14 @@ export const POST = async (request: NextRequest) => {
       "text"
     );
 
-    // Get conversation history
-    const messages = await getDelegationMessages(delegationId, 20);
-
-    // Convert to chat format for AI
-    const chatMessages = messages.map((msg) => ({
-      role: msg.fromExternal ? ("user" as const) : ("assistant" as const),
-      content: msg.content,
-    }));
+    // For delegation, we only need the current message - no conversation history
+    // This prevents context pollution and maintains privacy/security
+    const chatMessages = [
+      {
+        role: "user" as const,
+        content: message,
+      },
+    ];
 
     // Execute AI chat with delegation context using full LangGraph system
     const { stream, response } = await executePerinChatWithLangGraph(

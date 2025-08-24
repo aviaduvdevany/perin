@@ -15,6 +15,8 @@ export const MULTI_STEP_CONTROL_TOKENS = {
     `[[PERIN_STEP_RESULT:${stepId}:${status}${result ? `:${result}` : ""}]]`,
   STEP_END: (stepId: string) => `[[PERIN_STEP:end:${stepId}]]`,
   MULTI_STEP_COMPLETE: () => `[[PERIN_MULTI_STEP:complete]]`,
+  MULTI_STEP_INITIATED: (reasoning: string, confidence: number) =>
+    `[[PERIN_MULTI_STEP:initiated:${reasoning}:${confidence}]]`,
 } as const;
 
 export type StepExecutor = (
@@ -107,6 +109,15 @@ export class MultiStepOrchestrator {
       `Starting ${steps.length} step process...`
     );
 
+    // Emit all step definitions upfront so frontend can show complete roadmap
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      this.emitToStream(
+        streamController,
+        MULTI_STEP_CONTROL_TOKENS.STEP_START(step.id, step.name)
+      );
+    }
+
     try {
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -120,11 +131,7 @@ export class MultiStepOrchestrator {
           startTime: new Date(),
         };
 
-        // Emit step start
-        this.emitToStream(
-          streamController,
-          MULTI_STEP_CONTROL_TOKENS.STEP_START(step.id, step.name)
-        );
+        // Emit step execution start (step definition was already emitted upfront)
         this.emitToStream(
           streamController,
           `**Step ${i + 1}/${steps.length}**: ${step.description}`
