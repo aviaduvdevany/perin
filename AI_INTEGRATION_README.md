@@ -1,6 +1,6 @@
 # 🧠 Perin AI Integration System
 
-> Complete guide to Perin's production-ready AI integration featuring OpenAI GPT-4, LangGraph workflows, unified integrations, functional error handling, and semantic memory management.
+> Complete guide to Perin's production-ready AI integration featuring OpenAI GPT-4, LangGraph workflows, multi-step orchestration, delegation system, and unified integrations with functional error handling.
 
 ## 📋 Table of Contents
 
@@ -9,6 +9,9 @@
 - [Core Features](#core-features)
 - [AI Workflow](#ai-workflow)
 - [Integration System](#integration-system)
+- [Multi-Step Orchestration](#multi-step-orchestration)
+- [Delegation System](#delegation-system)
+- [Tools System](#tools-system)
 - [Error Handling & Resilience](#error-handling--resilience)
 - [Memory Management](#memory-management)
 - [API Reference](#api-reference)
@@ -22,11 +25,13 @@
 Perin's AI integration is a sophisticated system built with functional programming principles that provides:
 
 - **Intelligent AI Assistant**: Context-aware conversations with persistent memory
-- **Unified Integrations**: Single framework supporting Gmail, Calendar, and future services
-- **Production-Ready Error Handling**: Retry logic, circuit breakers, and graceful degradation
 - **LangGraph Workflows**: Multi-step reasoning with parallel integration loading
-- **Semantic Memory**: Smart memory management with importance scoring and auto-pruning
-- **Real-time Streaming**: Character-by-character response streaming with fallback support
+- **Multi-Step Orchestration**: Complex task decomposition with progress tracking
+- **Delegation System**: External user scheduling through secure delegation links
+- **Unified Integrations**: Single framework supporting Gmail, Calendar, and future services
+- **Tools System**: Structured tool calling for actionable intents
+- **Production-Ready Error Handling**: Retry logic, circuit breakers, and graceful degradation
+- **Real-time Streaming**: Character-by-character response streaming with control tokens
 
 ## 🏗️ Architecture
 
@@ -36,23 +41,32 @@ Perin's AI integration is a sophisticated system built with functional programmi
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Frontend (React/Next.js)                    │
 │  Components: PerinChat, usePerinAI hook                       │
-│  Features: Real-time streaming, error recovery                │
+│  Features: Real-time streaming, multi-step UI, delegation      │
 ├─────────────────────────────────────────────────────────────────┤
 │                    API Layer (Next.js)                         │
-│  Routes: /api/ai/chat, /api/ai/memory                         │
+│  Routes: /api/ai/chat, /api/ai/memory, /api/ai/classify       │
 │  Middleware: Rate limiting, security headers, auth            │
 ├─────────────────────────────────────────────────────────────────┤
 │                  AI Processing Layer                           │
-│  LangGraph: Memory → Integrations → OpenAI → Response         │
-│  Error Handling: Retry logic, circuit breakers, fallbacks    │
+│  LangGraph: Memory → Integrations → Tools → OpenAI → Response │
+│  Multi-Step: Orchestrator with progress tracking              │
+│  Delegation: External user scheduling system                  │
+├─────────────────────────────────────────────────────────────────┤
+│                  Tools Layer                                   │
+│  Network: Meeting scheduling, confirmation, negotiation       │
+│  Delegation: Availability checking, owner scheduling          │
+│  Notifications: Action resolution, time proposals             │
+│  Calendar: Solo event creation                                │
 ├─────────────────────────────────────────────────────────────────┤
 │                  Integration Layer                             │
 │  Unified System: Gmail, Calendar, Slack, Notion...           │
 │  OAuth2: Centralized token management and refresh            │
+│  Registry: Dynamic integration configuration                  │
 ├─────────────────────────────────────────────────────────────────┤
 │                  Database Layer (PostgreSQL)                   │
 │  Smart Queries: Retry logic, connection pooling, timeouts    │
 │  Tables: users (memory), user_integrations (tokens)          │
+│  Network: connections, sessions, proposals                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -61,16 +75,16 @@ Perin's AI integration is a sophisticated system built with functional programmi
 ```typescript
 // All components follow functional programming principles
 export const withRetry = (operation, config) => {
-  /* retry logic */
+  /* retry logic with circuit breakers */
 };
 export const loadIntegrationContext = (userId, type) => {
-  /* context loading */
+  /* context loading with error handling */
 };
 export const buildSystemPrompt = (state) => {
-  /* prompt building */
+  /* dynamic prompt building */
 };
 export const categorizeError = (error) => {
-  /* error classification */
+  /* error classification and handling */
 };
 ```
 
@@ -82,22 +96,39 @@ src/
 │   ├── api/
 │   │   ├── ai/
 │   │   │   ├── chat/route.ts              # Main AI chat endpoint
-│   │   │   └── memory/route.ts            # Memory management
+│   │   │   ├── memory/route.ts            # Memory management
+│   │   │   └── classify/route.ts          # Intent classification
 │   │   └── integrations/
 │   │       ├── connect/route.ts           # Unified connection endpoint
 │   │       └── callback/route.ts          # Unified OAuth callback
 ├── lib/
 │   ├── ai/
+│   │   ├── langgraph/
+│   │   │   ├── index.ts                   # Main workflow orchestration
+│   │   │   ├── orchestrator/
+│   │   │   │   ├── multi-step-orchestrator.ts    # Multi-step execution
+│   │   │   │   └── delegation-step-executors.ts  # Delegation tools
+│   │   │   ├── nodes/
+│   │   │   │   ├── memory-node.ts         # Memory loading
+│   │   │   │   ├── integration-node.ts    # Unified integration loading
+│   │   │   │   ├── openai-node.ts         # AI processing
+│   │   │   │   ├── tool-executor-node.ts  # Tool execution
+│   │   │   │   ├── network-negotiation-node.ts   # Network features
+│   │   │   │   └── notifications-node.ts  # Notification handling
+│   │   │   └── state/
+│   │   │       └── chat-state.ts          # LangGraph state management
+│   │   ├── tools/
+│   │   │   ├── registry.ts                # Tool specifications
+│   │   │   ├── types.ts                   # Tool type definitions
+│   │   │   ├── network.ts                 # Network scheduling tools
+│   │   │   ├── delegation.ts              # Delegation tools
+│   │   │   ├── notifications.ts           # Notification tools
+│   │   │   └── calendar.ts                # Calendar tools
 │   │   ├── resilience/
 │   │   │   └── error-handler.ts           # Functional error handling
 │   │   ├── memory/
-│   │   │   └── semantic-memory.ts         # Enhanced memory system
-│   │   └── langgraph/
-│   │       ├── index.ts                   # Main workflow orchestration
-│   │       └── nodes/
-│   │           ├── memory-node.ts         # Memory loading
-│   │           ├── integration-node.ts    # Unified integration loading
-│   │           └── openai-node.ts         # AI processing with error handling
+│   │   │   └── semantic-memory.ts         # Memory management
+│   │   └── memory.ts                      # Memory database operations
 │   └── integrations/
 │       ├── registry.ts                    # Integration configuration
 │       ├── service.ts                     # Functional integration utilities
@@ -113,9 +144,42 @@ src/
 
 - **Streaming Responses**: Real-time character-by-character output
 - **Context Awareness**: Uses memory and integration data intelligently
+- **Intent Classification**: Smart routing for different types of requests
 - **Error Resilience**: Automatic retries with exponential backoff
 - **Graceful Degradation**: Fallback responses when AI services fail
 - **Circuit Breakers**: Prevents cascade failures during outages
+
+### 🔄 LangGraph Workflow
+
+- **Multi-Step Reasoning**: Complex task decomposition with state management
+- **Parallel Processing**: Multiple integrations loaded simultaneously
+- **Tool Integration**: Seamless integration with external services
+- **State Persistence**: Centralized workflow state management
+- **Progress Tracking**: Real-time progress updates for complex operations
+
+### 🎯 Multi-Step Orchestration
+
+- **Step Definition**: Structured step definitions with metadata
+- **Progress Tracking**: Real-time progress updates with control tokens
+- **Error Recovery**: Graceful handling of step failures
+- **Pause/Resume**: Ability to pause and resume complex workflows
+- **Step Skipping**: Optional step skipping for flexibility
+
+### 🔗 Delegation System
+
+- **External Scheduling**: Allow external users to schedule with calendar owners
+- **Secure Links**: Time-limited delegation links with authentication
+- **Availability Checking**: Real-time availability verification
+- **Meeting Creation**: Automatic calendar event creation
+- **Multi-Step Delegation**: Complex delegation workflows with progress tracking
+
+### 🛠️ Tools System
+
+- **Structured Tool Calling**: OpenAI function calling for actionable intents
+- **Network Tools**: Meeting scheduling, confirmation, and negotiation
+- **Delegation Tools**: Availability checking and owner scheduling
+- **Notification Tools**: Action resolution and time proposals
+- **Calendar Tools**: Solo event creation and management
 
 ### 🔗 Unified Integration System
 
@@ -133,13 +197,12 @@ src/
 - **Fallback Responses**: Simple keyword-based responses when AI is unavailable
 - **Database Resilience**: Connection pooling with query retries
 
-### 🧠 Semantic Memory Management
+### 🧠 Memory Management
 
-- **Importance Scoring**: Automatic relevance calculation for memories
-- **Auto-Pruning**: Removes old, low-importance memories automatically
-- **Access Tracking**: Updates memory relevance based on usage patterns
-- **Category System**: Organizes memories by type (personal, work, health, etc.)
+- **Simple Relevance Scoring**: Key-based memory retrieval
 - **Context Matching**: Intelligent retrieval based on conversation content
+- **Database Storage**: PostgreSQL JSONB for flexible storage
+- **Memory Operations**: Add, retrieve, clear, and update entries
 
 ## 🔄 AI Workflow
 
@@ -154,9 +217,24 @@ DETECT_RELEVANT_INTEGRATIONS (keyword analysis)
   ↓
 LOAD_INTEGRATION_CONTEXTS (parallel loading)
   ↓
-BUILD_SYSTEM_PROMPT (with all context)
+LOAD_NOTIFICATIONS_CONTEXT (actionable items)
   ↓
-CALL_OPENAI (with retry + circuit breaker)
+NETWORK_NEGOTIATION (if scheduling intent)
+  ↓
+NOTIFICATIONS_ACTION (if user responds to notifications)
+  ↓
+AI_ANALYSIS (multi-step delegation detection)
+  ↓
+DECIDE_EXECUTION_MODE (tool mode vs direct mode)
+  ↓
+IF_TOOL_MODE:
+  PLANNER_PHASE (tools enabled)
+  ↓
+  TOOL_EXECUTION_PHASE (if tools called)
+  ↓
+  RESPONDER_PHASE (streaming response)
+ELSE:
+  DIRECT_MODE (single streaming call)
   ↓
 STREAM_RESPONSE (real-time to client)
   ↓
@@ -172,11 +250,24 @@ interface LangGraphChatState {
   userId: string;
   tone: string;
   perinName: string;
+  specialization?: "negotiation" | "scheduling" | "memory" | "coordination";
 
   // Context
   memoryContext: Record<string, unknown>;
   conversationContext: string;
   integrations: Record<string, IntegrationContext>;
+
+  // Multi-step context
+  multiStepContext?: MultiStepContext;
+
+  // Delegation context
+  delegationContext?: {
+    delegationId: string;
+    externalUserName?: string;
+    constraints?: Record<string, unknown>;
+    isDelegation: boolean;
+    externalUserTimezone?: string;
+  };
 
   // Processing
   systemPrompt: string;
@@ -185,6 +276,26 @@ interface LangGraphChatState {
   currentStep: string;
   error?: string;
 }
+```
+
+### Multi-Step Orchestration Flow
+
+```
+MULTI_STEP_INITIATED
+  ↓
+STEP_START (step 1)
+  ↓
+STEP_PROGRESS (real-time updates)
+  ↓
+STEP_RESULT (success/failure)
+  ↓
+STEP_END (step 1)
+  ↓
+STEP_START (step 2)
+  ↓
+...
+  ↓
+MULTI_STEP_COMPLETE
 ```
 
 ### Error Recovery Flow
@@ -213,6 +324,8 @@ If All Fails: Graceful degradation with simple response
 | Notion      | 🚧 Framework Ready | Page access (planned)        |
 | GitHub      | 🚧 Framework Ready | Repository data (planned)    |
 | Discord     | 🚧 Framework Ready | Server activity (planned)    |
+| Zoom        | 🚧 Framework Ready | Meeting management (planned) |
+| Teams       | 🚧 Framework Ready | Chat management (planned)    |
 
 ### Integration Registry
 
@@ -223,6 +336,7 @@ export const INTEGRATION_REGISTRY: Record<
   IntegrationRegistryEntry
 > = {
   gmail: {
+    type: "gmail",
     name: "Gmail",
     scopes: ["https://www.googleapis.com/auth/gmail.modify"],
     keywords: ["email", "message", "inbox", "mail"],
@@ -230,6 +344,7 @@ export const INTEGRATION_REGISTRY: Record<
     contextTransformer: gmailContextTransformer,
   },
   calendar: {
+    type: "calendar",
     name: "Google Calendar",
     scopes: ["https://www.googleapis.com/auth/calendar.events"],
     keywords: ["calendar", "meeting", "appointment", "schedule"],
@@ -252,6 +367,153 @@ window.location.href = authUrl; // Redirect to Google
 
 // 3. Use integration data
 const context = await loadIntegrationContext(userId, "gmail");
+```
+
+## 🎯 Multi-Step Orchestration
+
+### Step Definition
+
+```typescript
+interface StepDefinition {
+  id: string;
+  name: string;
+  description: string;
+  required?: boolean;
+  estimatedDuration?: number; // in seconds
+  data?: unknown; // Step-specific data
+}
+```
+
+### Control Tokens
+
+```typescript
+export const MULTI_STEP_CONTROL_TOKENS = {
+  STEP_START: (stepId: string, stepName: string) =>
+    `[[PERIN_STEP:start:${stepId}:${stepName}]]`,
+  STEP_PROGRESS: (message: string) => `[[PERIN_PROGRESS:${message}]]`,
+  STEP_RESULT: (stepId: string, status: string, result?: string) =>
+    `[[PERIN_STEP_RESULT:${stepId}:${status}${result ? `:${result}` : ""}]]`,
+  STEP_END: (stepId: string) => `[[PERIN_STEP:end:${stepId}]]`,
+  MULTI_STEP_COMPLETE: () => `[[PERIN_MULTI_STEP:complete]]`,
+  MULTI_STEP_INITIATED: (reasoning: string, confidence: number) =>
+    `[[PERIN_MULTI_STEP:initiated:${reasoning}:${confidence}]]`,
+};
+```
+
+### Step Execution
+
+```typescript
+// Register step executors
+registerDelegationStepExecutors(multiStepOrchestrator);
+
+// Create delegation steps
+const steps = createDelegationSteps(meetingParams);
+
+// Execute multi-step delegation flow
+const multiStepContext = await multiStepOrchestrator.executeSteps(
+  state,
+  steps,
+  controller
+);
+```
+
+## 🔐 Delegation System
+
+### Delegation Flow
+
+```
+External User Access
+  ↓
+Delegation Link Validation
+  ↓
+Calendar Owner Context Loading
+  ↓
+Availability Checking
+  ↓
+Meeting Scheduling
+  ↓
+Calendar Event Creation
+  ↓
+Confirmation Response
+```
+
+### Delegation Tools
+
+```typescript
+// Check owner availability
+const availabilityResult = await checkOwnerAvailabilityHandler(toolContext, {
+  startTime: "2024-01-15T10:00:00Z",
+  endTime: "2024-01-15T11:00:00Z",
+  durationMins: 60,
+});
+
+// Schedule with owner
+const scheduleResult = await scheduleWithOwnerHandler(toolContext, {
+  startTime: "2024-01-15T10:00:00Z",
+  endTime: "2024-01-15T11:00:00Z",
+  title: "Meeting with External User",
+  description: "Scheduled via delegation",
+});
+```
+
+## 🛠️ Tools System
+
+### Available Tools
+
+| Tool                            | Purpose                     | Context               |
+| ------------------------------- | --------------------------- | --------------------- |
+| `network_schedule_meeting`      | Start negotiation session   | Network scheduling    |
+| `network_confirm_meeting`       | Confirm proposed meeting    | Network confirmation  |
+| `notifications_resolve`         | Resolve notification action | Notification handling |
+| `delegation_check_availability` | Check owner availability    | Delegation system     |
+| `delegation_schedule_meeting`   | Schedule with owner         | Delegation system     |
+| `calendar_create_solo_event`    | Create solo calendar event  | Calendar management   |
+
+### Tool Registry
+
+```typescript
+export const TOOL_SPECS: ToolSpec[] = [
+  scheduleMeetingSpec,
+  confirmMeetingSpec,
+  resolveNotificationSpec,
+  createSoloEventSpec,
+  // More tools...
+];
+
+export const TOOL_HANDLERS = {
+  network_schedule_meeting: {
+    spec: scheduleMeetingSpec,
+    handler: scheduleMeetingHandler,
+    schema: scheduleMeetingSchema,
+  },
+  // More handlers...
+};
+```
+
+### Tool Execution Flow
+
+```typescript
+// 1. Planner phase (tools enabled)
+const plannerResponse = await openaiClient.chat.completions.create({
+  model: "gpt-4",
+  messages: plannerMessages,
+  tools: getToolSpecsForContext(isDelegation),
+  tool_choice: "auto",
+  stream: false,
+});
+
+// 2. Tool execution phase
+if (plannerMessage.tool_calls?.length > 0) {
+  const toolResult = await toolExecutorNode(state);
+  state = { ...state, ...toolResult };
+}
+
+// 3. Responder phase (streaming, no tools)
+const responderResponse = await openaiClient.chat.completions.create({
+  model: "gpt-4",
+  messages: responderMessages,
+  stream: true,
+});
 ```
 
 ## 🛡️ Error Handling & Resilience
@@ -315,23 +577,19 @@ export const query = async (text, params) => {
 
 ## 🧠 Memory Management
 
-### Semantic Memory System
+### Memory System
 
 ```typescript
-// Enhanced memory with importance scoring
-import { SemanticMemoryManager } from "@/lib/ai/memory/semantic-memory";
-
 // Store memory with automatic importance calculation
-await SemanticMemoryManager.storeMemory(
+await addMemoryEntry(
   userId,
   "user-preference",
   "Prefers morning meetings",
-  "scheduling context",
-  ["work", "scheduling"]
+  "scheduling context"
 );
 
 // Retrieve relevant memories with smart scoring
-const relevantMemories = await SemanticMemoryManager.getRelevantMemories(
+const relevantMemories = await getRelevantMemoryContext(
   userId,
   "schedule a meeting",
   5 // limit
@@ -340,23 +598,20 @@ const relevantMemories = await SemanticMemoryManager.getRelevantMemories(
 
 ### Memory Features
 
-- **Importance Scoring**: Based on keywords, categories, emotional content
-- **Auto-Pruning**: Removes memories below threshold (max 1000 memories)
-- **Access Tracking**: Updates relevance based on usage frequency
-- **Category System**: Organizes by personal, work, health, finance
-- **Decay Function**: Older memories gradually lose importance
+- **Simple Relevance Scoring**: Based on key matching
+- **Context Matching**: Intelligent retrieval based on conversation content
+- **Database Storage**: PostgreSQL JSONB for flexible storage
+- **Memory Operations**: Add, retrieve, clear, and update entries
 
 ### Memory Analytics
 
 ```typescript
-const analysis = await SemanticMemoryManager.analyzeMemoryPatterns(userId);
+const memory = await getUserMemory(userId);
 // Returns:
 // {
-//   totalMemories: 247,
-//   categories: { work: 89, personal: 158 },
-//   importanceDistribution: { high: 23, medium: 156, low: 68 },
-//   oldestMemory: 'first-meeting-preference',
-//   mostAccessed: 'timezone-preference'
+//   userId: "user123",
+//   memory: { "preference": { key: "preference", value: "...", timestamp: "..." } },
+//   lastUpdated: "2024-01-15T10:00:00Z"
 // }
 ```
 
@@ -374,10 +629,12 @@ POST /api/ai/chat
   ],
   "tone": "friendly",
   "perinName": "Perin",
-  "specialization": "scheduling"
+  "specialization": "scheduling",
+  "clientIntegrations": ["gmail", "calendar"]
 }
 
 // Response: Streaming text with real-time updates
+// Control tokens for multi-step operations
 ```
 
 ### Memory API
@@ -396,6 +653,17 @@ POST /api/ai/memory
 
 // Clear memory
 DELETE /api/ai/memory?keys=old-preferences
+```
+
+### Classification API
+
+```typescript
+POST /api/ai/classify
+{
+  "message": "Can you schedule a meeting for tomorrow?"
+}
+
+// Response: Streaming intent classification
 ```
 
 ### Integration API
@@ -462,6 +730,46 @@ function ChatExample() {
       {isChatLoading ? "Thinking..." : "Chat with Perin"}
     </button>
   );
+}
+```
+
+### Multi-Step Delegation
+
+```typescript
+// Multi-step delegation automatically triggers when:
+// 1. User is in delegation context
+// 2. AI detects scheduling intent
+// 3. Confidence threshold is met
+
+// Control tokens are emitted for UI handling:
+// [[PERIN_MULTI_STEP:initiated:reasoning:confidence]]
+// [[PERIN_STEP:start:stepId:stepName]]
+// [[PERIN_PROGRESS:message]]
+// [[PERIN_STEP_RESULT:stepId:status:result]]
+// [[PERIN_STEP:end:stepId]]
+// [[PERIN_MULTI_STEP:complete]]
+```
+
+### Tool Integration
+
+```typescript
+// Tools are automatically called when:
+// 1. Specialization is "scheduling"
+// 2. Actionable keywords are detected
+// 3. Tool mode is enabled
+
+// Example tool call:
+{
+  "tool_calls": [
+    {
+      "id": "call_123",
+      "type": "function",
+      "function": {
+        "name": "network_schedule_meeting",
+        "arguments": "{\"counterpart\":\"John\",\"durationMins\":60}"
+      }
+    }
+  ]
 }
 ```
 
@@ -627,9 +935,7 @@ console.log("AI Chat Interaction:", {
 const circuitStatus = getCircuitStatus("openai-chat");
 
 // Memory analytics
-const memoryAnalysis = await SemanticMemoryManager.analyzeMemoryPatterns(
-  userId
-);
+const memoryAnalysis = await getUserMemory(userId);
 ```
 
 ### Deployment Checklist
@@ -673,7 +979,31 @@ console.log("NEXTAUTH_URL:", process.env.NEXTAUTH_URL);
 // Environment: NEXTAUTH_URL=http://localhost:3000
 ```
 
-#### 3. Database Connection Problems
+#### 3. Multi-Step Orchestration Issues
+
+```typescript
+// Symptoms: Multi-step not triggering
+// Check: Delegation context and AI analysis
+console.log("Delegation context:", state.delegationContext);
+console.log("AI analysis:", multiStepAnalysis);
+
+// Solution: Ensure delegation context is properly set
+// and AI analysis confidence meets threshold
+```
+
+#### 4. Tool Execution Issues
+
+```typescript
+// Symptoms: Tools not being called
+// Check: Tool mode detection and specialization
+console.log("Tool mode:", useToolMode);
+console.log("Specialization:", specialization);
+
+// Solution: Ensure actionable keywords are present
+// or specialization is set to "scheduling"
+```
+
+#### 5. Database Connection Problems
 
 ```typescript
 // Symptoms: Query timeouts or connection errors
@@ -685,7 +1015,7 @@ pool.on("error", (err) => {
 // Solution: Verify DATABASE_URL and network connectivity
 ```
 
-#### 4. Memory System Issues
+#### 6. Memory System Issues
 
 ```typescript
 // Symptoms: Memory not loading or saving
@@ -752,6 +1082,6 @@ curl -X GET http://localhost:3000/api/integrations/connect
 
 ---
 
-**Last Updated**: August 2025  
+**Last Updated**: January 2025  
 **Maintainer**: Perin Development Team  
 **Architecture**: Functional Programming with Production-Ready Error Handling
