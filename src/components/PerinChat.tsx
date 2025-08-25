@@ -51,6 +51,7 @@ export function PerinChat() {
 
     try {
       const currentMessages = [...messages, userMessage];
+      console.log("🔍 Sending messages to API:", currentMessages);
       const stream = await sendMessage({
         messages: currentMessages,
         specialization: undefined,
@@ -109,6 +110,9 @@ export function PerinChat() {
           }
         }
 
+        console.log("🔍 Full response received:", fullResponse);
+        console.log("🔍 Response length:", fullResponse.length);
+
         const assistantMessage: ChatMessage = {
           id: `assistant-${Date.now()}-${Math.random()
             .toString(36)
@@ -117,7 +121,13 @@ export function PerinChat() {
           content: fullResponse,
         };
 
-        setMessages((prev) => [...prev, assistantMessage]);
+        console.log("🔍 Adding assistant message:", assistantMessage);
+        setMessages((prev) => {
+          console.log("🔍 Previous messages:", prev);
+          const newMessages = [...prev, assistantMessage];
+          console.log("🔍 New messages array:", newMessages);
+          return newMessages;
+        });
         setStreamingMessage("");
         setPerinStatus("idle");
       }
@@ -211,40 +221,43 @@ export function PerinChat() {
           </div>
         )}
 
-        {messages.map((message, index) => (
-          <motion.div
-            key={`${message.id}-${message.role}-${index}`}
-            className={`flex ${
-              message.role === "user" ? "justify-end" : "justify-start"
-            }`}
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-          >
-            {message.role === "user" ? (
-              <motion.div
-                className="max-w-[85%] lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
-                whileHover={{ scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {message.content}
-                </p>
-              </motion.div>
-            ) : (
-              <Glass
-                variant="default"
-                border={true}
-                glow={false}
-                className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
-              >
-                <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                  {message.content}
-                </p>
-              </Glass>
-            )}
-          </motion.div>
-        ))}
+        {messages.map((message, index) => {
+          console.log(`🔍 Rendering message ${index}:`, message);
+          return (
+            <motion.div
+              key={`${message.id}-${message.role}-${index}`}
+              className={`flex ${
+                message.role === "user" ? "justify-end" : "justify-start"
+              }`}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+            >
+              {message.role === "user" ? (
+                <motion.div
+                  className="max-w-[85%] lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                  </p>
+                </motion.div>
+              ) : (
+                <Glass
+                  variant="default"
+                  border={true}
+                  glow={false}
+                  className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
+                >
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {message.content}
+                  </p>
+                </Glass>
+              )}
+            </motion.div>
+          );
+        })}
 
         {/* Inline reconnect UI when Perin asks for Gmail reauth */}
         {messages.some((m) =>

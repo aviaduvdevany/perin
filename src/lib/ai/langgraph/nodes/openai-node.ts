@@ -35,6 +35,13 @@ export const buildSystemPrompt = (state: LangGraphChatState): string => {
     delegationContext,
   } = state;
 
+  console.log("🔍 Calendar context debug:", {
+    hasCalendarContext: !!calendarContext,
+    hasRecentEvents: calendarContext?.recentEvents,
+    eventCount: calendarContext?.eventCount,
+    recentEvents: calendarContext?.recentEvents?.slice(0, 2), // Show first 2 events
+  });
+
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
 ${
@@ -343,7 +350,7 @@ export const openaiNode = async (
           })),
           stream: true,
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 2000, // Increased for longer responses like calendar listings
         });
       },
       `openai-chat-${state.userId}`,

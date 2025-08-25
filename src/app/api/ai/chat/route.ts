@@ -4,9 +4,13 @@ import { authOptions } from "@/lib/auth";
 import { validateOpenAIConfig } from "@/lib/ai/openai";
 import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
-import { getRelevantMemoryContext } from "@/lib/ai/memory";
-import * as userQueries from "@/lib/queries/users";
 import { ErrorResponses } from "@/lib/utils/error-handlers";
+import * as userQueries from "@/lib/queries/users";
+import { understandingOrchestrator } from "@/lib/ai/understanding";
+import { integrationOrchestrator } from "@/lib/ai/integration";
+import { withRetry } from "@/lib/ai/resilience/error-handler";
+import type { ChatMessage } from "@/types/ai";
+import type { IntentAnalysis } from "@/types/understanding";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,32 +42,82 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.notFound("User not found");
     }
 
-    // Get relevant memory context
-    const conversationContext = messages
-      .map((msg) => msg.content)
+    // Extract conversation context for AI understanding
+    const conversationText = messages
+      .map((msg: ChatMessage) => msg.content)
       .join(" ")
-      .slice(-500); // Last 500 characters for context
+      .slice(-1000); // Last 1000 characters for context
 
-    const memoryContext = await getRelevantMemoryContext(
-      userId,
-      conversationContext
+    // Phase 1: AI-Powered Understanding
+    console.log("🧠 Starting AI understanding analysis...");
+
+    const understandingResponse = await withRetry(
+      async () => {
+        return await understandingOrchestrator.understand({
+          input: conversationText,
+          userId,
+          conversationHistory: messages
+            .filter(
+              (msg: ChatMessage) =>
+                msg.role === "user" || msg.role === "assistant"
+            )
+            .map((msg: ChatMessage) => ({
+              role: msg.role as "user" | "assistant",
+              content: msg.content,
+              timestamp: new Date(),
+            })),
+          userPreferences: {
+            language: "en", // Default to English for now
+            timezone: user.timezone,
+            communicationStyle: "neutral",
+            responseLength: "balanced",
+          },
+        });
+      },
+      "ai-understanding",
+      { maxRetries: 3, baseDelayMs: 1000, circuitBreaker: true }
     );
 
-    // Note: System prompt building is now handled within the LangGraph workflow
+    console.log("✅ AI understanding completed:", {
+      intent: understandingResponse.intent.type,
+      confidence: understandingResponse.confidence,
+      language: understandingResponse.language,
+      entities: understandingResponse.entities.length,
+    });
 
-    // Note: chatRequest is no longer used with LangGraph implementation
+    // Phase 2: Smart Integration Orchestration
+    console.log("🔗 Starting smart integration orchestration...");
 
-    // Heuristic specialization inference: default to scheduling when user asks to meet/schedule
-    const text = messages
-      .map((m: { content: string }) => m?.content || "")
-      .join(" ")
-      .toLowerCase();
-    const mentionsScheduling =
-      /\b(meet|meeting|schedule|set up|book|find time|calendar)\b/.test(text);
+    const integrationResponse = await withRetry(
+      async () => {
+        return await integrationOrchestrator.orchestrateIntegrations({
+          userIntent: understandingResponse.intent,
+          conversationContext: understandingResponse.context,
+          userInput: conversationText,
+          userId,
+          availableIntegrations: Array.isArray(clientIntegrations)
+            ? clientIntegrations
+            : ["gmail", "calendar"], // Default integrations
+        });
+      },
+      "integration-orchestration",
+      { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
+    );
+
+    console.log("✅ Integration orchestration completed:", {
+      primaryIntegration: integrationResponse.primaryIntegration,
+      relevantIntegrations: integrationResponse.relevantIntegrations.length,
+      suggestedWorkflow: integrationResponse.suggestedWorkflow,
+    });
+
+    // Determine specialization based on AI understanding
     const inferredSpecialization =
-      specialization || (mentionsScheduling ? "scheduling" : undefined);
+      specialization ||
+      (understandingResponse.intent.type === "scheduling"
+        ? "scheduling"
+        : undefined);
 
-    // Execute AI chat with LangGraph
+    // Execute AI chat with LangGraph using enhanced context
     const { response } = await executePerinChatWithLangGraph(
       messages,
       userId,
@@ -84,14 +138,24 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    // Log the interaction for debugging and audits
-    console.log("AI Chat Interaction:", {
-      userId: userId,
+    // Log comprehensive interaction data for analytics
+    console.log("🎯 AI Chat Interaction Complete:", {
+      userId,
       timestamp: new Date().toISOString(),
       messageCount: messages.length,
+      aiUnderstanding: {
+        intent: understandingResponse.intent.type,
+        confidence: understandingResponse.confidence,
+        language: understandingResponse.language,
+        entities: understandingResponse.entities.length,
+        requiresAction: understandingResponse.requiresAction,
+      },
+      integrationOrchestration: {
+        primaryIntegration: integrationResponse.primaryIntegration,
+        relevantIntegrations: integrationResponse.relevantIntegrations.length,
+        workflowSteps: integrationResponse.suggestedWorkflow.length,
+      },
       specialization: inferredSpecialization,
-      hasMemoryContext: Object.keys(memoryContext).length > 0,
-      inferredScheduling: mentionsScheduling,
       hasIntegrations: Array.isArray(clientIntegrations)
         ? clientIntegrations.length > 0
         : false,
@@ -99,7 +163,17 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error("Error in AI chat route:", error);
+    console.error("❌ Error in AI chat route:", error);
+
+    // Enhanced error handling with fallback
+    if (error instanceof Error) {
+      console.error("Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+      });
+    }
+
     return ErrorResponses.internalServerError("Failed to process chat request");
   }
 }

@@ -9,10 +9,12 @@ import {
 import { detectIntegrationContext } from "@/lib/integrations/registry";
 import { withRetry } from "@/lib/ai/resilience/error-handler";
 import { IntegrationError, isReauthError } from "@/lib/integrations/errors";
+import { integrationOrchestrator } from "@/lib/ai/integration";
+import { understandingOrchestrator } from "@/lib/ai/understanding";
 
 /**
- * Generic Integration Node for LangGraph
- * Handles any integration type dynamically
+ * Enhanced Integration Node for LangGraph with AI-powered understanding
+ * Uses the new understanding system instead of regex-based detection
  */
 export const createIntegrationNode = (integrationType: IntegrationType) => {
   return async (
@@ -33,15 +35,73 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
         };
       }
 
-      // Detect if conversation is relevant to this integration
+      // Use AI-powered understanding to determine relevance
       const conversationText = state.conversationContext.toLowerCase();
-      const detection = detectIntegrationContext(
-        conversationText,
-        integrationType
+
+      // Enhanced AI-powered detection
+      const aiDetection = await withRetry(
+        async () => {
+          // First, get AI understanding of the conversation
+          const understandingResponse =
+            await understandingOrchestrator.understand({
+              input: conversationText,
+              userId: state.userId,
+              conversationHistory: [], // We'll use the current context
+              userPreferences: {
+                language: "en",
+                timezone: "UTC",
+                communicationStyle: "neutral",
+                responseLength: "balanced",
+              },
+            });
+
+          // Then, use integration orchestrator to determine relevance
+          const integrationResponse =
+            await integrationOrchestrator.orchestrateIntegrations({
+              userIntent: understandingResponse.intent,
+              conversationContext: understandingResponse.context,
+              userInput: conversationText,
+              userId: state.userId,
+              availableIntegrations: [integrationType],
+            });
+
+          const relevantIntegration =
+            integrationResponse.relevantIntegrations.find(
+              (integration) => integration.integrationType === integrationType
+            );
+
+          return {
+            isRelevant: !!relevantIntegration,
+            confidence: relevantIntegration?.relevance || 0,
+            reasoning:
+              relevantIntegration?.reasoning || "No AI reasoning available",
+          };
+        },
+        `ai-integration-detection-${integrationType}`,
+        { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
       );
 
+      // Fallback to legacy detection if AI detection fails
+      if (!aiDetection) {
+        const legacyDetection = detectIntegrationContext(
+          conversationText,
+          integrationType
+        );
+
+        if (!legacyDetection.isRelevant) {
+          return {
+            [`${integrationType}Context`]: {
+              isConnected: true,
+              data: [],
+              count: 0,
+            },
+            currentStep: `${integrationType}_context_loaded`,
+          };
+        }
+      }
+
       // Smart context loading - only load if contextually relevant
-      if (detection.isRelevant) {
+      if (aiDetection?.isRelevant || false) {
         let context: IntegrationContext;
         try {
           context = await withRetry(
@@ -98,22 +158,27 @@ export const createIntegrationNode = (integrationType: IntegrationType) => {
       };
     } catch (error) {
       console.error(`Error in ${integrationType} integration node:`, error);
+
+      // Enhanced error logging
+      if (error instanceof Error) {
+        console.error("Integration node error details:", {
+          integrationType,
+          userId: state.userId,
+          error: error.message,
+          stack: error.stack,
+        });
+      }
+
+      // Return error state
       return {
         [`${integrationType}Context`]: {
           isConnected: false,
           data: [],
           count: 0,
-          error:
-            error instanceof Error
-              ? error.message
-              : `${integrationType} integration error`,
+          error: "INTEGRATION_ERROR",
         },
         currentStep: `${integrationType}_error`,
-        error:
-          error instanceof Error
-            ? error.message
-            : `${integrationType} integration error`,
-      };
+      } as unknown as Partial<LangGraphChatState>;
     }
   };
 };

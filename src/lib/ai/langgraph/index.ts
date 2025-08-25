@@ -826,7 +826,7 @@ export const executePerinChatWithLangGraph = async (
                   }),
                   stream: true,
                   temperature: 0.7,
-                  max_tokens: 1000,
+                  max_tokens: 2000, // Increased for longer responses like calendar listings
                 });
               },
               `langgraph-responder-${userId}`,
@@ -868,7 +868,7 @@ export const executePerinChatWithLangGraph = async (
                   })),
                   stream: true,
                   temperature: 0.7,
-                  max_tokens: 1000,
+                  max_tokens: 2000, // Increased for longer responses like calendar listings
                 });
               },
               `langgraph-openai-${userId}`,
