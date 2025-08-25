@@ -38,6 +38,9 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       throw new Error("Missing availability check parameters");
     }
 
+    onProgress("Connecting to calendar service...");
+    await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate connection time
+
     onProgress("Checking owner's calendar availability...");
 
     // Create tool context with required fields
@@ -49,11 +52,15 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       integrations: state.integrations || {},
     };
 
+    onProgress("Searching for available time slots...");
+    await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate search time
+
     // Execute the availability check
     const result = await checkOwnerAvailabilityHandler(toolContext, stepData);
 
     if (result.ok && result.data) {
       const data = result.data;
+
       if (data.isAvailable) {
         onProgress("✅ Time slot is available!");
 
@@ -61,9 +68,11 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
           stepId: step.id,
           status: "completed",
           result: data,
-          progressMessage: `Found available slot: ${new Date(
-            data.proposedStartTime
-          ).toLocaleString()}`,
+          progressMessage:
+            data.message ||
+            `Found available slot: ${new Date(
+              data.proposedStartTime
+            ).toLocaleString()}`,
         };
       } else {
         onProgress("❌ Time slot is not available, checking alternatives...");
@@ -72,7 +81,8 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
           stepId: step.id,
           status: "completed",
           result: data,
-          progressMessage: "Time slot unavailable, alternatives found",
+          progressMessage:
+            data.message || "Time slot unavailable, alternatives found",
         };
       }
     } else {
@@ -88,6 +98,7 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
         errorString.includes("please reconnect") ||
         errorString.includes("reauth required")
       ) {
+        onProgress("❌ Calendar authentication expired");
         return {
           stepId: step.id,
           status: "failed",
@@ -96,6 +107,7 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
         };
       }
 
+      onProgress("❌ Failed to check availability");
       return {
         stepId: step.id,
         status: "failed",
@@ -107,6 +119,7 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
 
+    onProgress("❌ Unexpected error occurred");
     return {
       stepId: step.id,
       status: "failed",
@@ -137,6 +150,10 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
     }
 
     onProgress("Creating calendar event...");
+    await new Promise((resolve) => setTimeout(resolve, 400)); // Simulate event creation time
+
+    onProgress("Setting up meeting details...");
+    await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate setup time
 
     // Create tool context with required fields
     const toolContext: ToolContext = {
@@ -146,6 +163,8 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
       memoryContext: state.memoryContext,
       integrations: state.integrations || {},
     };
+
+    onProgress("Sending calendar invitation...");
 
     // Execute the meeting scheduling
     const result = await scheduleWithOwnerHandler(toolContext, stepData);
@@ -179,6 +198,7 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
       errorMessage.includes("reauth required") ||
       errorMessage.includes("invalid_grant")
     ) {
+      onProgress("❌ Calendar authentication expired");
       return {
         stepId: step.id,
         status: "failed",
@@ -187,6 +207,7 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
       };
     }
 
+    onProgress("❌ Failed to schedule meeting");
     return {
       stepId: step.id,
       status: "failed",

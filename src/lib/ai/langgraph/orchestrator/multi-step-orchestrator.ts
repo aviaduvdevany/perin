@@ -109,20 +109,17 @@ export class MultiStepOrchestrator {
       `Starting ${steps.length} step process...`
     );
 
-    // Emit all step definitions upfront so frontend can show complete roadmap
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      this.emitToStream(
-        streamController,
-        MULTI_STEP_CONTROL_TOKENS.STEP_START(step.id, step.name)
-      );
-    }
-
     try {
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
         context.currentStepIndex = i;
         context.lastUpdateTime = new Date();
+
+        // Emit step definition ONLY when it's about to start (real-time)
+        this.emitToStream(
+          streamController,
+          MULTI_STEP_CONTROL_TOKENS.STEP_START(step.id, step.name)
+        );
 
         // Update step status to running
         context.stepResults[i] = {
@@ -131,7 +128,7 @@ export class MultiStepOrchestrator {
           startTime: new Date(),
         };
 
-        // Emit step execution start (step definition was already emitted upfront)
+        // Emit step execution start
         this.emitToStream(
           streamController,
           `**Step ${i + 1}/${steps.length}**: ${step.description}`
@@ -184,9 +181,22 @@ export class MultiStepOrchestrator {
           // Call step complete callback
           this.options.onStepComplete?.(step, context.stepResults[i], context);
 
-          // Check if step failed and is required
+          // Check if step failed and is required - STOP execution here
           if (context.stepResults[i].status === "failed" && step.required) {
             context.status = "failed";
+
+            // Emit failure message and stop
+            this.emitToStream(
+              streamController,
+              `❌ Required step failed: ${step.name}. Process stopped.`
+            );
+
+            // Emit completion token to signal end
+            this.emitToStream(
+              streamController,
+              MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
+            );
+
             throw new Error(`Required step failed: ${step.name}`);
           }
         } catch (error) {
@@ -215,9 +225,22 @@ export class MultiStepOrchestrator {
 
           this.options.onStepError?.(step, error as Error, context);
 
-          // If step is required, fail the entire process
+          // If step is required, fail the entire process and stop
           if (step.required) {
             context.status = "failed";
+
+            // Emit failure message and stop
+            this.emitToStream(
+              streamController,
+              `❌ Required step failed: ${step.name}. Process stopped.`
+            );
+
+            // Emit completion token to signal end
+            this.emitToStream(
+              streamController,
+              MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
+            );
+
             throw error;
           }
 

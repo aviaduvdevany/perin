@@ -99,7 +99,7 @@ export function useMultiStepParser() {
         processStartTimeRef.current = new Date();
       }
 
-      // Parse all control tokens and buffer them for cinematic playback
+      // Parse all control tokens and process them immediately for real-time updates
       const updates: ParsedUpdate[] = [];
 
       // Parse STEP_START tokens
@@ -251,7 +251,7 @@ export function useMultiStepParser() {
       }
       CONTROL_TOKEN_PATTERNS.MULTI_STEP_INITIATED.lastIndex = 0;
 
-      // Process updates if we have any
+      // Process updates if we have any - ALWAYS process immediately for real-time sync
       if (updates.length > 0) {
         const hasInitiation = updates.some(
           (update) => update.type === "initiated"
@@ -268,35 +268,8 @@ export function useMultiStepParser() {
 
         // If this chunk has initiation OR we already initiated OR has step updates, process them
         if (hasInitiation || aiInitiated || hasStepUpdates) {
-          // Separate updates: buffer step definitions, but process results immediately
-          const stepDefinitionUpdates = updates.filter(
-            (u) => u.type === "step_start" || u.type === "initiated"
-          );
-          const realTimeUpdates = updates.filter(
-            (u) =>
-              u.type === "step_result" ||
-              u.type === "step_progress" ||
-              u.type === "step_end" ||
-              u.type === "complete"
-          );
-
-          if (
-            multiStepState.cinematicMode &&
-            stepDefinitionUpdates.length > 0
-          ) {
-            updateBufferRef.current.push(...stepDefinitionUpdates);
-            processBufferedUpdates();
-          }
-
-          // Always process status updates immediately for real-time feedback
-          if (realTimeUpdates.length > 0) {
-            processUpdatesImmediately(realTimeUpdates);
-          }
-
-          // If not in cinematic mode, process everything immediately
-          if (!multiStepState.cinematicMode) {
-            processUpdatesImmediately(updates);
-          }
+          // Process ALL updates immediately for real-time sync
+          processUpdatesImmediately(updates);
         }
       }
 
@@ -309,109 +282,6 @@ export function useMultiStepParser() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [multiStepState.cinematicMode]
   );
-
-  const processBufferedUpdates = useCallback(() => {
-    const updates = updateBufferRef.current;
-    if (updates.length === 0) {
-      return;
-    }
-
-    // Check if we have an initiation update locally (don't rely on React state)
-    const hasInitiationUpdate = updates.some(
-      (update) => update.type === "initiated"
-    );
-    const localAiInitiated = aiInitiated || hasInitiationUpdate;
-
-    if (!localAiInitiated) {
-      return;
-    }
-
-    // Build complete step structure from buffered updates
-    const stepsMap = new Map<string, Step>();
-    let isComplete = false;
-    const messages: string[] = [];
-
-    updates.forEach((update) => {
-      switch (update.type) {
-        case "step_start":
-          if (update.stepId && update.stepName) {
-            stepsMap.set(update.stepId, {
-              id: update.stepId,
-              name: update.stepName,
-              description: `Processing ${update.stepName.toLowerCase()}...`,
-              status: "pending",
-              startTime: update.timestamp,
-            });
-          }
-          break;
-
-        case "step_progress":
-          if (update.message) {
-            messages.push(
-              `${update.timestamp.toLocaleTimeString([], {
-                hour12: false,
-                minute: "2-digit",
-                second: "2-digit",
-              })} • ${update.message}`
-            );
-          }
-          break;
-
-        case "step_result":
-          if (update.stepId && update.status) {
-            const step = stepsMap.get(update.stepId);
-            if (step) {
-              step.status = update.status as Step["status"];
-              step.progressMessage = update.result || step.progressMessage;
-              if (update.status === "failed" && update.result) {
-                step.error = update.result;
-              }
-            }
-          }
-          break;
-
-        case "step_end":
-          if (update.stepId) {
-            const step = stepsMap.get(update.stepId);
-            if (step) {
-              step.endTime = update.timestamp;
-              // Don't override status - it should be set by step_result
-            }
-          }
-          break;
-
-        case "complete":
-          isComplete = true;
-          break;
-
-        case "initiated":
-          // AI has determined multi-step is needed
-          setAiInitiated(true);
-          if (update.message && update.result) {
-            messages.push(
-              `AI Analysis: ${update.message} (Confidence: ${Math.round(
-                parseFloat(update.result) * 100
-              )}%)`
-            );
-          }
-          break;
-      }
-    });
-
-    // Update state with buffered data - only set isMultiStep if AI initiated it
-    const newSteps = Array.from(stepsMap.values());
-    const shouldBeMultiStep = localAiInitiated && newSteps.length > 0;
-
-    setMultiStepState((prev) => ({
-      ...prev,
-      isMultiStep: shouldBeMultiStep,
-      bufferedSteps: newSteps,
-      steps: newSteps, // For cinematic component to use
-      progressMessages: messages,
-      realTimeComplete: isComplete,
-      status: isComplete ? "completed" : "running",
-    }));
-  }, [aiInitiated]);
 
   const processUpdatesImmediately = useCallback((updates: ParsedUpdate[]) => {
     updates.forEach((update) => {
@@ -549,6 +419,7 @@ export function useMultiStepParser() {
 
         case "initiated":
           // AI has determined multi-step is needed - set initial state
+          setAiInitiated(true);
           if (update.message && update.result) {
             setMultiStepState((prev) => ({
               ...prev,
