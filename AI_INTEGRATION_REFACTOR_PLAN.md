@@ -432,7 +432,7 @@ interface MemoryEntry {
   relevance: number;
   accessCount: number;
   lastAccessed: Date;
-  semanticEmbedding?: number[];
+  semanticEmbedding?: number[]; // Stored as JSONB in database, but used as number[] in TypeScript
 }
 ```
 
@@ -749,7 +749,7 @@ src/
 -- New tables for enhanced AI system
 CREATE TABLE intent_analyses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
+  user_id TEXT REFERENCES users(id),
   input_text TEXT NOT NULL,
   detected_intent JSONB NOT NULL,
   confidence DECIMAL(3,2) NOT NULL,
@@ -760,21 +760,24 @@ CREATE TABLE intent_analyses (
 
 CREATE TABLE semantic_memories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
+  user_id TEXT REFERENCES users(id),
   key TEXT NOT NULL,
   content TEXT NOT NULL,
   context JSONB,
   importance DECIMAL(3,2) DEFAULT 0.5,
   relevance DECIMAL(3,2) DEFAULT 0.5,
   access_count INTEGER DEFAULT 0,
-  semantic_embedding VECTOR(1536),
+  semantic_embedding JSONB, 
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
+-- Optional: Add index for semantic similarity search (if using pgvector extension)
+-- CREATE INDEX semantic_memories_embedding_idx ON semantic_memories USING ivfflat (semantic_embedding vector_cosine_ops);
+
 CREATE TABLE learning_interactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID REFERENCES users(id),
+  user_id TEXT REFERENCES users(id),
   intent JSONB NOT NULL,
   response TEXT NOT NULL,
   satisfaction INTEGER,
