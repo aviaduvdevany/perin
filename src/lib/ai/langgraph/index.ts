@@ -184,18 +184,123 @@ function extractDelegationMeetingParams(
     (delegationContext.constraints as Record<string, unknown>) || {};
   const defaultDuration = (constraints.defaultDuration as number) || 30;
 
-  // For now, use a simple heuristic - in production this would be more sophisticated
-  const now = new Date();
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  tomorrow.setHours(14, 0, 0, 0); // Default to 2 PM tomorrow
+  // Parse date and time from user message
+  const parsedDateTime = parseDateTimeFromMessage(
+    lastUserMessage,
+    delegationContext.externalUserTimezone || "UTC"
+  );
+
+  if (!parsedDateTime) {
+    console.log("Could not parse date/time from message:", lastUserMessage);
+    return null;
+  }
 
   return {
-    startTime: tomorrow.toISOString(),
+    startTime: parsedDateTime.toISOString(),
     durationMins: defaultDuration,
     title: "Meeting",
     timezone: delegationContext.externalUserTimezone || "UTC",
     externalUserName: delegationContext.externalUserName,
   };
+}
+
+/**
+ * Parse date and time from user message
+ */
+function parseDateTimeFromMessage(
+  message: string,
+  timezone: string
+): Date | null {
+  const lowerMessage = message.toLowerCase();
+
+  // Get current date in user's timezone
+  const now = new Date();
+
+  // Parse day of week
+  let targetDate = new Date(now);
+  const dayPatterns = [
+    { pattern: /monday|mon/i, dayOffset: 1 },
+    { pattern: /tuesday|tue/i, dayOffset: 2 },
+    { pattern: /wednesday|wed/i, dayOffset: 3 },
+    { pattern: /thursday|thu/i, dayOffset: 4 },
+    { pattern: /friday|fri/i, dayOffset: 5 },
+    { pattern: /saturday|sat/i, dayOffset: 6 },
+    { pattern: /sunday|sun/i, dayOffset: 0 },
+  ];
+
+  let dayOffset = 0;
+  for (const { pattern, dayOffset: offset } of dayPatterns) {
+    if (pattern.test(lowerMessage)) {
+      dayOffset = offset;
+      break;
+    }
+  }
+
+  // If no day specified, default to tomorrow
+  if (dayOffset === 0 && !lowerMessage.includes("today")) {
+    dayOffset = 1; // tomorrow
+  }
+
+  // Calculate target date
+  if (lowerMessage.includes("today")) {
+    targetDate = new Date(now);
+  } else if (lowerMessage.includes("tomorrow")) {
+    targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  } else if (dayOffset > 0) {
+    // Find next occurrence of the specified day
+    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    let daysUntilTarget = (dayOffset - currentDay + 7) % 7;
+    if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week
+    targetDate = new Date(
+      now.getTime() + daysUntilTarget * 24 * 60 * 60 * 1000
+    );
+  }
+
+  // Parse time
+  let hour = 14; // Default to 2 PM
+  let minute = 0;
+
+  // Look for time patterns
+  const timePatterns = [
+    /(\d{1,2}):(\d{2})/, // 14:00, 2:30
+    /(\d{1,2})\s*(am|pm)/i, // 2pm, 2:30pm
+    /(\d{1,2})\s*(\d{2})\s*(am|pm)/i, // 2 30pm
+  ];
+
+  for (const pattern of timePatterns) {
+    const match = lowerMessage.match(pattern);
+    if (match) {
+      if (match[3]) {
+        // AM/PM format
+        hour = parseInt(match[1]);
+        minute = match[2] ? parseInt(match[2]) : 0;
+        if (match[3].toLowerCase() === "pm" && hour !== 12) {
+          hour += 12;
+        } else if (match[3].toLowerCase() === "am" && hour === 12) {
+          hour = 0;
+        }
+      } else {
+        // 24-hour format
+        hour = parseInt(match[1]);
+        minute = parseInt(match[2]);
+      }
+      break;
+    }
+  }
+
+  // Set the time on the target date
+  targetDate.setHours(hour, minute, 0, 0);
+
+  console.log("Parsed date/time from message:", {
+    originalMessage: message,
+    parsedDate: targetDate.toISOString(),
+    timezone,
+    dayOffset,
+    hour,
+    minute,
+  });
+
+  return targetDate;
 }
 
 /**
