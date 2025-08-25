@@ -89,6 +89,39 @@ export interface SystemPromptContext {
 // LangGraph-specific types
 import type { IntegrationType } from "@/types/integrations";
 
+// Multi-step messaging interfaces
+export interface StepDefinition {
+  id: string;
+  name: string;
+  description: string;
+  required?: boolean;
+  estimatedDuration?: number; // in seconds
+}
+
+export interface StepResult {
+  stepId: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  startTime?: Date;
+  endTime?: Date;
+  result?: unknown;
+  error?: string;
+  progressMessage?: string;
+}
+
+export interface MultiStepContext {
+  sessionId: string;
+  currentStepIndex: number;
+  totalSteps: number;
+  steps: StepDefinition[];
+  stepResults: StepResult[];
+  progressMessages: string[];
+  status: "running" | "paused" | "completed" | "failed";
+  startTime: Date;
+  lastUpdateTime: Date;
+  canPause?: boolean;
+  canSkip?: boolean;
+}
+
 export interface LangGraphChatState {
   messages: ChatMessage[];
   userId: string;
@@ -102,6 +135,8 @@ export interface LangGraphChatState {
   streamChunks: string[];
   currentStep: string;
   error?: string;
+  // Multi-step context
+  multiStepContext?: MultiStepContext;
   user?: {
     perin_name?: string;
     tone?: string;
@@ -151,6 +186,15 @@ export interface LangGraphChatState {
   integrations?: Record<string, unknown>;
   // Tool execution results
   toolExecutionResults?: Record<string, unknown>;
+  // Delegation context for external users
+  delegationContext?: {
+    delegationId: string;
+    externalUserName?: string;
+    externalUserEmail?: string;
+    constraints?: Record<string, unknown>;
+    isDelegation: boolean;
+    externalUserTimezone?: string;
+  };
 }
 
 // Gmail integration API types

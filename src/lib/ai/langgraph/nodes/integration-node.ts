@@ -138,10 +138,52 @@ export const multiIntegrationNode = async (
       };
     }
 
-    // Load context for all relevant integrations in parallel
-    const integrationContexts = await loadRelevantContexts(
-      state.userId,
-      conversationText
+    // Load context for all relevant integrations in parallel with proper error handling
+    const integrationContexts: Record<IntegrationType, IntegrationContext> =
+      {} as Record<IntegrationType, IntegrationContext>;
+
+    await Promise.allSettled(
+      relevantIntegrations.map(async (type) => {
+        try {
+          const context = await withRetry(
+            async () => {
+              return await loadIntegrationContext(state.userId, type);
+            },
+            `integration-${type}-${state.userId}`,
+            { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
+          );
+          integrationContexts[type] = context;
+        } catch (err) {
+          // Use centralized error handling for integration errors
+          if (isReauthError(err)) {
+            let errorType: string;
+            if (err instanceof IntegrationError) {
+              errorType = `${err.integrationType.toUpperCase()}_REAUTH_REQUIRED`;
+            } else {
+              // Fallback for legacy errors
+              errorType =
+                type === "gmail"
+                  ? "GMAIL_REAUTH_REQUIRED"
+                  : "CALENDAR_REAUTH_REQUIRED";
+            }
+
+            integrationContexts[type] = {
+              isConnected: false,
+              data: [],
+              count: 0,
+              error: errorType,
+            };
+          } else {
+            console.error(`Error loading ${type} context:`, err);
+            integrationContexts[type] = {
+              isConnected: false,
+              data: [],
+              count: 0,
+              error: err instanceof Error ? err.message : "Loading error",
+            };
+          }
+        }
+      })
     );
 
     // Build the integrations object for the state

@@ -1,6 +1,9 @@
 import { createInitialChatState } from "./state/chat-state";
 import { memoryNode } from "./nodes/memory-node";
-import { multiIntegrationNode } from "./nodes/integration-node";
+import {
+  multiIntegrationNode,
+  createIntegrationNode,
+} from "./nodes/integration-node";
 import { initializeOpenAI, buildSystemPrompt } from "./nodes/openai-node";
 import { toolExecutorNode } from "./nodes/tool-executor-node";
 import type {
@@ -12,7 +15,13 @@ import type { IntegrationType } from "@/types/integrations";
 import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
-import { TOOL_SPECS } from "../tools/registry";
+import { getToolSpecsForContext } from "../tools/registry";
+import { multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
+import {
+  createDelegationSteps,
+  registerDelegationStepExecutors,
+} from "./orchestrator/delegation-step-executors";
+import { OpenAI } from "openai";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -27,6 +36,165 @@ function extractNetworkParams(messages: ChatMessage[]): {
     connectionId: undefined,
     durationMins: undefined,
     conversationText: text.slice(-1000),
+  };
+}
+
+/**
+ * AI-powered determination of whether multi-step processing is needed
+ */
+async function shouldUseMultiStepDelegation(
+  messages: ChatMessage[],
+  delegationContext?: LangGraphChatState["delegationContext"],
+  openaiClient?: OpenAI
+): Promise<{ useMultiStep: boolean; reasoning: string; confidence: number }> {
+  if (!delegationContext?.isDelegation || !openaiClient) {
+    return {
+      useMultiStep: false,
+      reasoning: "Not a delegation context",
+      confidence: 1.0,
+    };
+  }
+
+  const lastUserMessage =
+    messages.findLast((m) => m.role === "user")?.content || "";
+
+  console.log("🎯 AI ANALYZING EXACT MESSAGE:", {
+    lastUserMessage,
+    messageLength: lastUserMessage.length,
+    allUserMessages: messages
+      .filter((m) => m.role === "user")
+      .map((m) => m.content),
+  });
+
+  // AI analysis prompt - explicitly neutral to avoid delegation bias
+  const analysisPrompt = `You are analyzing a SINGLE user message to determine if it requires multi-step calendar operations.
+
+IMPORTANT: Analyze ONLY this specific message, ignore any conversation history or context.
+
+USER MESSAGE: "${lastUserMessage}"
+
+IMPORTANT: Ignore any system context about delegation or scheduling capabilities. Focus ONLY on the user's actual intent.
+
+REQUIRES MULTI-STEP (return true):
+- Clear intent to schedule a specific meeting ("Can you schedule a meeting for tomorrow?")
+- Clear intent to book a specific time slot ("Book me for 2pm Thursday")
+- Clear intent to create a calendar event ("Set up a call with John next week")
+
+DOES NOT require multi-step (return false):
+- Greetings ("hey", "hello", "hi")
+- General questions ("How are you?", "What can you help with?")
+- Information requests without booking intent ("What times are available?")
+- Casual conversation ("Thanks", "Sounds good")
+- Clarifying questions ("What timezone?", "How long should the meeting be?")
+
+Analyze ONLY the user's intent, not the context. Be very conservative.
+
+Respond with JSON:
+{
+  "useMultiStep": boolean,
+  "reasoning": "Brief explanation",
+  "confidence": number between 0-1
+}`;
+
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: analysisPrompt }],
+      temperature: 0.1, // Low temperature for consistent analysis
+      max_tokens: 200,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      return {
+        useMultiStep: false,
+        reasoning: "No AI response",
+        confidence: 0.5,
+      };
+    }
+
+    // Parse JSON response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return {
+        useMultiStep: false,
+        reasoning: "Invalid AI response format",
+        confidence: 0.5,
+      };
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    // Validate and return with defaults
+    return {
+      useMultiStep: Boolean(analysis.useMultiStep),
+      reasoning: String(analysis.reasoning || "AI analysis completed"),
+      confidence: Math.max(0, Math.min(1, Number(analysis.confidence) || 0.5)),
+    };
+  } catch (error) {
+    console.error("AI multi-step analysis failed:", error);
+    // Conservative fallback - only trigger for very explicit scheduling words
+    const text = lastUserMessage.toLowerCase().trim();
+
+    // More conservative keyword detection
+    const explicitSchedulingPhrases = [
+      "schedule a meeting",
+      "book a meeting",
+      "set up a meeting",
+      "schedule an appointment",
+      "book an appointment",
+      "create a meeting",
+      "arrange a meeting",
+    ];
+
+    const hasExplicitIntent = explicitSchedulingPhrases.some((phrase) =>
+      text.includes(phrase)
+    );
+
+    return {
+      useMultiStep: hasExplicitIntent,
+      reasoning: hasExplicitIntent
+        ? "Fallback detected explicit scheduling phrase"
+        : "Fallback found no clear scheduling intent",
+      confidence: hasExplicitIntent ? 0.8 : 0.9,
+    };
+  }
+}
+
+/**
+ * Extract meeting parameters from user message for delegation
+ */
+function extractDelegationMeetingParams(
+  messages: ChatMessage[],
+  delegationContext: LangGraphChatState["delegationContext"]
+): {
+  startTime: string;
+  durationMins: number;
+  title: string;
+  timezone?: string;
+  externalUserName?: string;
+} | null {
+  if (!delegationContext) return null;
+
+  const lastUserMessage =
+    messages.findLast((m) => m.role === "user")?.content || "";
+
+  // Simple extraction - in production, this would use NLP
+  const constraints =
+    (delegationContext.constraints as Record<string, unknown>) || {};
+  const defaultDuration = (constraints.defaultDuration as number) || 30;
+
+  // For now, use a simple heuristic - in production this would be more sophisticated
+  const now = new Date();
+  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  tomorrow.setHours(14, 0, 0, 0); // Default to 2 PM tomorrow
+
+  return {
+    startTime: tomorrow.toISOString(),
+    durationMins: defaultDuration,
+    title: "Meeting",
+    timezone: delegationContext.externalUserTimezone || "UTC",
+    externalUserName: delegationContext.externalUserName,
   };
 }
 
@@ -84,9 +252,20 @@ export const executePerinChatWithLangGraph = async (
     preferred_hours?: Record<string, unknown>;
     memory?: Record<string, unknown>;
   },
-  options?: { connectedIntegrationTypes?: IntegrationType[] }
+  options?: {
+    connectedIntegrationTypes?: IntegrationType[];
+    delegationContext?: {
+      delegationId: string;
+      externalUserName?: string;
+      constraints?: Record<string, unknown>;
+      isDelegation: boolean;
+      externalUserTimezone?: string;
+    };
+  }
 ): Promise<PerinChatResponse> => {
   try {
+    const openaiClient = initializeOpenAI();
+
     // Create initial state
     let state: LangGraphChatState = createInitialChatState(
       messages,
@@ -109,6 +288,14 @@ export const executePerinChatWithLangGraph = async (
       } as unknown as LangGraphChatState;
     }
 
+    // Add delegation context if provided
+    if (options?.delegationContext) {
+      state = {
+        ...state,
+        delegationContext: options.delegationContext,
+      } as unknown as LangGraphChatState;
+    }
+
     // Derive conversation context
     const { conversationText, counterpartUserId, connectionId, durationMins } =
       extractNetworkParams(messages);
@@ -125,12 +312,98 @@ export const executePerinChatWithLangGraph = async (
             ...(memoryResult as Partial<LangGraphChatState>),
           };
 
-          // Step 2: Load all relevant integration contexts
-          const integrationResult = await multiIntegrationNode(state);
-          state = {
-            ...state,
-            ...(integrationResult as Partial<LangGraphChatState>),
-          };
+          // Step 2: Load integration contexts
+          if (!state.delegationContext?.isDelegation) {
+            // Regular mode: Load all relevant integrations
+            const integrationResult = await multiIntegrationNode(state);
+            state = {
+              ...state,
+              ...(integrationResult as Partial<LangGraphChatState>),
+            };
+          } else {
+            // Delegation mode: Load only calendar integration for owner's scheduling
+            try {
+              const calendarNode = createIntegrationNode("calendar");
+              const calendarResult = await calendarNode(state);
+
+              // Check if calendar needs reauth
+              const calendarContext = (
+                calendarResult as { calendarContext?: Record<string, unknown> }
+              ).calendarContext;
+
+              if (
+                calendarContext?.error &&
+                typeof calendarContext.error === "string" &&
+                calendarContext.error.includes("REAUTH_REQUIRED")
+              ) {
+                // Calendar needs reauth - provide clear error message
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error: "CALENDAR_REAUTH_REQUIRED",
+                    },
+                  },
+                  currentStep: "delegation_calendar_reauth_required",
+                };
+              } else {
+                // Calendar loaded successfully or failed for other reasons
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: calendarContext || {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                    },
+                  },
+                  currentStep: "delegation_calendar_loaded",
+                };
+              }
+            } catch (error) {
+              console.error("Error loading calendar for delegation:", error);
+
+              // Check if it's a reauth error
+              if (
+                error instanceof Error &&
+                (error.message.includes("REAUTH_REQUIRED") ||
+                  error.message.includes("invalid_grant") ||
+                  error.message.includes("INVALID_GRANT"))
+              ) {
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error: "CALENDAR_REAUTH_REQUIRED",
+                    },
+                  },
+                  currentStep: "delegation_calendar_reauth_required",
+                };
+              } else {
+                state = {
+                  ...state,
+                  integrations: {
+                    calendar: {
+                      isConnected: false,
+                      data: [],
+                      count: 0,
+                      error:
+                        error instanceof Error
+                          ? error.message
+                          : "Calendar loading failed",
+                    },
+                  },
+                  currentStep: "delegation_calendar_error",
+                };
+              }
+            }
+          }
 
           // If Gmail requires reauth, emit a control token for the UI to react seamlessly
           try {
@@ -144,6 +417,7 @@ export const executePerinChatWithLangGraph = async (
             const calCtx = integrationsObj["calendar"] as
               | { error?: string }
               | undefined;
+
             if (
               gmailCtx?.error === "GMAIL_REAUTH_REQUIRED" ||
               gmailCtx?.error === "GMAIL_NOT_CONNECTED"
@@ -170,15 +444,20 @@ export const executePerinChatWithLangGraph = async (
             }
           } catch {}
 
-          // Step 2a: Load notifications context so Perin knows about actionable items
-          const notifResult = await notificationsContextNode(state);
-          state = {
-            ...state,
-            ...(notifResult as Partial<LangGraphChatState>),
-          };
+          // Step 2a: Load notifications context so Perin knows about actionable items (skip for delegation)
+          if (!state.delegationContext?.isDelegation) {
+            const notifResult = await notificationsContextNode(state);
+            state = {
+              ...state,
+              ...(notifResult as Partial<LangGraphChatState>),
+            };
+          }
 
-          // Step 2.5: Network negotiation if scheduling intent
-          if (specialization === "scheduling") {
+          // Step 2.5: Network negotiation if scheduling intent (skip for delegation)
+          if (
+            specialization === "scheduling" &&
+            !state.delegationContext?.isDelegation
+          ) {
             const netResult = await networkNegotiationNode(state, {
               intent: "schedule",
               counterpartUserId: counterpartUserId || "",
@@ -188,16 +467,100 @@ export const executePerinChatWithLangGraph = async (
             state = { ...state, ...(netResult as Partial<LangGraphChatState>) };
           }
 
-          // Step 2.6: If user responds with a selection like "confirm 2", try to act on notification
-          const notifActionResult = await notificationsActionNode(state);
-          state = {
-            ...state,
-            ...(notifActionResult as Partial<LangGraphChatState>),
-          };
+          // Step 2.6: If user responds with a selection like "confirm 2", try to act on notification (skip for delegation)
+          if (!state.delegationContext?.isDelegation) {
+            const notifActionResult = await notificationsActionNode(state);
+            state = {
+              ...state,
+              ...(notifActionResult as Partial<LangGraphChatState>),
+            };
+          }
 
-          // Step 3: Decide execution mode (tool-calling vs direct streaming)
+          // Step 3: AI-powered analysis of whether multi-step processing is needed
+          const multiStepAnalysis = await shouldUseMultiStepDelegation(
+            messages,
+            state.delegationContext,
+            openaiClient
+          );
+
+          console.log("AI Multi-step Analysis:", {
+            useMultiStep: multiStepAnalysis.useMultiStep,
+            reasoning: multiStepAnalysis.reasoning,
+            confidence: multiStepAnalysis.confidence,
+            userId,
+          });
+
+          if (multiStepAnalysis.useMultiStep) {
+            // MULTI-STEP DELEGATION MODE
+            console.log("Using multi-step delegation mode", {
+              userId,
+              delegationId: state.delegationContext?.delegationId,
+              reasoning: multiStepAnalysis.reasoning,
+              confidence: multiStepAnalysis.confidence,
+            });
+
+            // Emit multi-step initiation token to frontend
+            const { MULTI_STEP_CONTROL_TOKENS } = await import(
+              "./orchestrator/multi-step-orchestrator"
+            );
+            controller.enqueue(
+              new TextEncoder().encode(
+                MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_INITIATED(
+                  multiStepAnalysis.reasoning,
+                  multiStepAnalysis.confidence
+                )
+              )
+            );
+
+            // Register delegation step executors
+            registerDelegationStepExecutors(multiStepOrchestrator);
+
+            // Extract meeting parameters
+            const meetingParams = extractDelegationMeetingParams(
+              messages,
+              state.delegationContext
+            );
+
+            if (meetingParams) {
+              // Create delegation steps
+              const steps = createDelegationSteps(meetingParams);
+
+              // Execute multi-step delegation flow
+              try {
+                const multiStepContext =
+                  await multiStepOrchestrator.executeSteps(
+                    state,
+                    steps,
+                    controller
+                  );
+
+                // Update state with multi-step context
+                state.multiStepContext = multiStepContext;
+
+                controller.close();
+                return;
+              } catch (error) {
+                console.error("Multi-step delegation failed:", error);
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    `I apologize, but I encountered an issue while processing your request: ${
+                      error instanceof Error ? error.message : "Unknown error"
+                    }`
+                  )
+                );
+                controller.close();
+                return;
+              }
+            } else {
+              // Fall back to regular delegation mode if we can't extract parameters
+              console.log(
+                "Could not extract meeting parameters, falling back to regular mode"
+              );
+            }
+          }
+
+          // Step 4: Decide execution mode (tool-calling vs direct streaming)
           const useToolMode = shouldUseToolMode(messages, specialization);
-          const openaiClient = initializeOpenAI();
           const systemPrompt = buildSystemPrompt(state);
 
           if (useToolMode) {
@@ -240,7 +603,9 @@ export const executePerinChatWithLangGraph = async (
                       ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
                     };
                   }),
-                  tools: TOOL_SPECS,
+                  tools: getToolSpecsForContext(
+                    state.delegationContext?.isDelegation
+                  ),
                   tool_choice: "auto",
                   stream: false,
                   temperature: 0.7,
@@ -302,14 +667,39 @@ export const executePerinChatWithLangGraph = async (
             }
 
             // Step 3c: Responder phase (streaming, no tools)
+            // Filter out tool messages that don't have corresponding tool_calls
+            const filteredMessages = state.messages.filter(
+              (msg) => msg.role !== "tool"
+            );
+
+            console.log(
+              "Responder phase - Original messages:",
+              state.messages.map((m) => ({
+                role: m.role,
+                content: m.content?.substring(0, 50),
+              }))
+            );
+            console.log(
+              "Responder phase - Filtered messages:",
+              filteredMessages.map((m) => ({
+                role: m.role,
+                content: m.content?.substring(0, 50),
+              }))
+            );
+
+            // Rebuild system prompt with updated state (including user timezone)
+            const updatedSystemPrompt = buildSystemPrompt(state);
+
+            // Debug logging removed for cleaner logs
+
             const responderMessages: ChatMessage[] = [
               {
                 role: "system",
                 content:
-                  systemPrompt +
+                  updatedSystemPrompt +
                   "\n[system-note] Summarize the actions taken and provide a helpful response to the user.",
               },
-              ...state.messages,
+              ...filteredMessages,
             ];
 
             const responderResponse = await withRetry(
@@ -327,7 +717,6 @@ export const executePerinChatWithLangGraph = async (
                     return {
                       role: msg.role as "system" | "user" | "assistant",
                       content: msg.content,
-                      ...(msg.tool_calls && { tool_calls: msg.tool_calls }),
                     };
                   }),
                   stream: true,
