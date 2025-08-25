@@ -71,6 +71,7 @@ export function MultiStepMessage({
   const cinematicTimeouts = useRef<NodeJS.Timeout[]>([]);
   const controls = useAnimation();
   const progressRef = useRef<HTMLDivElement>(null);
+  const stepStartTimes = useRef<Map<string, number>>(new Map());
 
   // Enhanced timing configuration for emotional pacing
   const CINEMATIC_TIMING = useRef({
@@ -79,142 +80,165 @@ export function MultiStepMessage({
     COMPLETION_PAUSE: 1200, // Pause to celebrate completion
     PROGRESS_UPDATE_INTERVAL: 100, // Progress bar smoothness
     EMOTIONAL_SETTLE_TIME: 500, // Time for user to absorb
+    MINIMUM_STEP_DURATION: 1500, // Minimum time to show a step (cinematic minimum)
   }).current;
 
-  // Initialize cinematic steps from real steps
+  // Initialize cinematic steps from real steps - now handles real-time updates
   useEffect(() => {
-    const newCinematicSteps: CinematicStep[] = steps.map((step, index) => ({
-      ...step,
-      cinematicStatus: "hidden",
-      cinematicProgress: 0,
-      emotionalDelay: index * CINEMATIC_TIMING.STEP_REVEAL_DELAY,
-    }));
+    const newCinematicSteps: CinematicStep[] = steps.map((step, index) => {
+      const existingCinematicStep = cinematicSteps.find(
+        (s) => s.id === step.id
+      );
+
+      if (existingCinematicStep) {
+        // Update existing step with real status
+        return {
+          ...existingCinematicStep,
+          ...step,
+          // Preserve cinematic status if step is still processing
+          cinematicStatus:
+            step.status === "running"
+              ? "processing"
+              : step.status === "completed"
+              ? "completed"
+              : step.status === "failed"
+              ? "failed"
+              : "pending",
+        };
+      } else {
+        // New step - start with revealing
+        return {
+          ...step,
+          cinematicStatus: "revealing",
+          cinematicProgress: 0,
+          emotionalDelay: 0, // No delay for real-time steps
+        };
+      }
+    });
 
     setCinematicSteps(newCinematicSteps);
     setUserCanControl(steps.length > 0);
   }, [steps]);
 
-  // Cinematic orchestration - the heart of the emotional experience
-  const startCinematicSequence = useCallback(() => {
-    if (!isPlaying || cinematicSteps.length === 0) return;
+  // Real-time step orchestration - sync with actual backend actions
+  const handleRealTimeStepUpdate = useCallback(
+    (stepId: string, status: string, progressMessage?: string) => {
+      setCinematicSteps((prev) => {
+        const stepIndex = prev.findIndex((s) => s.id === stepId);
+        if (stepIndex >= 0) {
+          const step = prev[stepIndex];
+          const startTime = stepStartTimes.current.get(stepId) || Date.now();
+          const elapsed = Date.now() - startTime;
 
-    // Clear any existing timeouts
-    cinematicTimeouts.current.forEach(clearTimeout);
-    cinematicTimeouts.current = [];
+          // If the step completed too quickly, ensure minimum cinematic duration
+          const shouldUseMinimumDuration =
+            elapsed < CINEMATIC_TIMING.MINIMUM_STEP_DURATION;
 
-    const orchestrateStep = (stepIndex: number) => {
-      if (stepIndex >= cinematicSteps.length) {
-        // All steps revealed, trigger completion sequence
-        setTimeout(() => {
-          setCelebrationMode(true);
-          controls.start({
-            scale: [1, 1.02, 1],
-            transition: { duration: 0.8, ease: "easeOut" },
-          });
-        }, CINEMATIC_TIMING.EMOTIONAL_SETTLE_TIME);
-        return;
-      }
-
-      const realStep = steps[stepIndex];
-
-      // Phase 1: Reveal the step
-      setCinematicIndex(stepIndex);
-      setCinematicSteps((prev) =>
-        prev.map((s, i) =>
-          i === stepIndex ? { ...s, cinematicStatus: "revealing" } : s
-        )
-      );
-
-      // Phase 2: Start processing animation
-      const processingTimeout = setTimeout(() => {
-        setCinematicSteps((prev) =>
-          prev.map((s, i) =>
-            i === stepIndex
-              ? { ...s, cinematicStatus: "processing", cinematicProgress: 0 }
-              : s
-          )
-        );
-
-        // Animate progress bar with realistic feel
-        let progress = 0;
-        const progressInterval = setInterval(() => {
-          progress += Math.random() * 15 + 5; // Organic progress increments
-
-          if (progress >= 100) {
-            progress = 100;
-            clearInterval(progressInterval);
-
-            // Phase 3: Complete the step
-            setTimeout(() => {
-              const finalStatus =
-                realStep.status === "failed" ? "failed" : "completed";
-
-              setCinematicSteps((prev) =>
-                prev.map((s, i) =>
-                  i === stepIndex
-                    ? {
-                        ...s,
-                        cinematicStatus: finalStatus,
-                        cinematicProgress: 100,
-                        progressMessage: realStep.progressMessage,
-                      }
-                    : s
-                )
-              );
-
-              // Show progress message with typing effect
-              if (realStep.progressMessage) {
-                let messageIndex = 0;
-                const typingInterval = setInterval(() => {
-                  setCurrentProgressMessage(
-                    realStep.progressMessage!.substring(0, messageIndex)
+          if (status === "completed" || status === "failed") {
+            if (shouldUseMinimumDuration) {
+              // Schedule completion after minimum duration
+              setTimeout(() => {
+                setCinematicSteps((current) => {
+                  const currentStepIndex = current.findIndex(
+                    (s) => s.id === stepId
                   );
-                  messageIndex++;
-
-                  if (messageIndex > realStep.progressMessage!.length) {
-                    clearInterval(typingInterval);
-
-                    // Move to next step after emotional pause
-                    setTimeout(() => {
-                      setCurrentProgressMessage("");
-                      orchestrateStep(stepIndex + 1);
-                    }, CINEMATIC_TIMING.COMPLETION_PAUSE);
+                  if (currentStepIndex >= 0) {
+                    const updatedSteps = [...current];
+                    updatedSteps[currentStepIndex] = {
+                      ...updatedSteps[currentStepIndex],
+                      cinematicStatus:
+                        status === "failed" ? "failed" : "completed",
+                      progressMessage,
+                    };
+                    return updatedSteps;
                   }
-                }, 30); // Typing speed
-              } else {
-                // No message, continue after pause
-                setTimeout(() => {
-                  orchestrateStep(stepIndex + 1);
-                }, CINEMATIC_TIMING.COMPLETION_PAUSE);
-              }
-            }, CINEMATIC_TIMING.EMOTIONAL_SETTLE_TIME);
-          } else {
-            setCinematicSteps((prev) =>
-              prev.map((s, i) =>
+                  return current;
+                });
+              }, CINEMATIC_TIMING.MINIMUM_STEP_DURATION - elapsed);
+
+              // Keep step in processing state for minimum duration
+              return prev.map((s, i) =>
                 i === stepIndex
-                  ? { ...s, cinematicProgress: Math.min(progress, 100) }
+                  ? { ...s, cinematicStatus: "processing", progressMessage }
                   : s
-              )
+              );
+            } else {
+              // Step took long enough, complete immediately
+              return prev.map((s, i) =>
+                i === stepIndex
+                  ? {
+                      ...s,
+                      cinematicStatus:
+                        status === "failed" ? "failed" : "completed",
+                      progressMessage,
+                    }
+                  : s
+              );
+            }
+          }
+        }
+        return prev;
+      });
+    },
+    [CINEMATIC_TIMING.MINIMUM_STEP_DURATION]
+  );
+
+  // Watch for real step status changes and sync cinematic state
+  useEffect(() => {
+    steps.forEach((step) => {
+      if (step.status === "running" && !stepStartTimes.current.has(step.id)) {
+        // Step just started
+        stepStartTimes.current.set(step.id, Date.now());
+        setCinematicSteps((prev) => {
+          const stepIndex = prev.findIndex((s) => s.id === step.id);
+          if (stepIndex >= 0) {
+            return prev.map((s, i) =>
+              i === stepIndex
+                ? {
+                    ...s,
+                    cinematicStatus: "processing",
+                    startTime: step.startTime,
+                  }
+                : s
             );
           }
-        }, CINEMATIC_TIMING.PROGRESS_UPDATE_INTERVAL);
-
-        cinematicTimeouts.current.push(progressInterval);
-      }, CINEMATIC_TIMING.STEP_REVEAL_DELAY);
-
-      cinematicTimeouts.current.push(processingTimeout);
-    };
-
-    // Start the sequence
-    orchestrateStep(0);
-  }, [cinematicSteps, isPlaying, steps, controls]);
+          return prev;
+        });
+      } else if (step.status === "completed" || step.status === "failed") {
+        // Step completed - handle with minimum duration logic
+        handleRealTimeStepUpdate(step.id, step.status, step.progressMessage);
+      }
+    });
+  }, [steps, handleRealTimeStepUpdate]);
 
   // Auto-start cinematic sequence when steps are loaded
   useEffect(() => {
     if (cinematicSteps.length > 0 && cinematicIndex === -1 && isPlaying) {
-      startCinematicSequence();
+      // Start revealing steps one by one as they come in
+      const revealNextStep = (index: number) => {
+        if (index >= cinematicSteps.length) return;
+
+        setCinematicIndex(index);
+        setCinematicSteps((prev) =>
+          prev.map((s, i) =>
+            i === index ? { ...s, cinematicStatus: "revealing" } : s
+          )
+        );
+
+        // Move to next step after reveal delay
+        setTimeout(() => {
+          revealNextStep(index + 1);
+        }, CINEMATIC_TIMING.STEP_REVEAL_DELAY);
+      };
+
+      revealNextStep(0);
     }
-  }, [cinematicSteps, cinematicIndex, startCinematicSequence, isPlaying]);
+  }, [
+    cinematicSteps,
+    cinematicIndex,
+    isPlaying,
+    CINEMATIC_TIMING.STEP_REVEAL_DELAY,
+  ]);
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -226,8 +250,10 @@ export function MultiStepMessage({
   const togglePlayback = () => {
     setIsPlaying(!isPlaying);
     if (!isPlaying) {
-      startCinematicSequence();
+      // Resume real-time processing - steps will continue to update as they come in
+      // No need to restart sequence since it's now driven by real backend events
     } else {
+      // Pause - clear any pending timeouts
       cinematicTimeouts.current.forEach(clearTimeout);
     }
   };

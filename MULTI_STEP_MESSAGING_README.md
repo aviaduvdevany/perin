@@ -1,419 +1,502 @@
 # 🔄 Multi-Step Messaging System
 
-> A comprehensive plan for implementing multi-step messaging across the Perin app, enabling step-by-step interactions with intermediate feedback and better user experience.
+> A real-time, action-driven multi-step UI experience for AI task orchestration with cinematic effects and natural conversation flow.
 
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Current State Analysis](#current-state-analysis)
-- [Proposed Architecture](#proposed-architecture)
-- [Implementation Plan](#implementation-plan)
-- [Technical Requirements](#technical-requirements)
-- [Migration Strategy](#migration-strategy)
-- [Benefits & Use Cases](#benefits--use-cases)
+- [Current Implementation](#current-implementation)
+- [Architecture](#architecture)
+- [Control Token Protocol](#control-token-protocol)
+- [Key Features](#key-features)
+- [Implementation Details](#implementation-details)
+- [Usage Examples](#usage-examples)
+- [Technical Specifications](#technical-specifications)
 
 ## 🎯 Overview
 
-The multi-step messaging system will enable Perin to send multiple messages to users in sequence without requiring user input between steps. This creates a more natural, conversational experience where users can see the AI's thought process and progress through complex tasks.
+The multi-step messaging system provides a real-time, action-driven experience where the UI syncs with actual backend operations. Instead of a pre-rendered "cinematic show," the system displays step progress as actions actually happen, with a minimum duration for smooth animations.
 
 ### Key Benefits
 
-- **Better UX**: Users see step-by-step progress instead of waiting for final results
-- **Transparency**: Clear visibility into what Perin is doing
-- **Error Handling**: Graceful handling of failures at each step
-- **Consistency**: Unified experience across all chat interfaces
-- **Scalability**: Framework for complex multi-step workflows
+- **Real-Time Sync**: UI reflects actual backend operations, not simulated progress
+- **Action-Driven**: Steps appear and update based on real tool execution
+- **Cinematic Minimum**: Smooth animations with minimum duration, but can extend for longer operations
+- **Natural Conversation**: Separate chat messages for user-friendly communication
+- **Error Handling**: Graceful failure handling with clear user feedback
+- **Date Intelligence**: Smart parsing of user-specified dates and times
 
-## 🔍 Current State Analysis
+## 🔍 Current Implementation
 
-### Existing Infrastructure
+### ✅ **Implemented Features:**
 
-#### ✅ **What We Have:**
+1. **Real-Time Multi-Step Orchestrator**: Backend orchestrates actual tool execution
+2. **Action-Driven UI**: Frontend syncs with real backend events
+3. **Control Token Protocol**: Streaming protocol for UI coordination
+4. **Separate Chat Messages**: User-friendly messages as distinct chat bubbles
+5. **Smart Date Parsing**: Intelligent parsing of user-specified dates and times
+6. **Error Recovery**: Stops on required step failures with clear messaging
+7. **Cinematic Effects**: Minimum duration animations with real-time extension
 
-1. **LangGraph System**: Planner → Executor → Responder workflow
-2. **Streaming Responses**: Real-time text streaming to frontend
-3. **Tool Execution**: Parallel tool execution with results
-4. **Control Tokens**: `[[PERIN_ACTION:...]]` for UI actions
-5. **Multiple Chat Interfaces**: Main chat, mobile chat, delegation chat
+### 🎯 **Current Use Cases:**
 
-#### ❌ **What's Missing:**
+- **Delegation Scheduling**: Check availability → Schedule meeting
+- **Date/Time Parsing**: "Wednesday at 14:00" → Next Wednesday at 2 PM
+- **Conflict Detection**: Real-time availability checking with conflict reporting
+- **Natural Conversation**: Separate messages for user interaction
 
-1. **Multi-Message Support**: Can only send one final response
-2. **Intermediate Feedback**: No way to show progress between steps
-3. **Step-by-Step UI**: Frontend doesn't support multiple sequential messages
-4. **State Management**: No way to track multi-step progress
-5. **Error Recovery**: Can't handle failures at intermediate steps
+## 🏗️ Architecture
 
-### Current Limitations
-
-```typescript
-// Current: Single response only
-const response = await sendMessage(messages);
-// Returns: One final message
-
-// Desired: Multiple sequential messages
-const responses = await sendMultiStepMessage(messages);
-// Returns: ["Step 1: Checking availability...", "Step 2: Scheduling meeting...", "Step 3: Confirmation"]
-```
-
-## 🏗️ Proposed Architecture
-
-### High-Level Design
+### High-Level Flow
 
 ```
-User Request → Multi-Step Orchestrator → Step 1 → Step 2 → Step 3 → Final Response
-                ↓
-            [Progress Messages]
-                ↓
-            [Tool Execution]
-                ↓
-            [Intermediate Feedback]
-                ↓
-            [Next Step Decision]
+User Request → AI Analysis → Multi-Step Detection → Step Execution → Real-Time UI Updates
+                ↓                    ↓                    ↓                    ↓
+            [Date Parsing]    [Step Definition]    [Tool Execution]    [Control Tokens]
+                ↓                    ↓                    ↓                    ↓
+            [Smart Parsing]   [Step Orchestrator]  [Progress Updates]  [UI Sync]
+                ↓                    ↓                    ↓                    ↓
+            [ISO DateTime]    [Step Results]       [Status Changes]    [Cinematic UI]
 ```
 
 ### Core Components
 
-#### 1. **Multi-Step Orchestrator**
+#### 1. **Multi-Step Orchestrator** (`multi-step-orchestrator.ts`)
 
 ```typescript
-interface MultiStepOrchestrator {
-  executeSteps(steps: Step[]): Promise<StepResult[]>;
-  sendProgressMessage(message: string): void;
-  handleStepFailure(step: Step, error: Error): void;
-  continueOrAbort(): boolean;
+class MultiStepOrchestrator {
+  async executeSteps(
+    state: LangGraphChatState,
+    steps: StepDefinition[],
+    streamController: ReadableStreamDefaultController
+  ): Promise<MultiStepContext>;
 }
 ```
 
-#### 2. **Step Definition**
+**Key Features:**
+
+- Emits step definitions just before execution
+- Real-time progress updates during tool execution
+- Handles required step failures by stopping the process
+- Emits separate messages for user-friendly communication
+
+#### 2. **Step Executors** (`delegation-step-executors.ts`)
 
 ```typescript
-interface Step {
+export const delegationCheckAvailabilityExecutor: StepExecutor = async (
+  state: LangGraphChatState,
+  step: StepDefinition,
+  context: MultiStepContext,
+  onProgress: (message: string) => void
+) => Promise<StepResult>;
+```
+
+**Key Features:**
+
+- Real-time progress messages during execution
+- Proper error handling with status updates
+- Integration with actual calendar tools
+
+#### 3. **Frontend Parser** (`useMultiStepParser.ts`)
+
+```typescript
+export const useMultiStepParser = () => {
+  const parseControlTokens = (chunk: string) => {
+    // Parse control tokens and update UI state
+  };
+
+  const processUpdatesImmediately = (updates: ParsedUpdate[]) => {
+    // Real-time UI updates based on backend events
+  };
+};
+```
+
+**Key Features:**
+
+- Immediate processing of all control tokens
+- Real-time UI state updates
+- Separate message handling
+
+#### 4. **UI Component** (`MultiStepMessage.tsx`)
+
+```typescript
+const MultiStepMessage: React.FC<MultiStepMessageProps> = ({
+  steps,
+  currentStepIndex,
+  status,
+  progressMessages,
+  showTimings = true,
+  className,
+}) => {
+  // Real-time step rendering with cinematic effects
+};
+```
+
+**Key Features:**
+
+- Minimum duration animations (1500ms)
+- Real-time status updates
+- Cinematic effects that extend for longer operations
+
+## 🔧 Control Token Protocol
+
+### Token Definitions
+
+```typescript
+const MULTI_STEP_CONTROL_TOKENS = {
+  MULTI_STEP_INITIATED: (reasoning: string, confidence: number) =>
+    `[[PERIN_MULTI_STEP:initiated:${reasoning}:${confidence}]]`,
+  STEP_START: (stepId: string, stepName: string) =>
+    `[[PERIN_STEP:start:${stepId}:${stepName}]]`,
+  PROGRESS: (message: string) => `[[PERIN_PROGRESS:${message}]]`,
+  STEP_RESULT: (stepId: string, status: string, result: string) =>
+    `[[PERIN_STEP_RESULT:${stepId}:${status}:${result}]]`,
+  MULTI_STEP_COMPLETE: () => `[[PERIN_MULTI_STEP:complete]]`,
+  SEPARATE_MESSAGE: (message: string) =>
+    `[[PERIN_SEPARATE_MESSAGE:${message}]]`,
+} as const;
+```
+
+### Token Flow
+
+1. **Initiation**: `MULTI_STEP_INITIATED` - AI detects multi-step request
+2. **Step Start**: `STEP_START` - Just before step execution begins
+3. **Progress**: `PROGRESS` - Real-time updates during execution
+4. **Step Result**: `STEP_RESULT` - Step completion/failure status
+5. **Completion**: `MULTI_STEP_COMPLETE` - All steps finished
+6. **Separate Message**: `SEPARATE_MESSAGE` - User-friendly chat message
+
+## 🎯 Key Features
+
+### 1. **Real-Time Action-Driven UI**
+
+```typescript
+// Backend emits step start just before execution
+this.emitToStream(
+  streamController,
+  MULTI_STEP_CONTROL_TOKENS.STEP_START(step.id, step.name)
+);
+
+// Frontend immediately shows step as "processing"
+useEffect(() => {
+  steps.forEach((step) => {
+    if (step.status === "running" && !stepStartTimes.current.has(step.id)) {
+      stepStartTimes.current.set(step.id, Date.now());
+      setCinematicSteps((prev) => {
+        /* update to processing */
+      });
+    }
+  });
+}, [steps]);
+```
+
+### 2. **Smart Date Parsing**
+
+```typescript
+function parseDateTimeFromMessage(
+  message: string,
+  timezone: string
+): Date | null {
+  // Supports multiple formats:
+  // - "Wednesday at 14:00" → Next Wednesday at 2 PM
+  // - "Tuesday at 3pm" → Next Tuesday at 3 PM
+  // - "tomorrow at 2:30" → Tomorrow at 2:30 PM
+  // - "today at 10am" → Today at 10 AM
+}
+```
+
+### 3. **Cinematic Minimum Duration**
+
+```typescript
+const CINEMATIC_TIMING = {
+  MINIMUM_STEP_DURATION: 1500, // Minimum time to show a step
+};
+
+const handleRealTimeStepUpdate = useCallback(
+  (stepId: string, status: string) => {
+    const startTime = stepStartTimes.current.get(stepId);
+    const elapsed = Date.now() - (startTime || 0);
+    const remaining = Math.max(
+      0,
+      CINEMATIC_TIMING.MINIMUM_STEP_DURATION - elapsed
+    );
+
+    if (remaining > 0) {
+      setTimeout(() => updateStatus(status), remaining);
+    } else {
+      updateStatus(status);
+    }
+  },
+  []
+);
+```
+
+### 4. **Separate Chat Messages**
+
+```typescript
+// Backend emits user-friendly message
+this.emitToStream(
+  streamController,
+  MULTI_STEP_CONTROL_TOKENS.SEPARATE_MESSAGE(failureMessage)
+);
+
+// Frontend creates separate chat bubble
+if (separateMessages.length > 0) {
+  setMessages((prev) => [
+    ...prev,
+    ...separateMessages.map((message, index) => ({
+      id: `separate-${Date.now()}-${index}`,
+      content: message,
+      fromExternal: false,
+      timestamp: new Date(),
+      isSeparateMessage: true,
+    })),
+  ]);
+}
+```
+
+### 5. **Error Handling & Stopping**
+
+```typescript
+// Stop on required step failure
+if (context.stepResults[i].status === "failed" && step.required) {
+  const failureMessage = `There are conflicts in the time you suggested. Would you like to try a different time for that day?`;
+
+  this.emitToStream(
+    streamController,
+    MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
+  );
+  this.emitToStream(
+    streamController,
+    MULTI_STEP_CONTROL_TOKENS.SEPARATE_MESSAGE(failureMessage)
+  );
+  return context; // Don't throw error, just stop
+}
+```
+
+## 📋 Implementation Details
+
+### Backend Implementation
+
+#### 1. **Multi-Step Detection** (`index.ts`)
+
+```typescript
+async function shouldUseMultiStepDelegation(
+  messages: ChatMessage[],
+  delegationContext?: LangGraphChatState["delegationContext"],
+  openaiClient?: OpenAI
+): Promise<{ useMultiStep: boolean; reasoning: string; confidence: number }>;
+```
+
+#### 2. **Date Parsing** (`index.ts`)
+
+```typescript
+function extractDelegationMeetingParams(
+  messages: ChatMessage[],
+  delegationContext: LangGraphChatState["delegationContext"]
+): {
+  startTime: string;
+  durationMins: number;
+  title: string;
+  timezone?: string;
+  externalUserName?: string;
+} | null;
+```
+
+#### 3. **Step Execution** (`delegation-step-executors.ts`)
+
+```typescript
+export const delegationCheckAvailabilityExecutor: StepExecutor = async (
+  state: LangGraphChatState,
+  step: StepDefinition,
+  context: MultiStepContext,
+  onProgress: (message: string) => void
+) => Promise<StepResult>;
+```
+
+### Frontend Implementation
+
+#### 1. **Control Token Parsing** (`useMultiStepParser.ts`)
+
+```typescript
+const parseControlTokens = (chunk: string) => {
+  const updates: ParsedUpdate[] = [];
+
+  // Parse all control token patterns
+  Object.entries(CONTROL_TOKEN_PATTERNS).forEach(([type, pattern]) => {
+    const matches = chunk.matchAll(pattern);
+    for (const match of matches) {
+      updates.push(parseUpdate(type, match));
+    }
+  });
+
+  // Process updates immediately for real-time sync
+  if (hasInitiation || aiInitiated || hasStepUpdates) {
+    processUpdatesImmediately(updates);
+  }
+};
+```
+
+#### 2. **Real-Time UI Updates** (`MultiStepMessage.tsx`)
+
+```typescript
+useEffect(() => {
+  steps.forEach((step) => {
+    if (step.status === "running" && !stepStartTimes.current.has(step.id)) {
+      // Step just started
+      stepStartTimes.current.set(step.id, Date.now());
+      setCinematicSteps((prev) => {
+        /* update to processing */
+      });
+    } else if (step.status === "completed" || step.status === "failed") {
+      handleRealTimeStepUpdate(step.id, step.status, step.progressMessage);
+    }
+  });
+}, [steps, handleRealTimeStepUpdate]);
+```
+
+#### 3. **Separate Message Handling** (`DelegationChat.tsx`)
+
+```typescript
+// Check if this chunk contains a separate message token
+if (chunk.includes("[[PERIN_SEPARATE_MESSAGE:")) {
+  const match = chunk.match(/\[\[PERIN_SEPARATE_MESSAGE:([^\]]+)\]\]/);
+  if (match) {
+    separateMessages.push(match[1]);
+  }
+}
+
+// Add separate messages as individual chat messages
+if (separateMessages.length > 0) {
+  setMessages((prev) => [
+    ...prev,
+    ...separateMessages.map((message, index) => ({
+      id: `separate-${Date.now()}-${index}`,
+      content: message,
+      fromExternal: false,
+      timestamp: new Date(),
+      isSeparateMessage: true,
+    })),
+  ]);
+}
+```
+
+## 🎭 Usage Examples
+
+### Example 1: Successful Meeting Scheduling
+
+**User Input**: "i want a meeting with Aviad on Wednesday at 14:00"
+
+**System Flow**:
+
+1. **AI Analysis**: Detects multi-step scheduling intent
+2. **Date Parsing**: Parses "Wednesday at 14:00" → Next Wednesday at 2 PM
+3. **Multi-Step Initiation**: Shows multi-step UI wrapper
+4. **Step 1**: "Check Availability" → ✅ Available
+5. **Step 2**: "Schedule Meeting" → ✅ Scheduled
+6. **Separate Message**: "Perfect! I've scheduled your meeting with Aviad for Wednesday at 2 PM."
+
+### Example 2: Conflict Detection
+
+**User Input**: "i want a meeting with Aviad tomorrow at 2pm"
+
+**System Flow**:
+
+1. **AI Analysis**: Detects multi-step scheduling intent
+2. **Date Parsing**: Parses "tomorrow at 2pm" → Tomorrow at 2 PM
+3. **Multi-Step Initiation**: Shows multi-step UI wrapper
+4. **Step 1**: "Check Availability" → ❌ Conflicts found
+5. **Process Stops**: Required step failed, no further steps
+6. **Separate Message**: "There are conflicts in the time you suggested. Would you like to try a different time for that day?"
+
+### Example 3: Different Day Request
+
+**User Input**: "i want a meeting with Aviad on Tuesday at 3pm"
+
+**System Flow**:
+
+1. **AI Analysis**: Detects multi-step scheduling intent
+2. **Date Parsing**: Parses "Tuesday at 3pm" → Next Tuesday at 3 PM
+3. **Multi-Step Initiation**: Shows multi-step UI wrapper
+4. **Step 1**: "Check Availability" → ✅ Available (different day)
+5. **Step 2**: "Schedule Meeting" → ✅ Scheduled
+6. **Separate Message**: "Great! I've scheduled your meeting with Aviad for Tuesday at 3 PM."
+
+## 🔧 Technical Specifications
+
+### Control Token Patterns
+
+```typescript
+const CONTROL_TOKEN_PATTERNS = {
+  MULTI_STEP_INITIATED: /\[\[PERIN_MULTI_STEP:initiated:([^:]+):([^\]]+)\]\]/g,
+  STEP_START: /\[\[PERIN_STEP:start:([^:]+):([^\]]+)\]\]/g,
+  PROGRESS: /\[\[PERIN_PROGRESS:([^\]]+)\]\]/g,
+  STEP_RESULT: /\[\[PERIN_STEP_RESULT:([^:]+):([^:]+):([^\]]+)\]\]/g,
+  MULTI_STEP_COMPLETE: /\[\[PERIN_MULTI_STEP:complete\]\]/g,
+  SEPARATE_MESSAGE: /\[\[PERIN_SEPARATE_MESSAGE:([^\]]+)\]\]/g,
+} as const;
+```
+
+### Step Definition Interface
+
+```typescript
+interface StepDefinition {
   id: string;
   name: string;
   description: string;
-  execute: (context: StepContext) => Promise<StepResult>;
-  onProgress?: (message: string) => void;
-  onError?: (error: Error) => void;
-  required?: boolean;
+  required: boolean;
+  data?: unknown;
+}
+
+interface StepResult {
+  stepId: string;
+  status: "completed" | "failed";
+  result?: unknown;
+  progressMessage?: string;
 }
 ```
 
-#### 3. **Enhanced LangGraph State**
+### Multi-Step State Interface
 
 ```typescript
-interface EnhancedLangGraphState extends LangGraphChatState {
-  multiStepContext?: {
-    currentStep: number;
-    totalSteps: number;
-    stepResults: StepResult[];
-    progressMessages: string[];
-    shouldContinue: boolean;
-  };
-}
-```
-
-## 📋 Implementation Plan
-
-### Phase 1: Core Infrastructure (Week 1)
-
-#### 1.1 **Enhanced LangGraph System**
-
-- [ ] Modify `LangGraphChatState` to support multi-step context
-- [ ] Create `MultiStepOrchestrator` class
-- [ ] Add step execution pipeline
-- [ ] Implement progress message handling
-
-#### 1.2 **Streaming Protocol Enhancement**
-
-- [ ] Define new control tokens for multi-step messages
-- [ ] Implement `[[PERIN_STEP:start]]` and `[[PERIN_STEP:end]]`
-- [ ] Add `[[PERIN_PROGRESS:message]]` for intermediate updates
-- [ ] Create `[[PERIN_STEP_RESULT:success|failure]]` for step outcomes
-
-#### 1.3 **Backend API Changes**
-
-- [ ] Modify `/api/ai/chat` to support multi-step execution
-- [ ] Update `/api/delegation/chat` for multi-step delegation
-- [ ] Add step result aggregation
-- [ ] Implement error recovery mechanisms
-
-### Phase 2: Frontend Integration (Week 2)
-
-#### 2.1 **Enhanced Chat Components**
-
-- [ ] Update `PerinChat.tsx` for multi-step message display
-- [ ] Modify `MobilePerinChat.tsx` for mobile multi-step support
-- [ ] Update `DelegationChat.tsx` for delegation multi-step
-- [ ] Add progress indicators and step visualization
-
-#### 2.2 **Message Rendering System**
-
-- [ ] Create `MultiStepMessage` component
-- [ ] Implement step-by-step message display
-- [ ] Add progress bars and status indicators
-- [ ] Handle step failures gracefully
-
-#### 2.3 **State Management**
-
-- [ ] Add multi-step state to chat contexts
-- [ ] Implement step progress tracking
-- [ ] Add pause/resume functionality
-- [ ] Handle user interruptions
-
-### Phase 3: Tool Integration (Week 3)
-
-#### 3.1 **Enhanced Tool System**
-
-- [ ] Modify tool execution to support step-by-step feedback
-- [ ] Add progress callbacks to tool handlers
-- [ ] Implement tool result streaming
-- [ ] Add tool-specific progress messages
-
-#### 3.2 **Delegation Tool Enhancement**
-
-- [ ] Split `delegation_check_availability` into separate steps
-- [ ] Add intermediate feedback for availability checking
-- [ ] Implement step-by-step scheduling
-- [ ] Add error recovery for each step
-
-#### 3.3 **Integration Tools**
-
-- [ ] Add progress feedback to calendar operations
-- [ ] Implement step-by-step email processing
-- [ ] Add network operation progress
-- [ ] Create notification step feedback
-
-### Phase 4: Advanced Features (Week 4)
-
-#### 4.1 **User Control**
-
-- [ ] Add "Skip Step" functionality
-- [ ] Implement "Retry Step" capability
-- [ ] Add step-by-step confirmation
-- [ ] Create step preview mode
-
-#### 4.2 **Analytics & Monitoring**
-
-- [ ] Track step completion rates
-- [ ] Monitor step failure patterns
-- [ ] Add performance metrics
-- [ ] Implement step optimization
-
-#### 4.3 **Advanced Orchestration**
-
-- [ ] Add conditional step execution
-- [ ] Implement parallel step execution
-- [ ] Add step dependencies
-- [ ] Create step templates
-
-## 🔧 Technical Requirements
-
-### Backend Requirements
-
-#### 1. **Enhanced Streaming Protocol**
-
-```typescript
-// New control tokens
-const CONTROL_TOKENS = {
-  STEP_START: "[[PERIN_STEP:start:${stepId}:${stepName}]]",
-  STEP_PROGRESS: "[[PERIN_PROGRESS:${message}]]",
-  STEP_RESULT: "[[PERIN_STEP_RESULT:${stepId}:${status}:${result}]]",
-  STEP_END: "[[PERIN_STEP:end:${stepId}]]",
-  MULTI_STEP_COMPLETE: "[[PERIN_MULTI_STEP:complete]]",
-};
-```
-
-#### 2. **Multi-Step State Management**
-
-```typescript
-interface MultiStepContext {
-  sessionId: string;
-  currentStep: number;
-  totalSteps: number;
+interface MultiStepState {
+  isMultiStep: boolean;
   steps: StepDefinition[];
-  results: StepResult[];
-  progressMessages: ProgressMessage[];
-  status: "running" | "paused" | "completed" | "failed";
-  createdAt: Date;
-  updatedAt: Date;
+  currentStepIndex: number;
+  status: "idle" | "running" | "completed" | "failed";
+  progressMessages: string[];
+  aiInitiated: boolean;
 }
 ```
 
-#### 3. **Enhanced LangGraph Integration**
+### Cinematic Timing Configuration
 
 ```typescript
-// Modified LangGraph workflow
-const enhancedLangGraphWorkflow = {
-  planner: async (state) => {
-    // Analyze intent and create step plan
-    return { steps: generateStepPlan(state) };
-  },
-  executor: async (state) => {
-    // Execute steps with progress feedback
-    return { results: await executeSteps(state.steps) };
-  },
-  responder: async (state) => {
-    // Generate final response with step summary
-    return { response: generateStepSummary(state.results) };
-  },
-};
+const CINEMATIC_TIMING = {
+  MINIMUM_STEP_DURATION: 1500, // Minimum time to show a step
+  STEP_REVEAL_DELAY: 300, // Delay between step reveals
+  PROGRESS_UPDATE_INTERVAL: 100, // Progress update frequency
+} as const;
 ```
 
-### Frontend Requirements
+## 🚀 Future Enhancements
 
-#### 1. **Enhanced Message Types**
+### Planned Features
 
-```typescript
-interface MultiStepMessage extends ChatMessage {
-  type: "multi-step";
-  steps: StepMessage[];
-  currentStep: number;
-  totalSteps: number;
-  status: "running" | "completed" | "failed";
-}
+1. **Parallel Step Execution**: Execute independent steps simultaneously
+2. **Conditional Steps**: Execute steps based on previous results
+3. **Step Templates**: Reusable step workflows
+4. **Advanced Date Parsing**: Support for relative dates ("next week", "in 2 days")
+5. **Step Retry Logic**: Automatic retry for failed steps
+6. **Step Skipping**: Allow users to skip optional steps
 
-interface StepMessage {
-  id: string;
-  name: string;
-  status: "pending" | "running" | "completed" | "failed";
-  progress?: string;
-  result?: any;
-  error?: string;
-}
-```
+### Performance Optimizations
 
-#### 2. **Multi-Step UI Components**
-
-```typescript
-// New components needed
--MultiStepMessage.tsx -
-  StepProgress.tsx -
-  StepIndicator.tsx -
-  ProgressBar.tsx -
-  StepControls.tsx;
-```
-
-#### 3. **Enhanced State Management**
-
-```typescript
-interface ChatState {
-  messages: ChatMessage[];
-  multiStepContext?: {
-    activeSession?: string;
-    currentStep?: number;
-    totalSteps?: number;
-    canSkip?: boolean;
-    canRetry?: boolean;
-  };
-}
-```
-
-## 🔄 Migration Strategy
-
-### Phase 1: Backward Compatibility
-
-- [ ] Keep existing single-response API working
-- [ ] Add multi-step as opt-in feature
-- [ ] Implement feature flags for gradual rollout
-- [ ] Maintain existing control tokens
-
-### Phase 2: Gradual Migration
-
-- [ ] Migrate delegation feature first (smaller scope)
-- [ ] Add multi-step to main chat interface
-- [ ] Update mobile interface
-- [ ] Migrate existing tools to support steps
-
-### Phase 3: Full Implementation
-
-- [ ] Enable multi-step by default
-- [ ] Deprecate single-response mode
-- [ ] Optimize performance
-- [ ] Add advanced features
-
-## 🎯 Benefits & Use Cases
-
-### Primary Use Cases
-
-#### 1. **Delegation Scheduling**
-
-```
-Step 1: "Let me check Aviad's availability for tomorrow at 13:00..."
-Step 2: "Great! The time is available. Let me schedule the meeting..."
-Step 3: "Perfect! I've scheduled your 30-minute meeting with Aviad."
-```
-
-#### 2. **Complex Calendar Operations**
-
-```
-Step 1: "I'll check your calendar for conflicts..."
-Step 2: "Found 2 potential conflicts. Let me find alternative times..."
-Step 3: "Here are 3 available slots. Let me propose the best one..."
-Step 4: "Meeting scheduled! I've sent invitations to all attendees."
-```
-
-#### 3. **Email Processing**
-
-```
-Step 1: "I'll analyze your recent emails for important messages..."
-Step 2: "Found 3 urgent emails. Let me summarize them..."
-Step 3: "Here's what needs your attention..."
-```
-
-#### 4. **Network Negotiations**
-
-```
-Step 1: "I'll check both parties' availability..."
-Step 2: "Found overlapping free time. Let me propose options..."
-Step 3: "Sending meeting proposal to all participants..."
-Step 4: "Meeting confirmed! All parties have accepted."
-```
-
-### Secondary Benefits
-
-- **Better Error Handling**: Users see exactly where things fail
-- **Improved Trust**: Transparency builds user confidence
-- **Reduced Anxiety**: Users know something is happening
-- **Better Debugging**: Easier to identify issues
-- **Enhanced Analytics**: Detailed step completion data
-
-## 🚀 Implementation Priority
-
-### High Priority (Week 1-2)
-
-1. **Delegation Feature**: Fix current scheduling issues
-2. **Core Infrastructure**: Multi-step orchestrator
-3. **Basic UI**: Step-by-step message display
-
-### Medium Priority (Week 3-4)
-
-1. **Main Chat Integration**: Apply to primary chat interface
-2. **Tool Enhancement**: Add progress to all tools
-3. **Error Recovery**: Robust failure handling
-
-### Low Priority (Future)
-
-1. **Advanced Features**: Conditional steps, parallel execution
-2. **Analytics**: Step performance optimization
-3. **Templates**: Reusable step workflows
-
-## 📊 Success Metrics
-
-### Technical Metrics
-
-- **Step Completion Rate**: >95% of steps complete successfully
-- **User Satisfaction**: Improved chat experience ratings
-- **Error Reduction**: Fewer failed operations
-- **Performance**: <2s average step execution time
-
-### User Experience Metrics
-
-- **Engagement**: Increased message interaction
-- **Completion**: Higher task completion rates
-- **Feedback**: Positive user feedback on transparency
-- **Retention**: Improved user retention
+1. **Step Caching**: Cache step results for repeated operations
+2. **Lazy Loading**: Load step definitions on demand
+3. **Streaming Optimization**: Optimize control token streaming
+4. **UI Performance**: Virtual scrolling for long step lists
 
 ---
 
-**This document serves as the implementation guide for the multi-step messaging system. The system will transform Perin from a single-response AI to a conversational, step-by-step assistant that provides transparency and better user experience across all interactions.**
+**This document reflects the current state of the multi-step messaging system as implemented. The system provides a real-time, action-driven experience with cinematic effects and natural conversation flow.**

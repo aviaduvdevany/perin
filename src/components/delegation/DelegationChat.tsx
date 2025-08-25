@@ -33,6 +33,7 @@ interface ChatMessage {
   timestamp: Date;
   isLoading?: boolean;
   isMultiStep?: boolean;
+  isSeparateMessage?: boolean;
 }
 
 export default function DelegationChat({
@@ -144,6 +145,7 @@ export default function DelegationChat({
       let fullResponse = "";
       let hasMultiStep = false;
       let aiInitiatedMultiStep = false;
+      const separateMessages: string[] = [];
 
       while (true) {
         const { done, value } = await reader.read();
@@ -159,6 +161,14 @@ export default function DelegationChat({
         if (chunk.includes("[[PERIN_MULTI_STEP:initiated:")) {
           aiInitiatedMultiStep = true;
           setCurrentSessionInitiatedMultiStep(true);
+        }
+
+        // Check if this chunk contains a separate message token
+        if (chunk.includes("[[PERIN_SEPARATE_MESSAGE:")) {
+          const match = chunk.match(/\[\[PERIN_SEPARATE_MESSAGE:([^\]]+)\]\]/);
+          if (match) {
+            separateMessages.push(match[1]);
+          }
         }
 
         if (hasControlTokens) {
@@ -199,6 +209,20 @@ export default function DelegationChat({
             : msg
         )
       );
+
+      // Add separate messages as individual chat messages
+      if (separateMessages.length > 0) {
+        setMessages((prev) => [
+          ...prev,
+          ...separateMessages.map((message, index) => ({
+            id: `separate-${Date.now()}-${index}`,
+            content: message,
+            fromExternal: false,
+            timestamp: new Date(),
+            isSeparateMessage: true,
+          })),
+        ]);
+      }
 
       setStreamingMessage("");
     } catch (err) {
@@ -350,8 +374,9 @@ export default function DelegationChat({
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {/* Show final multi-step summary if it was a multi-step message */}
+                      {/* Show final multi-step summary if it was a multi-step message and not a separate message */}
                       {message.isMultiStep &&
+                        !message.isSeparateMessage &&
                         multiStepState.isMultiStep &&
                         currentSessionInitiatedMultiStep && (
                           <MultiStepMessage
