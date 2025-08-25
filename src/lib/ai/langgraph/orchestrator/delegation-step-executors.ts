@@ -79,7 +79,7 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
 
         return {
           stepId: step.id,
-          status: "completed",
+          status: "failed",
           result: data,
           progressMessage:
             data.message || "Time slot unavailable, alternatives found",

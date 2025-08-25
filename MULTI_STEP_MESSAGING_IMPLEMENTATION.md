@@ -329,10 +329,10 @@ await new Promise((resolve) => setTimeout(resolve, 300)); // Simulate search
 // If Step 1 fails:
 // Step 1: Check Availability
 //    - "Connecting to calendar service..."
-//    - ❌ "Calendar authentication expired"
+//    - ❌ "Time slot is not available, checking alternatives..."
 //    - Process stops immediately
 //    - No Step 2 appears
-//    - Final message: "❌ Required step failed: Check Availability. Process stopped."
+//    - Final message: "There are conflicts in the time you suggested. Would you like to try a different time for that day?"
 ```
 
 ## 📊 Performance Considerations

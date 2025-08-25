@@ -17,6 +17,8 @@ export const MULTI_STEP_CONTROL_TOKENS = {
   MULTI_STEP_COMPLETE: () => `[[PERIN_MULTI_STEP:complete]]`,
   MULTI_STEP_INITIATED: (reasoning: string, confidence: number) =>
     `[[PERIN_MULTI_STEP:initiated:${reasoning}:${confidence}]]`,
+  SEPARATE_MESSAGE: (message: string) =>
+    `[[PERIN_SEPARATE_MESSAGE:${message}]]`,
 } as const;
 
 export type StepExecutor = (
@@ -103,12 +105,6 @@ export class MultiStepOrchestrator {
   ): Promise<MultiStepContext> {
     const context = this.createMultiStepContext(steps, sessionId);
 
-    // Emit multi-step start
-    this.emitToStream(
-      streamController,
-      `Starting ${steps.length} step process...`
-    );
-
     try {
       for (let i = 0; i < steps.length; i++) {
         const step = steps[i];
@@ -128,12 +124,6 @@ export class MultiStepOrchestrator {
           startTime: new Date(),
         };
 
-        // Emit step execution start
-        this.emitToStream(
-          streamController,
-          `**Step ${i + 1}/${steps.length}**: ${step.description}`
-        );
-
         // Call step start callback
         this.options.onStepStart?.(step, context);
 
@@ -146,7 +136,7 @@ export class MultiStepOrchestrator {
               streamController,
               MULTI_STEP_CONTROL_TOKENS.STEP_PROGRESS(message)
             );
-            this.emitToStream(streamController, message);
+            // Don't emit raw progress messages to avoid cluttering the UI
             this.options.onStepProgress?.(step, message, context);
           };
 
@@ -185,11 +175,14 @@ export class MultiStepOrchestrator {
           if (context.stepResults[i].status === "failed" && step.required) {
             context.status = "failed";
 
-            // Emit failure message and stop
-            this.emitToStream(
-              streamController,
-              `❌ Required step failed: ${step.name}. Process stopped.`
-            );
+            // Provide user-friendly failure message based on step type
+            let failureMessage = "";
+            if (step.id === "check_availability") {
+              failureMessage =
+                "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
+            } else {
+              failureMessage = `❌ Required step failed: ${step.name}. Process stopped.`;
+            }
 
             // Emit completion token to signal end
             this.emitToStream(
@@ -197,7 +190,14 @@ export class MultiStepOrchestrator {
               MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
             );
 
-            throw new Error(`Required step failed: ${step.name}`);
+            // Emit user-friendly message as a separate chat message
+            this.emitToStream(
+              streamController,
+              MULTI_STEP_CONTROL_TOKENS.SEPARATE_MESSAGE(failureMessage)
+            );
+
+            // Don't throw error to avoid additional error handling messages
+            return context;
           }
         } catch (error) {
           // Handle step error
@@ -229,11 +229,14 @@ export class MultiStepOrchestrator {
           if (step.required) {
             context.status = "failed";
 
-            // Emit failure message and stop
-            this.emitToStream(
-              streamController,
-              `❌ Required step failed: ${step.name}. Process stopped.`
-            );
+            // Provide user-friendly failure message based on step type
+            let failureMessage = "";
+            if (step.id === "check_availability") {
+              failureMessage =
+                "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
+            } else {
+              failureMessage = `❌ Required step failed: ${step.name}. Process stopped.`;
+            }
 
             // Emit completion token to signal end
             this.emitToStream(
@@ -241,7 +244,14 @@ export class MultiStepOrchestrator {
               MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
             );
 
-            throw error;
+            // Emit user-friendly message as a separate chat message
+            this.emitToStream(
+              streamController,
+              MULTI_STEP_CONTROL_TOKENS.SEPARATE_MESSAGE(failureMessage)
+            );
+
+            // Don't throw error to avoid additional error handling messages
+            return context;
           }
 
           // For non-required steps, log and continue
@@ -258,22 +268,14 @@ export class MultiStepOrchestrator {
         streamController,
         MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
       );
-      this.emitToStream(
-        streamController,
-        "✅ All steps completed successfully!"
-      );
 
       this.options.onComplete?.(context);
     } catch (error) {
       context.status = "failed";
       context.lastUpdateTime = new Date();
 
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      this.emitToStream(
-        streamController,
-        `❌ Multi-step process failed: ${errorMessage}`
-      );
+      // Don't emit debug error messages to the user
+      // The user-friendly message was already emitted in the step failure handling
 
       throw error;
     }

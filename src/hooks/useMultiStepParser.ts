@@ -34,7 +34,8 @@ interface ParsedUpdate {
     | "step_result"
     | "step_end"
     | "complete"
-    | "initiated";
+    | "initiated"
+    | "separate_message";
   stepId?: string;
   stepName?: string;
   status?: string;
@@ -50,6 +51,7 @@ const CONTROL_TOKEN_PATTERNS = {
   STEP_END: /\[\[PERIN_STEP:end:([^\]]+)\]\]/g,
   MULTI_STEP_COMPLETE: /\[\[PERIN_MULTI_STEP:complete\]\]/g,
   MULTI_STEP_INITIATED: /\[\[PERIN_MULTI_STEP:initiated:([^:]+):([^\]]+)\]\]/g,
+  SEPARATE_MESSAGE: /\[\[PERIN_SEPARATE_MESSAGE:([^\]]+)\]\]/g,
 };
 
 export function useMultiStepParser() {
@@ -251,6 +253,23 @@ export function useMultiStepParser() {
       }
       CONTROL_TOKEN_PATTERNS.MULTI_STEP_INITIATED.lastIndex = 0;
 
+      // Parse SEPARATE_MESSAGE tokens
+      while (
+        (match = CONTROL_TOKEN_PATTERNS.SEPARATE_MESSAGE.exec(content)) !== null
+      ) {
+        hasControlTokens = true;
+        const [fullMatch, message] = match;
+
+        updates.push({
+          type: "separate_message",
+          message,
+          timestamp: new Date(),
+        });
+
+        cleanContent = cleanContent.replace(fullMatch, "");
+      }
+      CONTROL_TOKEN_PATTERNS.SEPARATE_MESSAGE.lastIndex = 0;
+
       // Process updates if we have any - ALWAYS process immediately for real-time sync
       if (updates.length > 0) {
         const hasInitiation = updates.some(
@@ -429,6 +448,22 @@ export function useMultiStepParser() {
                 `AI Analysis: ${update.message} (Confidence: ${Math.round(
                   parseFloat(update.result || "0") * 100
                 )}%)`,
+              ],
+            }));
+          }
+          break;
+
+        case "separate_message":
+          if (update.message) {
+            setMultiStepState((prev) => ({
+              ...prev,
+              progressMessages: [
+                ...prev.progressMessages.slice(-4),
+                `${update.timestamp.toLocaleTimeString([], {
+                  hour12: false,
+                  minute: "2-digit",
+                  second: "2-digit",
+                })} • ${update.message}`,
               ],
             }));
           }
