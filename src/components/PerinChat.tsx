@@ -3,17 +3,20 @@
 import { useState, useRef, useEffect } from "react";
 import { usePerinAI } from "../hooks/usePerinAI";
 import { useSession } from "next-auth/react";
+import { useUserData } from "./providers/UserDataProvider";
 import { motion } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
 import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
+import { SmartLoadingIndicator } from "./performance/SmartLoadingIndicator";
 import type { ChatMessage } from "../types";
 
 export function PerinChat() {
   const { data: session } = useSession();
-  const { sendMessage, isChatLoading, chatError } = usePerinAI();
+  const { sendMessage, isChatLoading, chatError, loadingPhase } = usePerinAI();
+  const { state } = useUserData();
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingMessage, setStreamingMessage] = useState("");
@@ -285,7 +288,15 @@ export function PerinChat() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <PerinLoading status={perinStatus} className="max-w-md" />
+            <SmartLoadingIndicator
+              context={{
+                calendar: state.calendar,
+                memory: state.memory,
+                integrations: state.integrationContexts,
+              }}
+              phase={loadingPhase}
+              className="max-w-md"
+            />
           </motion.div>
         )}
 

@@ -9,10 +9,16 @@ import * as userQueries from "@/lib/queries/users";
 import { understandingOrchestrator } from "@/lib/ai/understanding";
 import { integrationOrchestrator } from "@/lib/ai/integration";
 import { withRetry } from "@/lib/ai/resilience/error-handler";
+import { performanceMonitor } from "@/lib/performance/PerformanceMonitor";
 import type { ChatMessage } from "@/types/ai";
 import type { IntentAnalysis } from "@/types/understanding";
 
 export async function POST(request: NextRequest) {
+  const requestId = `chat-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(2, 9)}`;
+  const startTime = Date.now();
+
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -21,6 +27,13 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.unauthorized("Authentication required");
     }
 
+    // Start performance tracking
+    const performanceTracker = performanceMonitor.trackRequest(
+      requestId,
+      userId,
+      startTime
+    );
+
     // Validate OpenAI configuration
     if (!validateOpenAIConfig()) {
       return ErrorResponses.internalServerError("AI service not configured");
@@ -28,8 +41,14 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { messages, tone, perinName, specialization, clientIntegrations } =
-      body;
+    const {
+      messages,
+      tone,
+      perinName,
+      specialization,
+      clientIntegrations,
+      clientContext,
+    } = body;
 
     // Validate required fields
     if (!messages || !Array.isArray(messages)) {
@@ -42,6 +61,16 @@ export async function POST(request: NextRequest) {
       return ErrorResponses.notFound("User not found");
     }
 
+    // Check if we have fresh client context (within 5 minutes)
+    const useClientContext =
+      clientContext && Date.now() - clientContext.lastUpdated < 5 * 60 * 1000;
+
+    if (useClientContext) {
+      console.log("🚀 Using pre-fetched client context");
+    } else {
+      console.log("🔄 Fetching fresh data from server");
+    }
+
     // Extract conversation context for AI understanding
     const conversationText = messages
       .map((msg: ChatMessage) => msg.content)
@@ -51,6 +80,7 @@ export async function POST(request: NextRequest) {
     // Phase 1: AI-Powered Understanding
     console.log("🧠 Starting AI understanding analysis...");
 
+    const understandingStartTime = Date.now();
     const understandingResponse = await withRetry(
       async () => {
         return await understandingOrchestrator.understand({
@@ -72,11 +102,20 @@ export async function POST(request: NextRequest) {
             communicationStyle: "neutral",
             responseLength: "balanced",
           },
+          // Pass pre-loaded context for faster processing
+          context: useClientContext
+            ? {
+                calendar: clientContext.calendar,
+                memory: clientContext.memory,
+                integrations: clientContext.integrations,
+              }
+            : undefined,
         });
       },
       "ai-understanding",
       { maxRetries: 3, baseDelayMs: 1000, circuitBreaker: true }
     );
+    const understandingTime = Date.now() - understandingStartTime;
 
     console.log("✅ AI understanding completed:", {
       intent: understandingResponse.intent.type,
@@ -88,6 +127,7 @@ export async function POST(request: NextRequest) {
     // Phase 2: Smart Integration Orchestration
     console.log("🔗 Starting smart integration orchestration...");
 
+    const integrationStartTime = Date.now();
     const integrationResponse = await withRetry(
       async () => {
         return await integrationOrchestrator.orchestrateIntegrations({
@@ -98,11 +138,13 @@ export async function POST(request: NextRequest) {
           availableIntegrations: Array.isArray(clientIntegrations)
             ? clientIntegrations
             : ["gmail", "calendar"], // Default integrations
+          // TODO: Add preloadedContexts support to IntegrationOrchestrationRequest
         });
       },
       "integration-orchestration",
       { maxRetries: 2, baseDelayMs: 500, circuitBreaker: false }
     );
+    const integrationTime = Date.now() - integrationStartTime;
 
     console.log("✅ Integration orchestration completed:", {
       primaryIntegration: integrationResponse.primaryIntegration,
@@ -118,6 +160,7 @@ export async function POST(request: NextRequest) {
         : undefined);
 
     // Execute AI chat with LangGraph using enhanced context
+    const langGraphStartTime = Date.now();
     const { response } = await executePerinChatWithLangGraph(
       messages,
       userId,
@@ -137,12 +180,22 @@ export async function POST(request: NextRequest) {
           : undefined,
       }
     );
+    const langGraphTime = Date.now() - langGraphStartTime;
 
     // Log comprehensive interaction data for analytics
+    const totalTime = Date.now() - startTime;
+
     console.log("🎯 AI Chat Interaction Complete:", {
       userId,
       timestamp: new Date().toISOString(),
       messageCount: messages.length,
+      performance: {
+        totalTime: `${totalTime}ms`,
+        understandingTime: `${understandingTime}ms`,
+        integrationTime: `${integrationTime}ms`,
+        langGraphTime: `${langGraphTime}ms`,
+        hasClientContext: useClientContext,
+      },
       aiUnderstanding: {
         intent: understandingResponse.intent.type,
         confidence: understandingResponse.confidence,
@@ -159,6 +212,16 @@ export async function POST(request: NextRequest) {
       hasIntegrations: Array.isArray(clientIntegrations)
         ? clientIntegrations.length > 0
         : false,
+    });
+
+    // Track performance metrics
+    performanceTracker.end(Date.now(), {
+      totalResponseTime: totalTime,
+      understandingTime,
+      contextLoadingTime: integrationTime,
+      aiProcessingTime: langGraphTime,
+      hasClientContext: useClientContext,
+      intent: understandingResponse.intent.type,
     });
 
     return response;

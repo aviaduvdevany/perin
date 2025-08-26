@@ -43,7 +43,7 @@
 
 ## 🚀 Optimization Strategy
 
-### Phase 1: Immediate Wins (Week 1) - 80% Improvement
+### Phase 1: Client-Side Context Pre-loading (Week 1) - 80% Improvement
 
 #### 1.1 Extend UserDataProvider with Performance Data
 
@@ -112,116 +112,110 @@ const refreshAll = useCallback(async () => {
 }, [refreshUser, refreshConnections, refreshIntegrations]);
 ```
 
-#### 1.2 Enhanced AI System with Pre-loaded Context
+#### 1.2 Client-Side Context Passing to Server
 
-**Problem**: AI system loads context on every request
-**Solution**: Pass pre-loaded context to existing AI understanding system
+**Problem**: Server fetches data from DB/APIs on every request
+**Solution**: Client passes pre-loaded context to server in request body
 
 ```typescript
-// Enhanced chat API with pre-loaded context
+// Enhanced chat API that uses client context
 export async function POST(request: NextRequest) {
-  // ... existing authentication code ...
+  const { messages, clientContext } = await request.json();
 
-  // Get pre-loaded context from UserDataProvider
-  const userData = await getUserDataFromProvider(userId);
+  // Use client context if available and fresh (within 5 minutes)
+  const useClientContext =
+    clientContext && Date.now() - clientContext.lastUpdated < 5 * 60 * 1000;
 
-  // Use existing AI understanding system with enhanced context
-  const understandingResponse = await understandingOrchestrator.understand({
-    input: conversationText,
-    userId,
-    conversationHistory: messages,
-    userPreferences: {
-      ...userData.memory.preferences,
-      timezone: userData.user?.timezone,
-    },
-    // Pass pre-loaded context for faster processing
-    preloadedContext: {
-      calendar: userData.calendar,
-      memory: userData.memory,
-      integrations: userData.integrations,
-    },
-  });
+  if (useClientContext) {
+    console.log("🚀 Using pre-fetched client context");
 
-  // Use existing integration orchestration with pre-loaded data
-  const integrationResponse =
-    await integrationOrchestrator.orchestrateIntegrations({
-      userIntent: understandingResponse.intent,
-      conversationContext: understandingResponse.context,
-      userInput: conversationText,
+    // Use existing AI understanding system with pre-loaded context
+    const understandingResponse = await understandingOrchestrator.understand({
+      input: conversationText,
       userId,
-      availableIntegrations: clientIntegrations,
-      // Use pre-loaded integration contexts when available
-      preloadedContexts: userData.integrations.contexts,
+      conversationHistory: messages,
+      userPreferences: {
+        ...clientContext.memory.preferences,
+        timezone: clientContext.user?.timezone,
+      },
+      // Pass pre-loaded context for faster processing
+      preloadedContext: {
+        calendar: clientContext.calendar,
+        memory: clientContext.memory,
+        integrations: clientContext.integrations,
+      },
     });
 
-  // Continue with existing LangGraph execution
-  const response = await executePerinChatWithLangGraph(
-    messages,
-    userId,
-    tone,
-    perinName,
-    specialization,
-    userData // Pass pre-loaded context
-  );
+    // Use existing integration orchestration with pre-loaded data
+    const integrationResponse =
+      await integrationOrchestrator.orchestrateIntegrations({
+        userIntent: understandingResponse.intent,
+        conversationContext: understandingResponse.context,
+        userInput: conversationText,
+        userId,
+        availableIntegrations: clientIntegrations,
+        // Use pre-loaded integration contexts when available
+        preloadedContexts: clientContext.integrations.contexts,
+      });
+
+    // Continue with existing LangGraph execution using pre-loaded context
+    const response = await executePerinChatWithLangGraph(
+      messages,
+      userId,
+      tone,
+      perinName,
+      specialization,
+      clientContext // Pass pre-loaded context
+    );
+  } else {
+    // Fallback to current behavior for fresh data
+    console.log("🔄 Fetching fresh data from server");
+    // ... existing code
+  }
 }
 ```
 
-#### 1.3 Progressive UI with Smart Loading States
+#### 1.3 Client-Side Request Enhancement
 
-**Problem**: Users don't know what's happening during processing
-**Solution**: Show progressive loading states with context-aware feedback
+**Problem**: Client doesn't send pre-loaded context to server
+**Solution**: Modify client-side request to include pre-loaded data
 
 ```typescript
-// Progressive loading component
-const ProgressiveLoader = ({ phase, progress, estimatedTime, message }) => {
-  const phases = {
-    understanding: {
-      icon: "🧠",
-      color: "blue",
-      message: "Understanding your request...",
-    },
-    context: {
-      icon: "🔗",
-      color: "green",
-      message: "Loading your context...",
-    },
-    processing: {
-      icon: "⚡",
-      color: "yellow",
-      message: "Processing with AI...",
-    },
-    responding: {
-      icon: "💬",
-      color: "purple",
-      message: "Generating response...",
-    },
-  };
+// Enhanced client-side request in PerinChat
+const handleSendMessage = async (message: string) => {
+  const userData = useUserData().state; // Get pre-loaded context
 
-  return (
-    <div className="progressive-loader">
-      <div className="phase-indicator">
-        <span className={`phase-icon ${phases[phase].color}`}>
-          {phases[phase].icon}
-        </span>
-        <span className="phase-message">
-          {message || phases[phase].message}
-        </span>
-      </div>
+  // Check if we have fresh context data
+  const hasFreshContext =
+    userData.calendar?.lastUpdated &&
+    Date.now() - userData.calendar.lastUpdated < 5 * 60 * 1000;
 
-      <div className="progress-container">
-        <div className="progress-bar">
-          <div className="progress-fill" style={{ width: `${progress}%` }} />
-        </div>
-        {estimatedTime > 0 && (
-          <span className="eta">~{estimatedTime}s remaining</span>
-        )}
-      </div>
-    </div>
-  );
+  const response = await fetch("/api/ai/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messages: [...messages, { role: "user", content: message }],
+      tone,
+      perinName,
+      specialization,
+      clientIntegrations,
+      // ✅ Pass pre-loaded context to server
+      clientContext: hasFreshContext
+        ? {
+            calendar: userData.calendar,
+            memory: userData.memory,
+            integrations: userData.integrations,
+            lastUpdated: Date.now(),
+          }
+        : undefined,
+    }),
+  });
+
+  // Continue with existing response handling...
 };
 ```
 
-### Phase 2: Background Refresh & Smart Invalidation (Week 2) - 70% Improvement
+### Phase 2: Background Refresh & Smart Invalidation (Week 2) - 85% Improvement
 
 #### 2.1 Enhanced Background Refresh
 
@@ -327,7 +321,7 @@ const updateUser = useCallback(
 );
 ```
 
-### Phase 3: AI Pipeline Optimization (Week 3) - 75% Improvement
+### Phase 3: AI Pipeline Optimization (Week 3) - 90% Improvement
 
 #### 3.1 Enhanced AI Context Integration
 
@@ -393,7 +387,7 @@ class EnhancedLangGraphOrchestrator {
 }
 ```
 
-### Phase 4: UX/UI Improvements (Week 4) - 80% Improvement
+### Phase 4: UX/UI Improvements (Week 4) - 95% Improvement
 
 #### 4.1 Progressive Loading Indicators
 
@@ -507,7 +501,7 @@ const SmartSkeleton = ({
 
 ## 🛠️ Implementation Plan
 
-### Week 1: Foundation (Target: 60% improvement)
+### Week 1: Foundation (Target: 80% improvement)
 
 #### Day 1-2: Extend UserDataProvider
 
@@ -516,11 +510,11 @@ const SmartSkeleton = ({
 - [ ] Add memory context loading
 - [ ] Integrate with existing refreshAll
 
-#### Day 3-4: Enhanced AI Context Integration
+#### Day 3-4: Client-Side Context Integration
 
-- [ ] Modify chat API to use pre-loaded context
-- [ ] Enhance AI understanding system with pre-loaded data
-- [ ] Update integration orchestration with cached contexts
+- [ ] Modify client-side request to include pre-loaded context
+- [ ] Update server-side API to use client context when available
+- [ ] Add fallback to server-side fetching when client context is stale
 - [ ] Test with existing AI system
 
 #### Day 5-7: Background Refresh & Invalidation
@@ -530,7 +524,7 @@ const SmartSkeleton = ({
 - [ ] Implement auto-invalidation on user updates
 - [ ] Performance testing
 
-### Week 2: Enhanced Caching (Target: 70% improvement)
+### Week 2: Enhanced Caching (Target: 85% improvement)
 
 #### Day 1-3: Background Refresh Enhancement
 
@@ -553,7 +547,7 @@ const SmartSkeleton = ({
 - [ ] Test with real user scenarios
 - [ ] Optimize cache durations
 
-### Week 3: AI Optimization (Target: 75% improvement)
+### Week 3: AI Optimization (Target: 90% improvement)
 
 #### Day 1-3: Enhanced AI Context Integration
 
@@ -576,7 +570,7 @@ const SmartSkeleton = ({
 - [ ] Add streaming optimizations
 - [ ] Performance testing
 
-### Week 4: UX/UI Enhancement (Target: 80% improvement)
+### Week 4: UX/UI Enhancement (Target: 95% improvement)
 
 #### Day 1-3: Progressive Loading
 
@@ -904,10 +898,10 @@ After implementing this optimization plan, we expect:
 
 ### Performance Improvements
 
-- **60-80% reduction** in response time for common queries
-- **70%+ reduction** in API calls through pre-loading and caching
-- **80%+ cache hit rate** for frequently accessed data
-- **2-3 second** response times (down from 22 seconds)
+- **80-95% reduction** in response time for common queries
+- **90%+ reduction** in API calls through client-side pre-loading
+- **95%+ cache hit rate** for frequently accessed data
+- **1-2 second** response times (down from 22 seconds)
 
 ### User Experience Improvements
 
@@ -916,6 +910,7 @@ After implementing this optimization plan, we expect:
 - **Graceful degradation** when services are slow
 - **Mobile-optimized** performance with smart loading states
 - **Maintained AI-first architecture** with enhanced context
+- **No browser/server architecture conflicts** - clean data flow
 
 ### Technical Benefits
 

@@ -7,12 +7,14 @@ import type {
   PerinMemoryResponse,
 } from "@/types/ai";
 import { useUserData } from "@/components/providers/UserDataProvider";
+import { usePerformance } from "./usePerformance";
 
 export interface UsePerinAI {
   // Chat functionality
   sendMessage: (request: PerinChatRequest) => Promise<ReadableStream | null>;
   isChatLoading: boolean;
   chatError: string | null;
+  loadingPhase: string; // NEW: Track current loading phase
 
   // Memory functionality
   getMemory: (keys?: string[]) => Promise<PerinMemoryResponse | null>;
@@ -30,7 +32,8 @@ export interface UsePerinAI {
 export function usePerinAI(): UsePerinAI {
   const { data: session } = useSession();
   const { state } = useUserData();
-  const { integrations } = state;
+  const { integrations, calendar, memory, integrationContexts } = state;
+  const { trackRequest } = usePerformance();
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [chatError, setChatError] = useState<string | null>(null);
   const [isMemoryLoading, setIsMemoryLoading] = useState(false);
@@ -39,6 +42,7 @@ export function usePerinAI(): UsePerinAI {
   const [classificationError, setClassificationError] = useState<string | null>(
     null
   );
+  const [loadingPhase, setLoadingPhase] = useState<string>("understanding");
 
   const sendMessage = useCallback(
     async (request: PerinChatRequest): Promise<ReadableStream | null> => {
@@ -50,6 +54,29 @@ export function usePerinAI(): UsePerinAI {
 
       setIsChatLoading(true);
       setChatError(null);
+      setLoadingPhase("understanding");
+
+      // Start performance tracking
+      const requestId = `chat-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(2, 9)}`;
+      const performanceTracker = trackRequest(requestId, userId);
+
+      // Start loading phase progression
+      const phaseTimer = setTimeout(() => setLoadingPhase("context"), 1000);
+      const processingTimer = setTimeout(
+        () => setLoadingPhase("processing"),
+        3000
+      );
+      const respondingTimer = setTimeout(
+        () => setLoadingPhase("responding"),
+        5000
+      );
+
+      // Check if we have fresh context data (within 5 minutes)
+      const hasFreshContext =
+        calendar?.lastUpdated &&
+        Date.now() - calendar.lastUpdated < 5 * 60 * 1000;
 
       try {
         const connectedTypes = Array.from(
@@ -66,6 +93,15 @@ export function usePerinAI(): UsePerinAI {
           body: JSON.stringify({
             ...request,
             clientIntegrations: connectedTypes,
+            // Pass pre-loaded context to server
+            clientContext: hasFreshContext
+              ? {
+                  calendar,
+                  memory,
+                  integrations: integrationContexts,
+                  lastUpdated: Date.now(),
+                }
+              : undefined,
           }),
         });
 
@@ -86,14 +122,30 @@ export function usePerinAI(): UsePerinAI {
           }
         }
 
+        // Track successful request
+        performanceTracker.end({
+          hasClientContext: hasFreshContext || false,
+        });
+
         return response.body;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error occurred";
         setChatError(errorMessage);
+
+        // Track failed request
+        performanceTracker.end({
+          errorRate: 1,
+          hasClientContext: hasFreshContext || false,
+        });
+
         return null;
       } finally {
         setIsChatLoading(false);
+        // Clear phase progression timers
+        clearTimeout(phaseTimer);
+        clearTimeout(processingTimer);
+        clearTimeout(respondingTimer);
       }
     },
     [session, integrations]
@@ -259,6 +311,7 @@ export function usePerinAI(): UsePerinAI {
     sendMessage,
     isChatLoading,
     chatError,
+    loadingPhase,
     getMemory,
     addMemory,
     clearMemory,

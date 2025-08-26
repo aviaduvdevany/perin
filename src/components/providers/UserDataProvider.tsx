@@ -8,11 +8,11 @@ import React, {
   ReactNode,
   useState,
   useEffect,
-  useRef,
 } from "react";
 import type { User, UpdateUserData } from "@/types/database";
 import type { UserConnection, NetworkScope } from "@/types/network";
 import type { IntegrationStatus, IntegrationType } from "@/types/integrations";
+import type { CalendarEvent } from "@/types/calendar";
 import {
   getUserProfileService,
   updateUserProfileService,
@@ -44,6 +44,25 @@ export interface UserDataState {
   // Integration data
   integrations: IntegrationStatus[];
 
+  // Performance optimizations (NEW)
+  calendar: {
+    events: Record<string, unknown>[];
+    nextEvent: Record<string, unknown> | null;
+    availability: Record<string, unknown>;
+    lastUpdated: number;
+  };
+
+  memory: {
+    semantic: Record<string, unknown>[];
+    preferences: Record<string, unknown>;
+    lastUpdated: number;
+  };
+
+  integrationContexts: {
+    contexts: Record<string, Record<string, unknown>>;
+    lastUpdated: number;
+  };
+
   // Chat UI state (migrated from ChatUIProvider)
   ui: {
     profileOpen: boolean;
@@ -61,6 +80,8 @@ export interface UserDataState {
     user: boolean;
     connections: boolean;
     integrations: boolean;
+    calendar: boolean;
+    memory: boolean;
     initial: boolean;
   };
 
@@ -72,6 +93,8 @@ export interface UserDataState {
     user: number;
     connections: number;
     integrations: number;
+    calendar: number;
+    memory: number;
   };
 }
 
@@ -81,6 +104,12 @@ export interface UserDataActions {
   refreshConnections: () => Promise<void>;
   refreshIntegrations: () => Promise<void>;
   refreshAll: () => Promise<void>;
+
+  // Performance data management (NEW)
+  refreshCalendarContext: () => Promise<void>;
+  refreshMemoryContext: () => Promise<void>;
+  invalidateCalendarCache: () => void;
+  invalidateMemoryCache: () => void;
 
   // User data management
   updateUser: (updates: UpdateUserData) => Promise<void>;
@@ -130,6 +159,8 @@ const CACHE_DURATIONS = {
   user: 5 * 60 * 1000, // 5 minutes
   connections: 2 * 60 * 1000, // 2 minutes
   integrations: 10 * 60 * 1000, // 10 minutes
+  calendar: 2 * 60 * 1000, // 2 minutes (frequently changing)
+  memory: 30 * 60 * 1000, // 30 minutes (stable)
   ui: Infinity, // No cache (always fresh)
 };
 
@@ -142,6 +173,21 @@ const initialState: UserDataState = {
   connections: [],
   pendingInvitations: [],
   integrations: [],
+  calendar: {
+    events: [],
+    nextEvent: null,
+    availability: {},
+    lastUpdated: 0,
+  },
+  memory: {
+    semantic: [],
+    preferences: {},
+    lastUpdated: 0,
+  },
+  integrationContexts: {
+    contexts: {},
+    lastUpdated: 0,
+  },
   ui: {
     profileOpen: false,
     integrationsOpen: false,
@@ -156,6 +202,8 @@ const initialState: UserDataState = {
     user: false,
     connections: false,
     integrations: false,
+    calendar: false,
+    memory: false,
     initial: true,
   },
   errors: {},
@@ -163,6 +211,8 @@ const initialState: UserDataState = {
     user: 0,
     connections: 0,
     integrations: 0,
+    calendar: 0,
+    memory: 0,
   },
 };
 
@@ -178,7 +228,6 @@ const UserDataContext = createContext<UserDataContextValue | null>(null);
 
 export function UserDataProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<UserDataState>(initialState);
-  const didCollapseRef = useRef(false);
 
   // ============================================================================
   // DATA FETCHING FUNCTIONS
@@ -275,6 +324,121 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Performance data management functions (NEW)
+  const refreshCalendarContext = useCallback(async () => {
+    if (!state.user?.id) return;
+
+    setState((prev) => ({
+      ...prev,
+      loading: { ...prev.loading, calendar: true },
+      errors: { ...prev.errors, calendar: null },
+    }));
+
+    try {
+      // Fetch calendar context from server API
+      const response = await fetch("/api/user/calendar-context");
+      const data = await response.json();
+
+      if (data.success) {
+        setState((prev) => ({
+          ...prev,
+          calendar: {
+            events: data.data.events as unknown as Record<string, unknown>[],
+            nextEvent: data.data.nextEvent as unknown as Record<
+              string,
+              unknown
+            > | null,
+            availability: data.data.availability,
+            lastUpdated: data.data.lastUpdated,
+          },
+          loading: { ...prev.loading, calendar: false },
+          lastUpdated: { ...prev.lastUpdated, calendar: Date.now() },
+        }));
+      } else {
+        throw new Error("Failed to fetch calendar context");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load calendar context";
+      setState((prev) => ({
+        ...prev,
+        loading: { ...prev.loading, calendar: false },
+        errors: { ...prev.errors, calendar: errorMessage },
+      }));
+      console.error(
+        "UserDataProvider: Failed to refresh calendar context",
+        error
+      );
+    }
+  }, [state.user?.id]);
+
+  const refreshMemoryContext = useCallback(async () => {
+    if (!state.user?.id) return;
+
+    setState((prev) => ({
+      ...prev,
+      loading: { ...prev.loading, memory: true },
+      errors: { ...prev.errors, memory: null },
+    }));
+
+    try {
+      // Fetch memory context from server API
+      const response = await fetch("/api/user/memory-context");
+      const data = await response.json();
+
+      if (data.success) {
+        setState((prev) => ({
+          ...prev,
+          memory: {
+            semantic: data.data.semantic,
+            preferences: data.data.preferences,
+            lastUpdated: data.data.lastUpdated,
+          },
+          loading: { ...prev.loading, memory: false },
+          lastUpdated: { ...prev.lastUpdated, memory: Date.now() },
+        }));
+      } else {
+        throw new Error("Failed to fetch memory context");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to load memory context";
+      setState((prev) => ({
+        ...prev,
+        loading: { ...prev.loading, memory: false },
+        errors: { ...prev.errors, memory: errorMessage },
+      }));
+      console.error(
+        "UserDataProvider: Failed to refresh memory context",
+        error
+      );
+    }
+  }, [state.user?.id]);
+
+  const invalidateCalendarCache = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      calendar: {
+        ...prev.calendar,
+        lastUpdated: 0, // Force refresh on next check
+      },
+    }));
+  }, []);
+
+  const invalidateMemoryCache = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      memory: {
+        ...prev.memory,
+        lastUpdated: 0, // Force refresh on next check
+      },
+    }));
+  }, []);
+
   const refreshAll = useCallback(async () => {
     setState((prev) => ({
       ...prev,
@@ -282,18 +446,33 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
 
     try {
+      // Core data (existing)
       await Promise.allSettled([
         refreshUser(),
         refreshConnections(),
         refreshIntegrations(),
       ]);
+
+      // Performance data (new) - only if user has integrations
+      if (state.integrations.some((i) => i.isActive)) {
+        await Promise.allSettled([
+          refreshCalendarContext(),
+          refreshMemoryContext(),
+        ]);
+      }
     } finally {
       setState((prev) => ({
         ...prev,
         loading: { ...prev.loading, initial: false },
       }));
     }
-  }, [refreshUser, refreshConnections, refreshIntegrations]);
+  }, [
+    refreshUser,
+    refreshConnections,
+    refreshIntegrations,
+    refreshCalendarContext,
+    refreshMemoryContext,
+  ]);
 
   // ============================================================================
   // BACKGROUND REFRESH
@@ -314,31 +493,59 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       updates.push(refreshIntegrations());
     }
 
+    // New: Performance data refresh
+    if (isStale(state.calendar.lastUpdated, CACHE_DURATIONS.calendar)) {
+      updates.push(refreshCalendarContext());
+    }
+
+    if (isStale(state.memory.lastUpdated, CACHE_DURATIONS.memory)) {
+      updates.push(refreshMemoryContext());
+    }
+
     await Promise.allSettled(updates);
-  }, [state.lastUpdated, refreshUser, refreshConnections, refreshIntegrations]);
+  }, [
+    state.calendar.lastUpdated,
+    state.memory.lastUpdated,
+    refreshUser,
+    refreshConnections,
+    refreshIntegrations,
+    refreshCalendarContext,
+    refreshMemoryContext,
+  ]);
 
   // ============================================================================
   // USER DATA MANAGEMENT
   // ============================================================================
 
-  const updateUser = useCallback(async (updates: UpdateUserData) => {
-    try {
-      const updatedUser = await updateUserProfileService(updates);
-      setState((prev) => ({
-        ...prev,
-        user: updatedUser,
-        lastUpdated: { ...prev.lastUpdated, user: Date.now() },
-      }));
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update user";
-      setState((prev) => ({
-        ...prev,
-        errors: { ...prev.errors, user: errorMessage },
-      }));
-      throw error;
-    }
-  }, []);
+  const updateUser = useCallback(
+    async (updates: UpdateUserData) => {
+      try {
+        const updatedUser = await updateUserProfileService(updates);
+        setState((prev) => ({
+          ...prev,
+          user: updatedUser,
+          lastUpdated: { ...prev.lastUpdated, user: Date.now() },
+        }));
+
+        // Invalidate related caches if timezone/preferences changed
+        if (updates.timezone || updates.preferred_hours) {
+          invalidateCalendarCache();
+        }
+        if (updates.memory || updates.tone) {
+          invalidateMemoryCache();
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Failed to update user";
+        setState((prev) => ({
+          ...prev,
+          errors: { ...prev.errors, user: errorMessage },
+        }));
+        throw error;
+      }
+    },
+    [invalidateCalendarCache, invalidateMemoryCache]
+  );
 
   // ============================================================================
   // NETWORK MANAGEMENT
@@ -544,13 +751,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  // Legacy function from ChatUIProvider
-  const collapseTodayAfterFirstMessage = useCallback(() => {
-    if (didCollapseRef.current) return;
-    didCollapseRef.current = true;
-    setTodayOpen(false);
-  }, [setTodayOpen]);
-
   // ============================================================================
   // CACHE MANAGEMENT
   // ============================================================================
@@ -572,6 +772,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         user: 0,
         connections: 0,
         integrations: 0,
+        calendar: 0,
+        memory: 0,
       },
     }));
   }, []);
@@ -625,6 +827,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       refreshConnections,
       refreshIntegrations,
       refreshAll,
+      refreshCalendarContext,
+      refreshMemoryContext,
+      invalidateCalendarCache,
+      invalidateMemoryCache,
       updateUser,
       createConnection,
       acceptConnection,
@@ -647,6 +853,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       refreshConnections,
       refreshIntegrations,
       refreshAll,
+      refreshCalendarContext,
+      refreshMemoryContext,
+      invalidateCalendarCache,
+      invalidateMemoryCache,
       updateUser,
       createConnection,
       acceptConnection,
