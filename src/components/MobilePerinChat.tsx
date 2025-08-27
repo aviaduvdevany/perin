@@ -9,17 +9,15 @@ import { FloatingInput } from "./ui/FloatingInput";
 import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
-import { ArrowLeft, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import type { ChatMessage } from "../types";
 
 interface MobilePerinChatProps {
-  onBack?: () => void;
   onOpenMenu?: () => void;
   className?: string;
 }
 
 export function MobilePerinChat({
-  onBack,
   onOpenMenu,
   className = "",
 }: MobilePerinChatProps) {
@@ -145,17 +143,6 @@ export function MobilePerinChat({
         transition={{ duration: 0.3 }}
       >
         <div className="flex items-center gap-3">
-          {onBack && (
-            <motion.button
-              onClick={onBack}
-              className="p-2 rounded-xl bg-white/5 border border-[var(--card-border)] text-[var(--cta-text)]"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </motion.button>
-          )}
-
           <div className="flex items-center gap-3">
             <PerinAvatar size="sm" />
             <div>

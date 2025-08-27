@@ -1,10 +1,9 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import { MessageCircle, Settings, User, Bell, Plus } from "lucide-react";
+import { Bell, MessageCircle, Network, Settings } from "lucide-react";
 
 interface MobileBottomNavigationProps {
   onOpenChat: () => void;
@@ -17,24 +16,15 @@ export default function MobileBottomNavigation({
 }: MobileBottomNavigationProps) {
   const { actions } = useUserData();
   const {
-    setProfileOpen,
     setIntegrationsOpen,
     setNetworkOpen,
     setNotificationsOpen,
     setPreferencesOpen,
-    setPerinOpen,
+    setDelegationOpen,
   } = actions;
   const { unreadCount, hasUnresolvedNotifications } = useNotifications();
-  const [activeTab, setActiveTab] = useState<string | null>(null);
 
   const navigationItems = [
-    {
-      id: "chat",
-      icon: MessageCircle,
-      label: "Chat",
-      onClick: onOpenChat,
-      badge: null,
-    },
     {
       id: "notifications",
       icon: Bell,
@@ -44,10 +34,17 @@ export default function MobileBottomNavigation({
         unreadCount > 0 ? unreadCount : hasUnresolvedNotifications ? "!" : null,
     },
     {
-      id: "profile",
-      icon: User,
-      label: "Profile",
-      onClick: () => setProfileOpen(true),
+      id: "talk-to-perin",
+      icon: MessageCircle,
+      label: "Talk to My Perin",
+      onClick: () => setDelegationOpen(true),
+      badge: null,
+    },
+    {
+      id: "network",
+      icon: Network,
+      label: "Network",
+      onClick: () => setNetworkOpen(true),
       badge: null,
     },
     {
@@ -73,40 +70,19 @@ export default function MobileBottomNavigation({
           <div className="flex items-center justify-around px-4">
             {navigationItems.map((item) => {
               const Icon = item.icon;
-              const isActive = activeTab === item.id;
 
               return (
                 <motion.button
                   key={item.id}
-                  onClick={() => {
-                    item.onClick();
-                    setActiveTab(item.id);
-                  }}
+                  onClick={item.onClick}
                   className="relative flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 group"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  {/* Active indicator */}
-                  <AnimatePresence>
-                    {isActive && (
-                      <motion.div
-                        className="absolute inset-0 bg-gradient-to-r from-[var(--accent-primary)]/20 to-[var(--accent-secondary)]/20 rounded-2xl border border-[var(--accent-primary)]/30"
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.2 }}
-                      />
-                    )}
-                  </AnimatePresence>
-
                   {/* Icon */}
                   <div className="relative z-10">
                     <Icon
-                      className={`w-6 h-6 transition-colors duration-200 ${
-                        isActive
-                          ? "text-[var(--accent-primary)]"
-                          : "text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)]"
-                      }`}
+                      className="w-6 h-6 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200"
                     />
 
                     {/* Badge */}
@@ -133,35 +109,12 @@ export default function MobileBottomNavigation({
                   </div>
 
                   {/* Label */}
-                  <span
-                    className={`text-xs mt-1 transition-colors duration-200 ${
-                      isActive
-                        ? "text-[var(--accent-primary)] font-medium"
-                        : "text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)]"
-                    }`}
-                  >
+                  <span className="text-xs mt-1 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200">
                     {item.label}
                   </span>
                 </motion.button>
               );
             })}
-
-            {/* Quick Actions FAB */}
-            <motion.button
-              onClick={() => setIntegrationsOpen(true)}
-              className="relative flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 group"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <div className="relative z-10">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center">
-                  <Plus className="w-4 h-4 text-white" />
-                </div>
-              </div>
-              <span className="text-xs mt-1 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200">
-                Connect
-              </span>
-            </motion.button>
           </div>
         </div>
       </div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { PerinChat } from "@/components/PerinChat";
 import SidebarRail from "@/components/ui/SidebarRail";
-import MobileHomeScreen from "@/components/MobileHomeScreen";
+
 import { MobilePerinChat } from "@/components/MobilePerinChat";
 import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
 import MobileDrawer from "@/components/ui/MobileDrawer";
@@ -56,9 +56,6 @@ export default function Home() {
     setDelegationOpen,
   } = actions;
 
-  // Mobile state
-  const [mobileView, setMobileView] = useState<"home" | "chat">("home");
-
   // Notification modal state
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [proposalModalData, setProposalModalData] = useState<{
@@ -75,14 +72,6 @@ export default function Home() {
       router.push("/auth/signin");
     }
   }, [isLoading, isAuthenticated, router]);
-
-  const handleOpenChat = () => {
-    setMobileView("chat");
-  };
-
-  const handleBackToHome = () => {
-    setMobileView("home");
-  };
 
   const handleOpenProposalModal = (data: {
     sessionId: string;
@@ -216,18 +205,11 @@ export default function Home() {
       <div className="xl:hidden h-screen mobile-layout">
         {/* Mobile Content */}
         <div className="h-full mobile-content">
-          {mobileView === "home" ? (
-            <MobileHomeScreen onOpenChat={handleOpenChat} />
-          ) : (
-            <MobilePerinChat
-              onBack={handleBackToHome}
-              onOpenMenu={() => setProfileOpen(true)}
-            />
-          )}
+          <MobilePerinChat onOpenMenu={() => setProfileOpen(true)} />
         </div>
 
         {/* Mobile Bottom Navigation */}
-        <MobileBottomNavigation onOpenChat={handleOpenChat} />
+        <MobileBottomNavigation onOpenChat={() => {}} />
 
         {/* Mobile Drawers */}
         <MobileDrawer
