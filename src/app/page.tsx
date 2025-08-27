@@ -9,11 +9,8 @@ import SidebarRail from "@/components/ui/SidebarRail";
 
 import { MobilePerinChat } from "@/components/MobilePerinChat";
 import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
-import MobileDrawer from "@/components/ui/MobileDrawer";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import ProfileSummary from "@/components/ui/ProfileSummary";
-import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
 import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import PreferencesModal from "@/components/dock-modals/PreferencesModal";
@@ -211,86 +208,24 @@ export default function Home() {
         {/* Mobile Bottom Navigation */}
         <MobileBottomNavigation onOpenChat={() => {}} />
 
-        {/* Mobile Drawers */}
-        <MobileDrawer
-          open={profileOpen}
-          onClose={() => setProfileOpen(false)}
-          title="Profile"
-          position="right"
-          size="md"
-        >
-          <ProfileSummary />
-        </MobileDrawer>
-
-        <MobileDrawer
-          open={integrationsOpen}
-          onClose={() => setIntegrationsOpen(false)}
-          title="Connect Services"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <UnifiedIntegrationManager showOnlyConnectable={true} />
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        {/* Mobile Modals - Same as Desktop */}
+        <NetworkModal
           open={networkOpen}
           onClose={() => setNetworkOpen(false)}
-          title="Network"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Network management coming soon...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        />
+        <PreferencesModal
           open={preferencesOpen}
           onClose={() => setPreferencesOpen(false)}
-          title="Settings"
-          position="right"
-          size="md"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Settings panel coming soon...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
-          open={perinOpen}
-          onClose={() => setPerinOpen(false)}
-          title="About Perin"
-          position="bottom"
-          size="md"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Perin is your AI-powered digital delegate...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        />
+        <DelegationModal
           open={delegationOpen}
           onClose={() => setDelegationOpen(false)}
-          title="Talk to My Perin"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <LinkGenerator
-              onGenerate={(delegation: CreateDelegationResponse) =>
-                console.log("Delegation generated:", delegation)
-              }
-            />
-          </div>
-        </MobileDrawer>
+        />
+        <IntegrationManagerModal
+          open={integrationsOpen}
+          onClose={() => setIntegrationsOpen(false)}
+        />
+        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
       </div>
 
       {/* Notification modals - Top level for proper positioning */}

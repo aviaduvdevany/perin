@@ -81,9 +81,7 @@ export default function MobileBottomNavigation({
                 >
                   {/* Icon */}
                   <div className="relative z-10">
-                    <Icon
-                      className="w-6 h-6 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200"
-                    />
+                    <Icon className="w-6 h-6 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200" />
 
                     {/* Badge */}
                     {item.badge && (
