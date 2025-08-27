@@ -133,7 +133,7 @@ export function MobilePerinChat({
 
   return (
     <div
-      className={`h-full flex flex-col bg-[var(--background-primary)] ${className}`}
+      className={`h-full flex flex-col bg-[var(--background-primary)] relative ${className}`}
     >
       {/* Mobile Header */}
       <motion.div
@@ -172,7 +172,12 @@ export function MobilePerinChat({
       </motion.div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 pb-32">
+      <div
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
+        style={{
+          paddingBottom: "calc(8rem + env(safe-area-inset-bottom) + 80px)",
+        }}
+      >
         <AnimatePresence>
           {messages.length === 0 && !isChatLoading && (
             <motion.div
@@ -303,17 +308,6 @@ export function MobilePerinChat({
         </AnimatePresence>
 
         <div ref={messagesEndRef} />
-      </div>
-
-      {/* Mobile-optimized input */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-[var(--background-primary)]/80 backdrop-blur-xl border-t border-[var(--card-border)]">
-        <FloatingInput
-          onSendMessage={handleSendMessage}
-          isLoading={isChatLoading}
-          placeholder="Type your message..."
-          disabled={false}
-          className="max-w-none"
-        />
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import { Bell, MessageCircle, Network, Settings } from "lucide-react";
+import { Bell, MessageCircle, Network, Settings, Share } from "lucide-react";
 
 interface MobileBottomNavigationProps {
   onOpenChat: () => void;
@@ -35,8 +35,8 @@ export default function MobileBottomNavigation({
     },
     {
       id: "talk-to-perin",
-      icon: MessageCircle,
-      label: "Talk to My Perin",
+      icon: Share,
+      label: "Share Me",
       onClick: () => setDelegationOpen(true),
       badge: null,
     },
