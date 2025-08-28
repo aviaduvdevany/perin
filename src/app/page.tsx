@@ -1,19 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { PerinChat } from "@/components/PerinChat";
 import SidebarRail from "@/components/ui/SidebarRail";
-import MobileHomeScreen from "@/components/MobileHomeScreen";
+
 import { MobilePerinChat } from "@/components/MobilePerinChat";
 import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
-import MobileDrawer from "@/components/ui/MobileDrawer";
+import { FloatingInput } from "@/components/ui/FloatingInput";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import ProfileSummary from "@/components/ui/ProfileSummary";
-import UnifiedIntegrationManager from "@/components/ui/UnifiedIntegrationManager";
 import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import PreferencesModal from "@/components/dock-modals/PreferencesModal";
@@ -56,9 +54,6 @@ export default function Home() {
     setDelegationOpen,
   } = actions;
 
-  // Mobile state
-  const [mobileView, setMobileView] = useState<"home" | "chat">("home");
-
   // Notification modal state
   const [proposalModalOpen, setProposalModalOpen] = useState(false);
   const [proposalModalData, setProposalModalData] = useState<{
@@ -70,19 +65,17 @@ export default function Home() {
     notificationId: string;
   } | null>(null);
 
+  // Mobile chat ref
+  const mobileChatRef = useRef<{
+    handleSendMessage: (message: string) => void;
+    isChatLoading: boolean;
+  }>(null);
+
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push("/auth/signin");
     }
   }, [isLoading, isAuthenticated, router]);
-
-  const handleOpenChat = () => {
-    setMobileView("chat");
-  };
-
-  const handleBackToHome = () => {
-    setMobileView("home");
-  };
 
   const handleOpenProposalModal = (data: {
     sessionId: string;
@@ -213,102 +206,42 @@ export default function Home() {
       </div>
 
       {/* Mobile Layout */}
-      <div className="xl:hidden h-screen mobile-layout">
+      <div className="xl:hidden h-screen mobile-layout flex flex-col">
         {/* Mobile Content */}
-        <div className="h-full mobile-content">
-          {mobileView === "home" ? (
-            <MobileHomeScreen onOpenChat={handleOpenChat} />
-          ) : (
-            <MobilePerinChat
-              onBack={handleBackToHome}
-              onOpenMenu={() => setProfileOpen(true)}
-            />
-          )}
+        <div className="flex-1 mobile-content">
+          <MobilePerinChat
+            ref={mobileChatRef}
+            onOpenMenu={() => setProfileOpen(true)}
+          />
         </div>
 
-        {/* Mobile Bottom Navigation */}
-        <MobileBottomNavigation onOpenChat={handleOpenChat} />
+        {/* Mobile Bottom Navigation with Input */}
+        <MobileBottomNavigation
+          onOpenChat={() => {}}
+          onSendMessage={(message) =>
+            mobileChatRef.current?.handleSendMessage(message)
+          }
+          isLoading={mobileChatRef.current?.isChatLoading || false}
+        />
 
-        {/* Mobile Drawers */}
-        <MobileDrawer
-          open={profileOpen}
-          onClose={() => setProfileOpen(false)}
-          title="Profile"
-          position="right"
-          size="md"
-        >
-          <ProfileSummary />
-        </MobileDrawer>
-
-        <MobileDrawer
-          open={integrationsOpen}
-          onClose={() => setIntegrationsOpen(false)}
-          title="Connect Services"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <UnifiedIntegrationManager showOnlyConnectable={true} />
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        {/* Mobile Modals - Same as Desktop */}
+        <NetworkModal
           open={networkOpen}
           onClose={() => setNetworkOpen(false)}
-          title="Network"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Network management coming soon...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        />
+        <PreferencesModal
           open={preferencesOpen}
           onClose={() => setPreferencesOpen(false)}
-          title="Settings"
-          position="right"
-          size="md"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Settings panel coming soon...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
-          open={perinOpen}
-          onClose={() => setPerinOpen(false)}
-          title="About Perin"
-          position="bottom"
-          size="md"
-        >
-          <div className="p-4">
-            <p className="text-[var(--foreground-muted)] text-center py-8">
-              Perin is your AI-powered digital delegate...
-            </p>
-          </div>
-        </MobileDrawer>
-
-        <MobileDrawer
+        />
+        <DelegationModal
           open={delegationOpen}
           onClose={() => setDelegationOpen(false)}
-          title="Talk to My Perin"
-          position="bottom"
-          size="lg"
-        >
-          <div className="p-4">
-            <LinkGenerator
-              onGenerate={(delegation: CreateDelegationResponse) =>
-                console.log("Delegation generated:", delegation)
-              }
-            />
-          </div>
-        </MobileDrawer>
+        />
+        <IntegrationManagerModal
+          open={integrationsOpen}
+          onClose={() => setIntegrationsOpen(false)}
+        />
+        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
       </div>
 
       {/* Notification modals - Top level for proper positioning */}
