@@ -4,14 +4,19 @@ import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
 import { Bell, MessageCircle, Network, Settings, Share } from "lucide-react";
+import { FloatingInput } from "./FloatingInput";
 
 interface MobileBottomNavigationProps {
   onOpenChat: () => void;
+  onSendMessage: (message: string) => void;
+  isLoading?: boolean;
   className?: string;
 }
 
 export default function MobileBottomNavigation({
   onOpenChat,
+  onSendMessage,
+  isLoading = false,
   className = "",
 }: MobileBottomNavigationProps) {
   const { actions } = useUserData();
@@ -64,10 +69,22 @@ export default function MobileBottomNavigation({
       transition={{ duration: 0.3, ease: "easeOut" }}
     >
       {/* Background blur and border */}
-      <div className="backdrop-blur-xl bg-[var(--background-primary)]/80 border-t border-[var(--card-border)]">
+      <div className="backdrop-blur-xl bg-[var(--background-primary)]/90 border-t border-[var(--card-border)]">
         {/* Safe area padding for devices with home indicators */}
-        <div className="pb-[max(1rem,env(safe-area-inset-bottom))] pt-2">
-          <div className="flex items-center justify-around px-4">
+        <div className="pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {/* Input Component */}
+          <div className="px-3 pt-3 pb-2">
+            <FloatingInput
+              onSendMessage={onSendMessage}
+              isLoading={isLoading}
+              placeholder="Type your message..."
+              disabled={false}
+              className="max-w-none"
+            />
+          </div>
+
+          {/* Navigation Items */}
+          <div className="flex items-center justify-around px-4 pt-1">
             {navigationItems.map((item) => {
               const Icon = item.icon;
 
@@ -75,18 +92,18 @@ export default function MobileBottomNavigation({
                 <motion.button
                   key={item.id}
                   onClick={item.onClick}
-                  className="relative flex flex-col items-center justify-center p-3 rounded-2xl transition-all duration-200 group"
+                  className="relative flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 group"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
                   {/* Icon */}
                   <div className="relative z-10">
-                    <Icon className="w-6 h-6 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200" />
+                    <Icon className="w-5 h-5 text-[var(--foreground-muted)] group-hover:text-[var(--cta-text)] transition-colors duration-200" />
 
                     {/* Badge */}
                     {item.badge && (
                       <motion.div
-                        className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-[var(--accent-secondary)] flex items-center justify-center"
+                        className="absolute -top-1 -right-1 min-w-[16px] h-[16px] rounded-full bg-[var(--accent-secondary)] flex items-center justify-center"
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         transition={{

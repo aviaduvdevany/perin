@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -66,32 +66,10 @@ export default function Home() {
   } | null>(null);
 
   // Mobile chat state
-  const [mobileMessages, setMobileMessages] = useState<
-    Array<{ id: string; role: string; content: string }>
-  >([]);
+  const [mobileSendMessage, setMobileSendMessage] = useState<
+    ((message: string) => void) | null
+  >(null);
   const [mobileChatLoading, setMobileChatLoading] = useState(false);
-
-  const handleMobileMessage = (message: string) => {
-    // For now, just add the message to the list
-    const newMessage = {
-      id: `mobile-${Date.now()}`,
-      role: "user",
-      content: message,
-    };
-    setMobileMessages((prev) => [...prev, newMessage]);
-    setMobileChatLoading(true);
-
-    // Simulate response
-    setTimeout(() => {
-      const response = {
-        id: `mobile-response-${Date.now()}`,
-        role: "assistant",
-        content: "I received your message: " + message,
-      };
-      setMobileMessages((prev) => [...prev, response]);
-      setMobileChatLoading(false);
-    }, 1000);
-  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -230,28 +208,22 @@ export default function Home() {
       {/* Mobile Layout */}
       <div className="xl:hidden h-screen mobile-layout flex flex-col">
         {/* Mobile Content */}
-        <div className="flex-1 mobile-content relative">
-          <MobilePerinChat onOpenMenu={() => setProfileOpen(true)} />
-
-          {/* Mobile Input - Positioned above bottom navigation */}
-          <div
-            className="absolute bottom-0 left-0 right-0 p-4 bg-[var(--background-primary)]/80 backdrop-blur-xl border-t border-[var(--card-border)]"
-            style={{
-              paddingBottom: "calc(1rem + env(safe-area-inset-bottom) + 80px)",
+        <div className="flex-1 mobile-content">
+          <MobilePerinChat
+            onOpenMenu={() => setProfileOpen(true)}
+            onReady={(sendMessage, isLoading) => {
+              setMobileSendMessage(() => sendMessage);
+              setMobileChatLoading(isLoading);
             }}
-          >
-            <FloatingInput
-              onSendMessage={handleMobileMessage}
-              isLoading={mobileChatLoading}
-              placeholder="Type your message..."
-              disabled={false}
-              className="max-w-none"
-            />
-          </div>
+          />
         </div>
 
-        {/* Mobile Bottom Navigation */}
-        <MobileBottomNavigation onOpenChat={() => {}} />
+        {/* Mobile Bottom Navigation with Input */}
+        <MobileBottomNavigation
+          onOpenChat={() => {}}
+          onSendMessage={mobileSendMessage || (() => {})}
+          isLoading={mobileChatLoading}
+        />
 
         {/* Mobile Modals - Same as Desktop */}
         <NetworkModal

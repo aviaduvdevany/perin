@@ -14,11 +14,16 @@ import type { ChatMessage } from "../types";
 
 interface MobilePerinChatProps {
   onOpenMenu?: () => void;
+  onReady?: (
+    sendMessage: (message: string) => void,
+    isLoading: boolean
+  ) => void;
   className?: string;
 }
 
 export function MobilePerinChat({
   onOpenMenu,
+  onReady,
   className = "",
 }: MobilePerinChatProps) {
   const { data: session } = useSession();
@@ -32,13 +37,25 @@ export function MobilePerinChat({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({
+      behavior: smooth ? "smooth" : "instant",
+    });
   };
 
   useEffect(() => {
-    scrollToBottom();
+    // Only scroll if there are messages, and use instant scroll on initial load
+    if (messages.length > 0 || streamingMessage) {
+      scrollToBottom(messages.length > 0);
+    }
   }, [messages, streamingMessage]);
+
+  // Expose the sendMessage function to parent
+  useEffect(() => {
+    if (onReady) {
+      onReady(handleSendMessage, isChatLoading);
+    }
+  }, [onReady, isChatLoading]);
 
   const handleSendMessage = async (message: string) => {
     if (!message.trim() || isChatLoading) return;
@@ -175,7 +192,7 @@ export function MobilePerinChat({
       <div
         className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
         style={{
-          paddingBottom: "calc(8rem + env(safe-area-inset-bottom) + 80px)",
+          paddingBottom: "calc(2rem + env(safe-area-inset-bottom) + 120px)",
         }}
       >
         <AnimatePresence>

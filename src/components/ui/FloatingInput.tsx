@@ -109,7 +109,8 @@ export function FloatingInput({
   return (
     <motion.div
       className={cn(
-        "fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 transform -translate-x-1/2 w-full max-w-[min(92vw,48rem)] px-4 z-50",
+        "xl:fixed xl:bottom-[max(1rem,env(safe-area-inset-bottom))] xl:left-1/2 xl:transform xl:-translate-x-1/2 xl:w-full xl:max-w-[min(92vw,48rem)] xl:px-4 xl:z-50",
+        "relative w-full px-0", // Mobile: relative positioning, full width, no horizontal padding
         className
       )}
       initial={{ opacity: 0, y: 20 }}
@@ -121,11 +122,12 @@ export function FloatingInput({
         <motion.div
           className={cn(
             "flex items-end space-x-3 transition-all duration-200",
-            isFocused && "scale-[1.02]"
+            "xl:scale-[1.02] xl:hover:scale-[1.02]", // Desktop hover effect
+            isFocused && "xl:scale-[1.02]", // Desktop focus effect
+            "space-x-2 xl:space-x-3" // Mobile: tighter spacing, desktop: normal spacing
           )}
         >
           {/* Textarea Container */}
-
           <Textarea
             ref={textareaRef}
             value={inputMessage}
@@ -142,6 +144,10 @@ export function FloatingInput({
               "scrollbar-ultra-thin min-h-0 shadow-none",
               "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/50",
               "disabled:opacity-50 disabled:cursor-not-allowed",
+              // Mobile optimizations
+              "p-2.5 xl:p-4", // Mobile: even smaller padding, desktop: normal padding
+              "text-sm xl:text-md", // Mobile: smaller text, desktop: normal text
+              "rounded-xl xl:rounded-2xl", // Mobile: slightly smaller radius, desktop: normal radius
               rows > 1 && "py-1"
             )}
             rows={rows}
@@ -158,12 +164,12 @@ export function FloatingInput({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
+                  className="p-2 xl:p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
                   aria-label="Attach file"
                   disabled={disabled}
                   onClick={onAttachmentClick}
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-4 h-4 xl:w-5 xl:h-5" />
                 </motion.button>
               )}
 
@@ -172,12 +178,12 @@ export function FloatingInput({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
+                  className="p-2 xl:p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
                   aria-label="Voice input"
                   disabled={disabled}
                   onClick={onVoiceInputClick}
                 >
-                  <Mic className="w-5 h-5" />
+                  <Mic className="w-4 h-4 xl:w-5 xl:h-5" />
                 </motion.button>
               )}
 
@@ -186,12 +192,12 @@ export function FloatingInput({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
+                  className="p-2 xl:p-3 text-[var(--foreground-muted)] hover:text-[var(--cta-text)] transition-colors duration-200"
                   aria-label="Insert emoji"
                   disabled={disabled}
                   onClick={onEmojiPickerClick}
                 >
-                  <Smile className="w-5 h-5" />
+                  <Smile className="w-4 h-4 xl:w-5 xl:h-5" />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -203,12 +209,12 @@ export function FloatingInput({
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
-                  className="p-3 text-[var(--foreground-muted)] hover:text-[var(--error)] transition-colors duration-200"
+                  className="p-2 xl:p-3 text-[var(--foreground-muted)] hover:text-[var(--error)] transition-colors duration-200"
                   aria-label="Clear message"
                   disabled={disabled}
                   onClick={handleClearMessage}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 xl:w-5 xl:h-5" />
                 </motion.button>
               )}
             </AnimatePresence>
@@ -224,7 +230,12 @@ export function FloatingInput({
                 "hover:shadow-lg hover:shadow-[var(--accent-primary)]/25",
                 "disabled:opacity-50 disabled:cursor-not-allowed",
                 "focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:ring-offset-2",
-                "active:scale-95"
+                "active:scale-95",
+                // Mobile optimizations
+                "px-3 py-2.5 xl:px-5 xl:py-4", // Mobile: even smaller padding, desktop: normal padding
+                "rounded-xl xl:rounded-2xl", // Mobile: slightly smaller radius, desktop: normal radius
+                "shadow-lg xl:shadow-2xl", // Mobile: lighter shadow, desktop: stronger shadow
+                "shadow-[var(--accent-primary)]/20 xl:glow-primary" // Mobile: subtle glow, desktop: full glow
               )}
               whileHover={!isSendDisabled ? { scale: 1.05 } : {}}
               whileTap={!isSendDisabled ? { scale: 0.95 } : {}}
@@ -235,13 +246,13 @@ export function FloatingInput({
             >
               {isLoading ? (
                 <motion.div
-                  className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                  className="w-3 h-3 xl:w-4 xl:h-4 border-2 border-white border-t-transparent rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   aria-label="Loading"
                 />
               ) : (
-                <Send className="w-4 h-4" />
+                <Send className="w-3 h-3 xl:w-4 xl:h-4" />
               )}
             </motion.button>
           </div>
