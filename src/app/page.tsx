@@ -65,11 +65,11 @@ export default function Home() {
     notificationId: string;
   } | null>(null);
 
-  // Mobile chat state
-  const [mobileSendMessage, setMobileSendMessage] = useState<
-    ((message: string) => void) | null
-  >(null);
-  const [mobileChatLoading, setMobileChatLoading] = useState(false);
+  // Mobile chat ref
+  const mobileChatRef = useRef<{
+    handleSendMessage: (message: string) => void;
+    isChatLoading: boolean;
+  }>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -210,19 +210,18 @@ export default function Home() {
         {/* Mobile Content */}
         <div className="flex-1 mobile-content">
           <MobilePerinChat
+            ref={mobileChatRef}
             onOpenMenu={() => setProfileOpen(true)}
-            onReady={(sendMessage, isLoading) => {
-              setMobileSendMessage(() => sendMessage);
-              setMobileChatLoading(isLoading);
-            }}
           />
         </div>
 
         {/* Mobile Bottom Navigation with Input */}
         <MobileBottomNavigation
           onOpenChat={() => {}}
-          onSendMessage={mobileSendMessage || (() => {})}
-          isLoading={mobileChatLoading}
+          onSendMessage={(message) =>
+            mobileChatRef.current?.handleSendMessage(message)
+          }
+          isLoading={mobileChatRef.current?.isChatLoading || false}
         />
 
         {/* Mobile Modals - Same as Desktop */}
