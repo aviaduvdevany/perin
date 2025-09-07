@@ -88,7 +88,11 @@ export const decryptToken = (encryptedToken: string): string => {
     return decrypted;
   } catch (error) {
     // If decryption fails, this might be an old unencrypted token
-    console.warn(`Failed to decrypt token, returning as-is: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(
+      `Failed to decrypt token, returning as-is: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
     return encryptedToken;
   }
 };
