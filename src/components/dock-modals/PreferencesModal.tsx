@@ -536,9 +536,22 @@ export default function PreferencesModal({
                 Your data is encrypted and stored securely. We never share your
                 personal information with third parties.
               </p>
-              <button className="text-xs text-[var(--accent-primary)] hover:underline">
-                View Privacy Policy
-              </button>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => window.open("/legal/privacy-policy", "_blank")}
+                  className="text-xs text-[var(--accent-primary)] hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <button
+                  onClick={() =>
+                    window.open("/legal/terms-of-service", "_blank")
+                  }
+                  className="text-xs text-[var(--accent-primary)] hover:underline"
+                >
+                  Terms of Service
+                </button>
+              </div>
             </div>
 
             <div className="p-4 rounded-lg border border-[var(--card-border)] bg-[var(--background-secondary)]">
