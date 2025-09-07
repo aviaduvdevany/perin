@@ -42,23 +42,55 @@ export const encryptToken = (token: string): string => {
 };
 
 export const decryptToken = (encryptedToken: string): string => {
-  const [ivHex, authTagHex, encrypted] = encryptedToken.split(":");
+  // Handle null, undefined, or empty tokens
+  if (!encryptedToken || typeof encryptedToken !== "string") {
+    throw new Error(`Invalid encrypted token: ${encryptedToken}`);
+  }
 
-  const iv = Buffer.from(ivHex, "hex");
-  const authTag = Buffer.from(authTagHex, "hex");
+  const parts = encryptedToken.split(":");
 
-  const decipher = createDecipheriv(
-    ALGORITHM,
-    Buffer.from(ENCRYPTION_KEY, "hex"),
-    iv
-  );
-  decipher.setAAD(Buffer.from("perin-oauth-token"));
-  decipher.setAuthTag(authTag);
+  // Check if token has the expected format (iv:authTag:encrypted)
+  if (parts.length !== 3) {
+    // This might be an old unencrypted token - return as-is for now
+    // TODO: Remove this fallback after migration is complete
+    console.warn(
+      `Token appears to be unencrypted (${parts.length} parts instead of 3). Returning as-is.`
+    );
+    return encryptedToken;
+  }
 
-  let decrypted = decipher.update(encrypted, "hex", "utf8");
-  decrypted += decipher.final("utf8");
+  const [ivHex, authTagHex, encrypted] = parts;
 
-  return decrypted;
+  // Validate that all parts exist and are not empty
+  if (!ivHex || !authTagHex || !encrypted) {
+    throw new Error(
+      `Invalid encrypted token parts. IV: ${ivHex}, AuthTag: ${authTagHex}, Encrypted: ${
+        encrypted ? "present" : "missing"
+      }`
+    );
+  }
+
+  try {
+    const iv = Buffer.from(ivHex, "hex");
+    const authTag = Buffer.from(authTagHex, "hex");
+
+    const decipher = createDecipheriv(
+      ALGORITHM,
+      Buffer.from(ENCRYPTION_KEY, "hex"),
+      iv
+    );
+    decipher.setAAD(Buffer.from("perin-oauth-token"));
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, "hex", "utf8");
+    decrypted += decipher.final("utf8");
+
+    return decrypted;
+  } catch (error) {
+    // If decryption fails, this might be an old unencrypted token
+    console.warn(`Failed to decrypt token, returning as-is: ${error instanceof Error ? error.message : String(error)}`);
+    return encryptedToken;
+  }
 };
 
 // Key rotation support - for future use when implementing key rotation

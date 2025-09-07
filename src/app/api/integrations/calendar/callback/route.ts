@@ -82,13 +82,13 @@ export async function GET(request: NextRequest) {
 
     // Redirect back to chat instead of onboarding for reauth flow
     return Response.redirect(
-      new URL("/chat?calendar=reconnected", request.url)
+      new URL("/", request.url)
     );
   } catch (error) {
     console.error("Error in calendar callback:", error);
     // Redirect back to onboarding with error
     return Response.redirect(
-      new URL("/onboarding?calendar=error", request.url)
+      new URL("/", request.url)
     );
   }
 }

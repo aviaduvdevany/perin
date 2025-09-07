@@ -53,12 +53,12 @@ export async function GET(request: NextRequest) {
 
     // Redirect back to onboarding to continue the flow
     return Response.redirect(
-      new URL("/onboarding?gmail=connected", request.url)
+      new URL("/", request.url)
     );
   } catch (error) {
     console.error("Error in Gmail callback:", error);
     // Redirect back to onboarding with error
-    return Response.redirect(new URL("/onboarding?gmail=error", request.url));
+    return Response.redirect(new URL("/", request.url));
   }
 }
 

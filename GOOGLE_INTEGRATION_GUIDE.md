@@ -466,7 +466,7 @@ Tests the Google OAuth revocation endpoint directly:
 
 **"OAUTH_TOKEN_ENCRYPTION_KEY environment variable is required"**
 - Set the environment variable with a valid 64-character hex key
-
+ 
 **"OAUTH_TOKEN_ENCRYPTION_KEY must be a 64-character hexadecimal string"**
 - Ensure the key is exactly 64 hex characters (0-9, a-f, A-F)
 

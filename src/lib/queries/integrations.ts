@@ -210,13 +210,29 @@ export const getUserIntegrations = async (
 
   try {
     const result = await query(sql, [userId]);
-    return result.rows.map((integration) => ({
-      ...integration,
-      access_token: decryptToken(integration.access_token),
-      refresh_token: integration.refresh_token
-        ? decryptToken(integration.refresh_token)
-        : null,
-    }));
+    return result.rows.map((integration) => {
+      try {
+        return {
+          ...integration,
+          access_token: decryptToken(integration.access_token),
+          refresh_token: integration.refresh_token
+            ? decryptToken(integration.refresh_token)
+            : null,
+        };
+      } catch (decryptError) {
+        console.error(
+          `Error decrypting tokens for integration ${integration.id}:`,
+          decryptError
+        );
+        // Return integration with null tokens - this will trigger re-authentication
+        return {
+          ...integration,
+          access_token: null,
+          refresh_token: null,
+          needs_reauth: true,
+        };
+      }
+    });
   } catch (error) {
     console.error("Error getting user integrations:", error);
     throw error;
