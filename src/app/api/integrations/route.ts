@@ -3,8 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import {
   getUserIntegrations,
-  disconnectIntegration,
+  disconnectIntegrationWithRevocation,
 } from "@/lib/integrations/service";
+import { IntegrationType } from "@/types/integrations";
 
 export async function GET() {
   try {
@@ -48,37 +49,47 @@ export async function DELETE(request: Request) {
       );
     }
 
-    let ok = false;
-    if (id) {
-      ok = await disconnectIntegration(session.user.id, { id });
-    } else if (type) {
-      if (
-        type === "gmail" ||
-        type === "calendar" ||
-        type === "slack" ||
-        type === "notion" ||
-        type === "github" ||
-        type === "discord" ||
-        type === "zoom" ||
-        type === "teams"
-      ) {
-        ok = await disconnectIntegration(session.user.id, type);
-      } else {
+    // Use enhanced disconnection with token revocation
+    const result = await disconnectIntegrationWithRevocation(
+      session.user.id,
+      id ? { id } : (type as IntegrationType)
+    );
+
+    if (!result.success) {
+      // Return 207 Multi-Status if revocation failed but DB cleanup succeeded
+      if (result.revocationResult && !result.revocationResult.success) {
         return NextResponse.json(
-          { error: "Invalid integration type" },
-          { status: 400 }
+          {
+            success: false,
+            error: "Integration disconnected but token revocation failed",
+            details: {
+              revocationError: result.revocationResult.error,
+              revocationStatusCode: result.revocationResult.statusCode,
+            },
+          },
+          { status: 207 }
         );
       }
-    }
 
-    if (!ok) {
+      // Return 404 if integration not found
+      if (result.error === "Integration not found") {
+        return NextResponse.json(
+          { error: "Integration not found" },
+          { status: 404 }
+        );
+      }
+
+      // Return 500 for other errors
       return NextResponse.json(
-        { error: "Not found or already inactive" },
-        { status: 404 }
+        { error: result.error || "Failed to disconnect integration" },
+        { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: "Integration disconnected and tokens revoked successfully",
+    });
   } catch (error) {
     console.error("Error disconnecting integration:", error);
     return NextResponse.json(

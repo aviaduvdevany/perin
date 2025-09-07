@@ -1,9 +1,8 @@
 import { google } from "googleapis";
 
-// Gmail OAuth scopes - using full access for future features
+// Gmail OAuth scopes - read only access
 const GMAIL_SCOPES = [
-  "https://www.googleapis.com/auth/gmail.modify", // Read, send, delete emails
-  "https://www.googleapis.com/auth/gmail.settings.basic", // Basic settings
+  "https://www.googleapis.com/auth/gmail.readonly", // Read emails only
 ];
 
 // Create OAuth2 client

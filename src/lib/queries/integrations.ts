@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { USER_INTEGRATIONS_TABLE } from "@/lib/tables";
+import { encryptToken, decryptToken } from "@/lib/utils/token-encryption";
 
 export interface UserIntegration {
   id: string;
@@ -31,7 +32,16 @@ export const getUserIntegration = async (
 
   try {
     const result = await query(sql, [userId, integrationType]);
-    return result.rows[0] || null;
+    if (!result.rows[0]) return null;
+
+    const integration = result.rows[0];
+    return {
+      ...integration,
+      access_token: decryptToken(integration.access_token),
+      refresh_token: integration.refresh_token
+        ? decryptToken(integration.refresh_token)
+        : null,
+    };
   } catch (error) {
     console.error("Error getting user integration:", error);
     throw error;
@@ -50,6 +60,12 @@ export const createUserIntegration = async (
   accountEmail?: string | null,
   accountLabel?: string | null
 ): Promise<UserIntegration> => {
+  // Encrypt tokens before storage
+  const encryptedAccessToken = encryptToken(accessToken);
+  const encryptedRefreshToken = refreshToken
+    ? encryptToken(refreshToken)
+    : null;
+
   const sql = `
     INSERT INTO ${USER_INTEGRATIONS_TABLE} (
       user_id, integration_type, access_token, refresh_token,
@@ -101,8 +117,8 @@ export const createUserIntegration = async (
       `;
 
       const result = await query(updateSql, [
-        accessToken,
-        refreshToken,
+        encryptedAccessToken,
+        encryptedRefreshToken,
         expiresAt.toISOString(),
         scopes,
         JSON.stringify(metadata),
@@ -117,7 +133,11 @@ export const createUserIntegration = async (
         accountEmail: result.rows[0].account_email,
       });
 
-      return result.rows[0];
+      return {
+        ...result.rows[0],
+        access_token: accessToken, // Return decrypted for immediate use
+        refresh_token: refreshToken, // Return decrypted for immediate use
+      };
     } else {
       // No existing integration, create a new one
       console.log("Creating new integration (no existing found)");
@@ -125,8 +145,8 @@ export const createUserIntegration = async (
       const result = await query(sql, [
         userId,
         integrationType,
-        accessToken,
-        refreshToken,
+        encryptedAccessToken,
+        encryptedRefreshToken,
         expiresAt.toISOString(),
         scopes,
         JSON.stringify(metadata),
@@ -140,7 +160,11 @@ export const createUserIntegration = async (
         accountEmail: result.rows[0].account_email,
       });
 
-      return result.rows[0];
+      return {
+        ...result.rows[0],
+        access_token: accessToken, // Return decrypted for immediate use
+        refresh_token: refreshToken, // Return decrypted for immediate use
+      };
     }
   } catch (error) {
     console.error("Error creating/updating user integration:", error);
@@ -154,6 +178,7 @@ export const updateIntegrationTokens = async (
   accessToken: string,
   expiresAt: Date | null
 ): Promise<boolean> => {
+  const encryptedAccessToken = encryptToken(accessToken);
   const sql = `
     UPDATE ${USER_INTEGRATIONS_TABLE}
     SET access_token = $1, token_expires_at = $2, last_sync_at = now()
@@ -162,7 +187,7 @@ export const updateIntegrationTokens = async (
 
   try {
     const result = await query(sql, [
-      accessToken,
+      encryptedAccessToken,
       expiresAt?.toISOString() || null,
       integrationId,
     ]);
@@ -185,7 +210,13 @@ export const getUserIntegrations = async (
 
   try {
     const result = await query(sql, [userId]);
-    return result.rows;
+    return result.rows.map((integration) => ({
+      ...integration,
+      access_token: decryptToken(integration.access_token),
+      refresh_token: integration.refresh_token
+        ? decryptToken(integration.refresh_token)
+        : null,
+    }));
   } catch (error) {
     console.error("Error getting user integrations:", error);
     throw error;
@@ -277,6 +308,34 @@ export const cleanupDuplicateIntegrations = async (
     };
   } catch (error) {
     console.error("Error cleaning up duplicate integrations:", error);
+    throw error;
+  }
+};
+
+// Completely remove integration data (for secure disconnection)
+export const removeIntegrationData = async (
+  integrationId: string,
+  userId: string
+): Promise<boolean> => {
+  const sql = `
+    DELETE FROM ${USER_INTEGRATIONS_TABLE}
+    WHERE id = $1 AND user_id = $2
+  `;
+
+  try {
+    const result = await query(sql, [integrationId, userId]);
+    const deleted = (result.rowCount || 0) > 0;
+
+    if (deleted) {
+      console.log("Removed integration data:", {
+        integrationId,
+        userId,
+      });
+    }
+
+    return deleted;
+  } catch (error) {
+    console.error("Error removing integration data:", error);
     throw error;
   }
 };

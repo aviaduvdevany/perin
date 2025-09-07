@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       tokens.access_token,
       tokens.refresh_token || null,
       expiresAt,
-      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
+      ["https://www.googleapis.com/auth/gmail.readonly"], // Read only
       {
         scope: tokens.scope,
         token_type: tokens.token_type,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       tokens.access_token,
       tokens.refresh_token || null,
       expiresAt,
-      ["https://www.googleapis.com/auth/gmail.modify"], // Full access
+      ["https://www.googleapis.com/auth/gmail.readonly"], // Read only
       {
         scope: tokens.scope,
         token_type: tokens.token_type,

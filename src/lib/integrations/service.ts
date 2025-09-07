@@ -16,6 +16,11 @@ import { createUnifiedOAuth2Manager } from "./oauth2-manager";
 import * as integrationQueries from "@/lib/queries/integrations";
 import { createGmailOAuth2Client } from "./gmail/auth";
 import { google } from "googleapis";
+import {
+  revokeIntegrationTokens,
+  type RevocationResult,
+} from "./token-revocation";
+import { UserIntegration } from "@/types/database";
 
 /**
  * Connect an integration (initiate OAuth2 flow)
@@ -258,7 +263,72 @@ export const refreshIntegrationTokens = async (
 };
 
 /**
- * Disconnect an integration
+ * Disconnect an integration with full token revocation and data cleanup
+ */
+export const disconnectIntegrationWithRevocation = async (
+  userId: string,
+  typeOrId: IntegrationType | { id: string }
+): Promise<{
+  success: boolean;
+  revocationResult?: RevocationResult;
+  error?: string;
+}> => {
+  try {
+    let integration: UserIntegration | null = null;
+
+    // Get the integration data
+    if (typeof typeOrId === "string") {
+      integration = await integrationQueries.getUserIntegration(
+        userId,
+        typeOrId
+      );
+    } else {
+      const integrations = await integrationQueries.getUserIntegrations(userId);
+      integration = integrations.find((i) => i.id === typeOrId.id) || null;
+    }
+
+    if (!integration) {
+      return { success: false, error: "Integration not found" };
+    }
+
+    // 1. Revoke tokens with Google (for Google integrations)
+    const revocationResult = await revokeIntegrationTokens(integration, userId);
+
+    // 2. Remove integration data from database
+    const dbRemoved = await integrationQueries.removeIntegrationData(
+      integration.id,
+      userId
+    );
+
+    if (!dbRemoved) {
+      return {
+        success: false,
+        revocationResult,
+        error: "Failed to remove integration data from database",
+      };
+    }
+
+    // 3. Return success only if both revocation and DB cleanup succeeded
+    const success = revocationResult.success && dbRemoved;
+
+    return {
+      success,
+      revocationResult,
+      error: success
+        ? undefined
+        : "Token revocation or database cleanup failed",
+    };
+  } catch (error) {
+    console.error(`Error disconnecting integration with revocation:`, error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+};
+
+/**
+ * Disconnect an integration (legacy - just deactivates)
  */
 export const disconnectIntegration = async (
   userId: string,

@@ -125,10 +125,7 @@ export const INTEGRATION_REGISTRY: Record<
   gmail: {
     type: "gmail",
     name: "Gmail",
-    scopes: [
-      "https://www.googleapis.com/auth/gmail.modify",
-      "https://www.googleapis.com/auth/gmail.settings.basic",
-    ],
+    scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
     keywords: [
       "email",
       "message",
@@ -154,10 +151,7 @@ export const INTEGRATION_REGISTRY: Record<
       redirectUri:
         process.env.GOOGLE_REDIRECT_URI ||
         "http://localhost:3000/api/integrations/gmail/callback",
-      scopes: [
-        "https://www.googleapis.com/auth/gmail.modify",
-        "https://www.googleapis.com/auth/gmail.settings.basic",
-      ],
+      scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
     },
     contextTransformer: (data: unknown[]) => {
       const emails = data as Array<

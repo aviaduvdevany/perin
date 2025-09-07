@@ -143,8 +143,7 @@ export const createOAuth2Manager = (
  */
 export const createGmailOAuth2Manager = (): GoogleOAuth2Manager => {
   return createOAuth2Manager("gmail", undefined, [
-    "https://www.googleapis.com/auth/gmail.modify",
-    "https://www.googleapis.com/auth/gmail.settings.basic",
+    "https://www.googleapis.com/auth/gmail.readonly",
   ]);
 };
 
