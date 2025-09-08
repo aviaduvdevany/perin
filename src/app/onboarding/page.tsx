@@ -97,10 +97,17 @@ const integrationOptions = [
 export default function OnboardingPage() {
   const { data: session } = useSession();
   const router = useRouter();
-  const { actions } = useUserData();
+  const { state, actions } = useUserData();
   // const { theme } = useTheme(); // Available for future theme-specific customizations
   const [currentStep, setCurrentStep] = useState(1);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [connectingIntegrations, setConnectingIntegrations] = useState<{
+    gmail: boolean;
+    calendar: boolean;
+  }>({
+    gmail: false,
+    calendar: false,
+  });
 
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     name: session?.user?.name || "",
@@ -131,6 +138,64 @@ export default function OnboardingPage() {
     }
   }, []);
 
+  // Listen for integration status changes from UserDataProvider
+  useEffect(() => {
+    const checkIntegrationStatus = () => {
+      const integrations = state.integrations;
+      if (integrations) {
+        const gmailConnected = integrations.some(
+          (i) => i.type === "gmail" && i.isActive
+        );
+        const calendarConnected = integrations.some(
+          (i) => i.type === "calendar" && i.isActive
+        );
+
+        setOnboardingData((prev) => ({
+          ...prev,
+          gmail_connected: gmailConnected,
+          calendar_connected: calendarConnected,
+        }));
+
+        // Clear loading states if integrations are connected
+        if (gmailConnected || calendarConnected) {
+          setConnectingIntegrations((prev) => ({
+            ...prev,
+            gmail: gmailConnected ? false : prev.gmail,
+            calendar: calendarConnected ? false : prev.calendar,
+          }));
+
+          // Clear timeouts for completed integrations
+          if (
+            gmailConnected &&
+            (window as unknown as { gmail_timeout?: NodeJS.Timeout })
+              .gmail_timeout
+          ) {
+            clearTimeout(
+              (window as unknown as { gmail_timeout: NodeJS.Timeout })
+                .gmail_timeout
+            );
+            delete (window as unknown as { gmail_timeout?: NodeJS.Timeout })
+              .gmail_timeout;
+          }
+          if (
+            calendarConnected &&
+            (window as unknown as { calendar_timeout?: NodeJS.Timeout })
+              .calendar_timeout
+          ) {
+            clearTimeout(
+              (window as unknown as { calendar_timeout: NodeJS.Timeout })
+                .calendar_timeout
+            );
+            delete (window as unknown as { calendar_timeout?: NodeJS.Timeout })
+              .calendar_timeout;
+          }
+        }
+      }
+    };
+
+    checkIntegrationStatus();
+  }, [state.integrations]);
+
   const updateData = (field: keyof OnboardingData, value: string | boolean) => {
     setOnboardingData((prev) => ({ ...prev, [field]: value }));
   };
@@ -147,10 +212,31 @@ export default function OnboardingPage() {
 
   const connectIntegration = async (integrationId: string) => {
     try {
+      // Set loading state
+      setConnectingIntegrations((prev) => ({ ...prev, [integrationId]: true }));
+
+      // Start the connection process
       await actions.connectIntegration(integrationId as "gmail" | "calendar");
-      updateData(`${integrationId}_connected` as keyof OnboardingData, true);
+
+      // Set a timeout to clear loading state if integration doesn't complete
+      // This handles cases where the user closes the popup without completing
+      const timeoutId = setTimeout(() => {
+        setConnectingIntegrations((prev) => ({
+          ...prev,
+          [integrationId]: false,
+        }));
+      }, 30000); // 30 second timeout
+
+      // Store timeout ID for cleanup
+      (window as unknown as Record<string, NodeJS.Timeout>)[
+        `${integrationId}_timeout`
+      ] = timeoutId;
     } catch (error) {
       console.error(`Error connecting ${integrationId}:`, error);
+      setConnectingIntegrations((prev) => ({
+        ...prev,
+        [integrationId]: false,
+      }));
     }
   };
 
@@ -561,8 +647,42 @@ export default function OnboardingPage() {
                             onClick={() => connectIntegration(integration.id)}
                             variant="outline"
                             size="sm"
+                            disabled={
+                              connectingIntegrations[
+                                integration.id as keyof typeof connectingIntegrations
+                              ]
+                            }
+                            className="min-w-[100px]"
                           >
-                            Connect
+                            {connectingIntegrations[
+                              integration.id as keyof typeof connectingIntegrations
+                            ] ? (
+                              <div className="flex items-center">
+                                <svg
+                                  className="animate-spin -ml-1 mr-2 h-4 w-4"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <circle
+                                    className="opacity-25"
+                                    cx="12"
+                                    cy="12"
+                                    r="10"
+                                    stroke="currentColor"
+                                    strokeWidth="4"
+                                  ></circle>
+                                  <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                  ></path>
+                                </svg>
+                                Connecting...
+                              </div>
+                            ) : (
+                              "Connect"
+                            )}
                           </Button>
                         )}
                       </div>
@@ -584,6 +704,44 @@ export default function OnboardingPage() {
                   <p className="text-sm text-muted-foreground text-center">
                     💡 You can always connect these later from your settings
                   </p>
+                  {(connectingIntegrations.gmail ||
+                    connectingIntegrations.calendar) && (
+                    <div className="mt-3 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                      <div className="flex items-center justify-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-primary"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <span className="text-sm text-primary font-medium">
+                          {connectingIntegrations.gmail &&
+                          connectingIntegrations.calendar
+                            ? "Connecting Gmail and Calendar..."
+                            : connectingIntegrations.gmail
+                            ? "Connecting Gmail..."
+                            : "Connecting Calendar..."}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center mt-1">
+                        Please complete the authorization in the popup window
+                      </p>
+                    </div>
+                  )}
                 </div>
               </Card>
             )}
