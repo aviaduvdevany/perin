@@ -24,7 +24,7 @@ import {
 } from "@/app/services/notifications";
 
 export default function Home() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, session } = useAuth();
   const router = useRouter();
   const { state, actions } = useUserData();
   const { refreshNotifications } = useNotifications();
@@ -61,6 +61,13 @@ export default function Home() {
       router.push("/auth/signin");
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Handle onboarding redirect for new Google OAuth users
+  useEffect(() => {
+    if (isAuthenticated && session?.user?.needsOnboarding) {
+      router.push("/onboarding?integrations=true");
+    }
+  }, [isAuthenticated, session, router]);
 
   const handleOpenProposalModal = (data: {
     sessionId: string;

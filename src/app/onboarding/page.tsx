@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { getUserTimezone } from "@/lib/utils/timezone";
 import { TimezoneSelector } from "@/components/ui/TimezoneSelector";
+import IntegrationOnboarding from "@/components/onboarding/IntegrationOnboarding";
 
 interface OnboardingData {
   name: string;
@@ -83,6 +84,9 @@ export default function OnboardingPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const { actions } = useUserData();
+  
+  // Check if we should show integrations onboarding
+  const [showIntegrations, setShowIntegrations] = useState(false);
   const [onboardingData, setOnboardingData] = useState<OnboardingData>({
     name: session?.user?.name || "",
     perin_name: "Perin",
@@ -98,11 +102,12 @@ export default function OnboardingPage() {
     calendar_connected: false,
   });
 
-  // Check URL parameters for connection status
+  // Check URL parameters for connection status and integrations flag
   React.useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const gmailStatus = urlParams.get("gmail");
     const calendarStatus = urlParams.get("calendar");
+    const integrationsParam = urlParams.get("integrations");
 
     if (gmailStatus === "connected") {
       setOnboardingData((prev) => ({ ...prev, gmail_connected: true }));
@@ -111,7 +116,12 @@ export default function OnboardingPage() {
     if (calendarStatus === "connected") {
       setOnboardingData((prev) => ({ ...prev, calendar_connected: true }));
     }
-  }, []);
+
+    // Show integrations onboarding if requested or if user needs onboarding
+    if (integrationsParam === "true" || session?.user?.needsOnboarding) {
+      setShowIntegrations(true);
+    }
+  }, [session]);
 
   const [gmailConnecting, setGmailConnecting] = useState(false);
 
@@ -169,6 +179,14 @@ export default function OnboardingPage() {
     } catch (error) {
       console.error("Error completing onboarding:", error);
     }
+  };
+
+  const handleIntegrationComplete = () => {
+    setShowIntegrations(false);
+    // Clear the needsOnboarding flag by updating the URL
+    const url = new URL(window.location.href);
+    url.searchParams.delete("integrations");
+    window.history.replaceState({}, "", url.toString());
   };
 
   return (

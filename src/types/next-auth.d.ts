@@ -9,6 +9,7 @@ declare module "next-auth" {
       id: string;
       role: string;
       isBetaUser: boolean;
+      needsOnboarding?: boolean;
     } & DefaultSession["user"];
   }
 
@@ -23,6 +24,7 @@ declare module "next-auth" {
     image?: string | null;
     role: string;
     isBetaUser: boolean;
+    needsOnboarding?: boolean;
   }
 }
 
@@ -31,5 +33,6 @@ declare module "next-auth/jwt" {
   interface JWT {
     role: string;
     isBetaUser: boolean;
+    needsOnboarding?: boolean;
   }
 }
