@@ -34,8 +34,8 @@ export function Logo({
         <Image
           src="/perin-logo.png"
           alt="Perin Logo"
-          width={24}
-          height={24}
+          width={40}
+          height={40}
           className={`${sizeClasses[size]}`}
         />
 

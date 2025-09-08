@@ -70,13 +70,14 @@ export const createUser = async (user: {
   memory?: Record<string, unknown>;
   is_beta_user?: boolean;
   role?: string;
+  email_verified?: string;
 }): Promise<User> => {
   const sql = `
     INSERT INTO ${USERS_TABLE} (
       email, name, hashed_password, image, perin_name, tone, 
-      avatar_url, preferred_hours, timezone, memory, is_beta_user, role
+      avatar_url, preferred_hours, timezone, memory, is_beta_user, role, email_verified
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     RETURNING *
   `;
 
@@ -94,6 +95,7 @@ export const createUser = async (user: {
       user.memory,
       user.is_beta_user,
       user.role,
+      user.email_verified,
     ]);
 
     return result.rows[0];

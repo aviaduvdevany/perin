@@ -1,10 +1,15 @@
 import CredentialsProvider from "next-auth/providers/credentials";
+import GoogleProvider from "next-auth/providers/google";
 import { compare } from "bcryptjs";
 import * as userQueries from "./queries/users";
 import type { NextAuthOptions } from "next-auth";
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -58,6 +63,41 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (account?.provider === "google") {
+        try {
+          // Check if user exists
+          const existingUser = await userQueries.getUserByEmail(user.email!);
+
+          if (!existingUser) {
+            // Create new user for Google OAuth
+            const newUser = await userQueries.createUser({
+              email: user.email!,
+              name: user.name || "",
+              image: user.image || undefined,
+              hashed_password: undefined, // OAuth users don't have passwords
+              email_verified: new Date().toISOString(),
+            });
+
+            // Update the user object with the new user data
+            user.id = newUser.id;
+            user.role = newUser.role;
+            user.isBetaUser = newUser.is_beta_user;
+          } else {
+            // Update existing user with OAuth data if needed
+            user.id = existingUser.id;
+            user.role = existingUser.role;
+            user.isBetaUser = existingUser.is_beta_user;
+          }
+
+          return true;
+        } catch (error) {
+          console.error("OAuth sign-in error:", error);
+          return false;
+        }
+      }
+      return true;
+    },
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
