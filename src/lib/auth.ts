@@ -83,9 +83,6 @@ export const authOptions: NextAuthOptions = {
             user.id = newUser.id;
             user.role = newUser.role;
             user.isBetaUser = newUser.is_beta_user;
-
-            // Store flag to redirect to onboarding for new Google users
-            user.needsOnboarding = true;
           } else {
             // Update existing user with OAuth data if needed
             user.id = existingUser.id;
@@ -105,7 +102,6 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = user.role;
         token.isBetaUser = user.isBetaUser;
-        token.needsOnboarding = user.needsOnboarding;
       }
       return token;
     },
@@ -114,7 +110,6 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub || "";
         session.user.role = token.role;
         session.user.isBetaUser = token.isBetaUser;
-        session.user.needsOnboarding = token.needsOnboarding;
       }
       return session;
     },
