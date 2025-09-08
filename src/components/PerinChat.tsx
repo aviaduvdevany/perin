@@ -49,31 +49,6 @@ export function PerinChat() {
 
   return (
     <div className="relative flex flex-col h-full overflow-hidden chat-container">
-      {messages.length > 0 && (
-        <div
-          className="flex items-center p-4 border-b border-[var(--card-border)] rounded-2xl mb-2"
-          style={{
-            background:
-              "linear-gradient(180deg, color-mix(in oklab, var(--accent-secondary) 12%, transparent), transparent)",
-          }}
-        >
-          <div className="w-8 h-8 bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-lg flex items-center justify-center mr-3 glow-primary">
-            <span className="text-white font-bold text-sm">P</span>
-          </div>
-          <div>
-            <h3 className="font-semibold text-[var(--cta-text)] text-sm">
-              Perin
-            </h3>
-            <p className="text-xs text-[var(--foreground-muted)]">
-              AI Assistant
-            </p>
-          </div>
-          <div className="ml-auto">
-            <div className="w-2 h-2 status-online rounded-full animate-pulse-subtle" />
-          </div>
-        </div>
-      )}
-
       {/* Scroll only inside messages */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-32 space-y-4 scrollbar-ultra-thin ">
         {messages.length === 0 && (
@@ -108,7 +83,7 @@ export function PerinChat() {
           >
             {message.role === "user" ? (
               <motion.div
-                className="max-w-[85%] lg:max-w-md px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
+                className="max-w-[85%] lg:max-w-lg px-4 py-3 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg glow-primary"
                 whileHover={{ scale: 1.02 }}
                 transition={{ duration: 0.2 }}
               >
@@ -121,7 +96,7 @@ export function PerinChat() {
                 variant="default"
                 border={true}
                 glow={false}
-                className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm"
+                className="max-w-[85%] lg:max-w-lg px-4 py-3 text-[var(--cta-text)] shadow-sm"
               >
                 <p className="text-sm whitespace-pre-wrap leading-relaxed">
                   {message.content}
@@ -140,7 +115,7 @@ export function PerinChat() {
               variant="default"
               border={true}
               glow={false}
-              className="max-w-[85%] lg:max-w-md px-4 py-3 text-[var(--cta-text)] shadow-sm w-full"
+              className="max-w-[85%] lg:max-w-lg px-4 py-3 text-[var(--cta-text)] shadow-sm w-full"
             >
               <UnifiedIntegrationManager
                 className="mt-2"

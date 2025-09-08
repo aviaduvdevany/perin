@@ -1,15 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
-import { NotificationPreferences } from "@/components/notifications";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 export function Navbar() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <>
@@ -28,18 +24,6 @@ export function Navbar() {
           </div>
 
         </div>
-
-        {/* Mobile Navigation */}
-        {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="space-y-1 px-4 pb-3 pt-2">
-              <div className="flex items-center justify-between">
-                <NotificationPreferences />
-                <ThemeToggle />
-              </div>
-            </div>
-          </div>
-        )}
       </nav>
     </>
   );

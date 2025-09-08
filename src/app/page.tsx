@@ -165,8 +165,10 @@ export default function Home() {
         </div>
 
         {/* Main chat area */}
-        <div className="h-full pl-24">
-          <PerinChat />
+        <div className="h-full">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full mt-28">
+            <PerinChat />
+          </div>
         </div>
 
         {/* Desktop modals */}
