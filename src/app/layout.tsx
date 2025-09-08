@@ -36,9 +36,7 @@ export default function RootLayout({
                 <OneSignalProvider>
                   <div className="min-h-screen bg-[var(--background-primary)]">
                     {/* Desktop Navbar - only show on desktop */}
-                    <div className="hidden xl:block">
                       <Navbar />
-                    </div>
                     {children}
                   </div>
                 </OneSignalProvider>

@@ -8,6 +8,7 @@ import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
 import { Menu } from "lucide-react";
 import { useChat } from "../hooks/useChat";
+import { Navbar } from "./ui/Navbar";
 
 interface MobilePerinChatProps {
   onOpenMenu?: () => void;
@@ -66,41 +67,6 @@ export const MobilePerinChat = forwardRef<
     <div
       className={`h-full flex flex-col bg-[var(--background-primary)] relative ${className}`}
     >
-      {/* Mobile Header */}
-      <motion.div
-        className="flex items-center justify-between p-4 border-b border-[var(--card-border)] bg-[var(--background-primary)]/80 backdrop-blur-xl"
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
-            <PerinAvatar size="sm" />
-            <div>
-              <h1 className="text-lg font-semibold text-[var(--cta-text)]">
-                Perin
-              </h1>
-              <p className="text-xs text-[var(--foreground-muted)]">
-                {perinStatus === "idle" && "Ready to help"}
-                {perinStatus === "thinking" && "Thinking..."}
-                {perinStatus === "typing" && "Typing..."}
-                {perinStatus === "listening" && "Listening..."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {onOpenMenu && (
-          <motion.button
-            onClick={onOpenMenu}
-            className="p-2 rounded-xl bg-white/5 border border-[var(--card-border)] text-[var(--cta-text)]"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Menu className="w-5 h-5" />
-          </motion.button>
-        )}
-      </motion.div>
 
       {/* Messages Container */}
       <div

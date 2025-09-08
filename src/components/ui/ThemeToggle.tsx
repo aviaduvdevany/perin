@@ -36,7 +36,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <div className="relative h-10 w-10 rounded-full bg-[var(--card-background)] border border-[var(--card-border)] animate-pulse" />
+      <div className="relative md:h-10 md:w-10 h-8 w-8 rounded-full bg-[var(--card-background)] border border-[var(--card-border)] animate-pulse" />
     );
   }
 
@@ -50,7 +50,7 @@ export function ThemeToggle() {
         }
       }}
       className={`
-        group relative h-10 w-10 rounded-full 
+        group relative md:h-10 md:w-10 h-8 w-8 rounded-full 
         bg-gradient-to-br from-[var(--card-background)] to-[var(--card-background)]/80
         border border-[var(--card-border)] 
         shadow-lg shadow-[var(--accent-primary)]/5
@@ -98,7 +98,7 @@ export function ThemeToggle() {
         }
       `}
       >
-        <Sun className="h-5 w-5 text-[var(--accent-secondary)] drop-shadow-sm" />
+        <Sun className="md:h-5 h-4 md:w-5 w-4 text-[var(--accent-secondary)] drop-shadow-sm" />
       </div>
 
       {/* Moon icon */}
@@ -113,7 +113,7 @@ export function ThemeToggle() {
         }
       `}
       >
-        <Moon className="h-5 w-5 text-[var(--accent-primary)] drop-shadow-sm" />
+        <Moon className="md:h-5 h-4 md:w-5 w-4 text-[var(--accent-primary)] drop-shadow-sm" />
       </div>
 
       {/* Ripple effect on click */}

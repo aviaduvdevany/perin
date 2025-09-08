@@ -27,7 +27,7 @@ export default function SidebarRail({
   const collapsedWidth = size === "lg" ? "w-[80px]" : "w-[64px]";
   const expandedWidth = size === "lg" ? "w-52" : "w-52";
   const itemPad = size === "lg" ? "px-4 py-4" : "px-3 py-3";
-  const iconSize = size === "lg" ? "w-7 h-7" : "w-6 h-6";
+  const iconSize = size === "lg" ? "w-6 h-6" : "w-5 h-5";
 
   const Item = ({
     icon: Icon,
