@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { User } from "lucide-react";
 
 interface MobileTopBarProps {
   onOpenProfile: () => void;
@@ -24,7 +25,8 @@ export default function MobileTopBar({
           onClick={onOpenProfile}
           className="px-3 py-2 rounded-xl text-sm bg-white/5 border border-[var(--card-border)] text-[var(--cta-text)]"
         >
-          👤 Profile
+          <User className="w-4 h-4 mr-2" />
+          Profile
         </button>
         <div className="text-xs text-[var(--foreground-muted)]">Perin</div>
       </div>

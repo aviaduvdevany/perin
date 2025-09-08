@@ -21,7 +21,6 @@ export default function MobileBottomNavigation({
 }: MobileBottomNavigationProps) {
   const { actions } = useUserData();
   const {
-    setIntegrationsOpen,
     setNetworkOpen,
     setNotificationsOpen,
     setPreferencesOpen,

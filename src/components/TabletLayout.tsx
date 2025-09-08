@@ -5,11 +5,8 @@ import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
 import {
-  MessageCircle,
   Settings,
-  User,
   Bell,
-  Plus,
   Network,
 } from "lucide-react";
 import { Glass } from "./ui/Glass";
@@ -27,12 +24,9 @@ export default function TabletLayout({
 }: TabletLayoutProps) {
   const { actions } = useUserData();
   const {
-    setProfileOpen,
-    setIntegrationsOpen,
     setNetworkOpen,
     setNotificationsOpen,
     setPreferencesOpen,
-    setPerinOpen,
   } = actions;
   const { unreadCount, hasUnresolvedNotifications } = useNotifications();
 
@@ -46,22 +40,10 @@ export default function TabletLayout({
         unreadCount > 0 ? unreadCount : hasUnresolvedNotifications ? "!" : null,
     },
     {
-      id: "integrations",
-      icon: Plus,
-      label: "Connect",
-      onClick: () => setIntegrationsOpen(true),
-    },
-    {
       id: "network",
       icon: Network,
       label: "Network",
       onClick: () => setNetworkOpen(true),
-    },
-    {
-      id: "profile",
-      icon: User,
-      label: "Profile",
-      onClick: () => setProfileOpen(true),
     },
     {
       id: "settings",

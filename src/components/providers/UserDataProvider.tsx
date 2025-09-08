@@ -47,12 +47,10 @@ export interface UserDataState {
   // Chat UI state (migrated from ChatUIProvider)
   ui: {
     profileOpen: boolean;
-    integrationsOpen: boolean;
     networkOpen: boolean;
     todayOpen: boolean;
     notificationsOpen: boolean;
     preferencesOpen: boolean;
-    perinOpen: boolean;
     delegationOpen: boolean;
   };
 
@@ -104,12 +102,10 @@ export interface UserDataActions {
 
   // UI state management
   setProfileOpen: (open: boolean) => void;
-  setIntegrationsOpen: (open: boolean) => void;
   setNetworkOpen: (open: boolean) => void;
   setTodayOpen: (open: boolean) => void;
   setNotificationsOpen: (open: boolean) => void;
   setPreferencesOpen: (open: boolean) => void;
-  setPerinOpen: (open: boolean) => void;
   setDelegationOpen: (open: boolean) => void;
 
   // Cache management
@@ -144,12 +140,10 @@ const initialState: UserDataState = {
   integrations: [],
   ui: {
     profileOpen: false,
-    integrationsOpen: false,
     networkOpen: false,
     todayOpen: true,
     notificationsOpen: false,
     preferencesOpen: false,
-    perinOpen: false,
     delegationOpen: false,
   },
   loading: {
@@ -545,13 +539,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const setIntegrationsOpen = useCallback((open: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      ui: { ...prev.ui, integrationsOpen: open },
-    }));
-  }, []);
-
   const setNetworkOpen = useCallback((open: boolean) => {
     setState((prev) => ({
       ...prev,
@@ -577,13 +564,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({
       ...prev,
       ui: { ...prev.ui, preferencesOpen: open },
-    }));
-  }, []);
-
-  const setPerinOpen = useCallback((open: boolean) => {
-    setState((prev) => ({
-      ...prev,
-      ui: { ...prev.ui, perinOpen: open },
     }));
   }, []);
 
@@ -682,12 +662,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       connectIntegration,
       disconnectIntegration,
       setProfileOpen,
-      setIntegrationsOpen,
       setNetworkOpen,
       setTodayOpen,
       setNotificationsOpen,
       setPreferencesOpen,
-      setPerinOpen,
       setDelegationOpen,
       invalidateCache,
       clearCache,
@@ -704,12 +682,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       connectIntegration,
       disconnectIntegration,
       setProfileOpen,
-      setIntegrationsOpen,
       setNetworkOpen,
       setTodayOpen,
       setNotificationsOpen,
       setPreferencesOpen,
-      setPerinOpen,
       setDelegationOpen,
       invalidateCache,
       clearCache,

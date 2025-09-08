@@ -31,7 +31,6 @@ export default function UserDataDebug() {
           <div className="ml-2">
             Profile: {state.ui.profileOpen ? "✅" : "❌"}
             Network: {state.ui.networkOpen ? "✅" : "❌"}
-            Integrations: {state.ui.integrationsOpen ? "✅" : "❌"}
             Today: {state.ui.todayOpen ? "✅" : "❌"}
           </div>
         </div>

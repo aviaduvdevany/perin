@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, Loader2, RefreshCw, CheckCircle } from "lucide-react";
+import { Check, Loader2, RefreshCw, CheckCircle, Bell } from "lucide-react";
 import { Button } from "../ui/button";
 import { Glass } from "../ui/Glass";
 import { useNotifications } from "../providers/NotificationContext";
@@ -281,7 +281,7 @@ export default function NotificationsModal({
                       transition={{ delay: 0.1 }}
                     >
                       <div className="p-2 rounded-lg bg-[var(--accent-primary)]/10">
-                        <span className="text-lg">🔔</span>
+                        <Bell className="w-5 h-5" />
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-[var(--cta-text)]">

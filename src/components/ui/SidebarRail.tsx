@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import { Bell, Bot, Network, Share2, Settings, User } from "lucide-react";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
 
@@ -18,34 +19,31 @@ export default function SidebarRail({
   size = "md",
   onOpenNotifications,
   onOpenPreferences,
-  onOpenPerin,
 }: SidebarRailProps) {
   const { actions } = useUserData();
-  const { setIntegrationsOpen, setNetworkOpen } = actions;
+  const { setNetworkOpen } = actions;
   const [hovered, setHovered] = useState(false);
 
-  const collapsedWidth = size === "lg" ? "w-[72px]" : "w-[56px]";
-  const expandedWidth = size === "lg" ? "w-48" : "w-48";
-  const itemPad = size === "lg" ? "px-4 py-3" : "px-3 py-2";
-  const iconSize = size === "lg" ? "text-2xl" : "text-lg";
+  const collapsedWidth = size === "lg" ? "w-[80px]" : "w-[64px]";
+  const expandedWidth = size === "lg" ? "w-52" : "w-52";
+  const itemPad = size === "lg" ? "px-4 py-4" : "px-3 py-3";
+  const iconSize = size === "lg" ? "w-7 h-7" : "w-6 h-6";
 
   const Item = ({
-    icon,
+    icon: Icon,
     label,
     onClick,
   }: {
-    icon: string;
+    icon: React.ComponentType<{ className?: string }>;
     label: string;
     onClick: () => void;
   }) => (
     <button
-      className={`w-full cursor-pointer flex items-center gap-3 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
+      className={`w-full cursor-pointer flex items-center gap-4 ${itemPad} rounded-xl text-[var(--cta-text)] hover:bg-white/7 border border-transparent hover:border-[var(--card-border)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)]/35`}
       onClick={onClick}
       aria-label={label}
     >
-      <span className={`${iconSize}`} aria-hidden>
-        {icon}
-      </span>
+      <Icon className={`${iconSize}`} aria-hidden />
       {hovered && (
         <motion.span
           initial={{ opacity: 0, x: -6 }}
@@ -74,9 +72,7 @@ export default function SidebarRail({
             whileTap={{ scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
           >
-            <span className={`${iconSize}`} aria-hidden>
-              🔔
-            </span>
+            <Bell className={`${iconSize}`} aria-hidden />
             {/* Unread count badge */}
             {unreadCount > 0 && (
               <motion.span
@@ -130,27 +126,20 @@ export default function SidebarRail({
             "linear-gradient(180deg, color-mix(in oklab, var(--accent-primary) 10%, transparent), color-mix(in oklab, var(--accent-secondary) 10%, transparent))",
         }}
       >
-        <div className="space-y-1">
+        <div className="space-y-2">
           <NotificationItem />
-          <Item icon="👤" label="Perin" onClick={onOpenPerin || (() => {})} />
-
           <Item
-            icon="🧩"
-            label="Integrations"
-            onClick={() => setIntegrationsOpen(true)}
-          />
-          <Item
-            icon="🕸️"
+            icon={Network}
             label="Network"
             onClick={() => setNetworkOpen(true)}
           />
           <Item
-            icon="🔗"
+            icon={Share2}
             label="Talk to My Perin"
             onClick={() => actions.setDelegationOpen(true)}
           />
           <Item
-            icon="⚙️"
+            icon={Settings}
             label="Preferences"
             onClick={onOpenPreferences || (() => {})}
           />

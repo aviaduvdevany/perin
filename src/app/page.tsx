@@ -9,15 +9,11 @@ import SidebarRail from "@/components/ui/SidebarRail";
 
 import { MobilePerinChat } from "@/components/MobilePerinChat";
 import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
-import { FloatingInput } from "@/components/ui/FloatingInput";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import IntegrationManagerModal from "@/components/dock-modals/IntegrationManagerModal";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import PreferencesModal from "@/components/dock-modals/PreferencesModal";
-import PerinModal from "@/components/dock-modals/PerinModal";
 import DelegationModal from "@/components/dock-modals/DelegationModal";
-import LinkGenerator from "@/components/delegation/LinkGenerator";
 import {
   NotificationsModal,
   TimeProposalModal,
@@ -26,7 +22,6 @@ import {
   confirmTimeProposalService,
   declineTimeProposalService,
 } from "@/app/services/notifications";
-import type { CreateDelegationResponse } from "@/types/delegation";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,23 +29,13 @@ export default function Home() {
   const { state, actions } = useUserData();
   const { refreshNotifications } = useNotifications();
 
-  const {
-    profileOpen,
-    integrationsOpen,
-    networkOpen,
-    notificationsOpen,
-    preferencesOpen,
-    perinOpen,
-    delegationOpen,
-  } = state.ui;
+  const { networkOpen, notificationsOpen, preferencesOpen, delegationOpen } =
+    state.ui;
 
   const {
-    setProfileOpen,
-    setIntegrationsOpen,
     setNetworkOpen,
     setNotificationsOpen,
     setPreferencesOpen,
-    setPerinOpen,
     setDelegationOpen,
   } = actions;
 
@@ -176,7 +161,6 @@ export default function Home() {
             size="lg"
             onOpenNotifications={() => setNotificationsOpen(true)}
             onOpenPreferences={() => setPreferencesOpen(true)}
-            onOpenPerin={() => setPerinOpen(true)}
           />
         </div>
 
@@ -186,10 +170,6 @@ export default function Home() {
         </div>
 
         {/* Desktop modals */}
-        <IntegrationManagerModal
-          open={integrationsOpen}
-          onClose={() => setIntegrationsOpen(false)}
-        />
         <NetworkModal
           open={networkOpen}
           onClose={() => setNetworkOpen(false)}
@@ -198,7 +178,6 @@ export default function Home() {
           open={preferencesOpen}
           onClose={() => setPreferencesOpen(false)}
         />
-        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
         <DelegationModal
           open={delegationOpen}
           onClose={() => setDelegationOpen(false)}
@@ -211,7 +190,7 @@ export default function Home() {
         <div className="flex-1 mobile-content">
           <MobilePerinChat
             ref={mobileChatRef}
-            onOpenMenu={() => setProfileOpen(true)}
+            onOpenMenu={() => setPreferencesOpen(true)}
           />
         </div>
 
@@ -237,11 +216,6 @@ export default function Home() {
           open={delegationOpen}
           onClose={() => setDelegationOpen(false)}
         />
-        <IntegrationManagerModal
-          open={integrationsOpen}
-          onClose={() => setIntegrationsOpen(false)}
-        />
-        <PerinModal open={perinOpen} onClose={() => setPerinOpen(false)} />
       </div>
 
       {/* Notification modals - Top level for proper positioning */}

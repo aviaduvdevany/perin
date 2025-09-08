@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Calendar, Mail, MessageSquare, FileText } from "lucide-react";
 import {
   connectIntegrationService,
   getAvailableIntegrationsService,
@@ -12,7 +13,7 @@ interface Integration {
   type: IntegrationType;
   name: string;
   description: string;
-  icon: string;
+  icon: React.ComponentType<{ className?: string }>;
   isConnected?: boolean;
   isConnecting?: boolean;
 }
@@ -58,13 +59,13 @@ export default function UnifiedIntegrationManager({
           type: "gmail",
           name: "Gmail",
           description: "Access and manage your Gmail messages",
-          icon: "📧",
+          icon: Mail,
         },
         {
           type: "calendar",
           name: "Google Calendar",
           description: "Manage your calendar events and schedule",
-          icon: "📅",
+          icon: Calendar,
         },
       ];
 
@@ -74,13 +75,13 @@ export default function UnifiedIntegrationManager({
             type: "slack",
             name: "Slack",
             description: "Send messages and manage Slack channels",
-            icon: "💬",
+            icon: MessageSquare,
           },
           {
             type: "notion",
             name: "Notion",
             description: "Access and manage your Notion pages",
-            icon: "📝",
+            icon: FileText,
           }
         );
       }
@@ -231,12 +232,8 @@ export default function UnifiedIntegrationManager({
               className="integration-card p-6 border border-gray-200 rounded-lg hover:border-blue-300 transition-colors"
             >
               <div className="flex items-start space-x-4">
-                <div
-                  className="text-3xl"
-                  role="img"
-                  aria-label={integration.name}
-                >
-                  {integration.icon}
+                <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-gray-100">
+                  <integration.icon className="w-6 h-6 text-gray-600" />
                 </div>
 
                 <div className="flex-1 min-w-0">
