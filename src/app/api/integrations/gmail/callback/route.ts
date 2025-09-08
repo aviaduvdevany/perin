@@ -51,14 +51,24 @@ export async function GET(request: NextRequest) {
       }
     );
 
-    // Redirect back to onboarding to continue the flow
+    // Redirect to callback page that will close the popup
     return Response.redirect(
-      new URL("/", request.url)
+      new URL(
+        "/integration-callback?status=success&type=gmail&message=" +
+          encodeURIComponent("Gmail connected successfully"),
+        request.url
+      )
     );
   } catch (error) {
     console.error("Error in Gmail callback:", error);
-    // Redirect back to onboarding with error
-    return Response.redirect(new URL("/", request.url));
+    // Redirect to callback page with error
+    return Response.redirect(
+      new URL(
+        "/integration-callback?status=error&type=gmail&error=" +
+          encodeURIComponent("Failed to connect Gmail"),
+        request.url
+      )
+    );
   }
 }
 

@@ -16,13 +16,21 @@ export async function GET(request: NextRequest) {
 
     if (!code) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/chat?error=missing_authorization_code`
+        `${
+          process.env.NEXTAUTH_URL
+        }/integration-callback?status=error&error=${encodeURIComponent(
+          "Missing authorization code"
+        )}`
       );
     }
 
     if (!type || !isIntegrationSupported(type)) {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/chat?error=unsupported_integration_type`
+        `${
+          process.env.NEXTAUTH_URL
+        }/integration-callback?status=error&error=${encodeURIComponent(
+          "Unsupported integration type"
+        )}`
       );
     }
 
@@ -36,11 +44,15 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(
         `${
           process.env.NEXTAUTH_URL
-        }/chat?${type}=connected&message=${encodeURIComponent(result.message)}`
+        }/integration-callback?status=success&type=${type}&message=${encodeURIComponent(
+          result.message
+        )}`
       );
     } else {
       return NextResponse.redirect(
-        `${process.env.NEXTAUTH_URL}/chat?error=${encodeURIComponent(
+        `${
+          process.env.NEXTAUTH_URL
+        }/integration-callback?status=error&type=${type}&error=${encodeURIComponent(
           result.message
         )}`
       );
@@ -48,7 +60,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error handling integration callback:", error);
     return NextResponse.redirect(
-      `${process.env.NEXTAUTH_URL}/chat?error=callback_failed`
+      `${
+        process.env.NEXTAUTH_URL
+      }/integration-callback?status=error&error=${encodeURIComponent(
+        "Callback failed"
+      )}`
     );
   }
 }

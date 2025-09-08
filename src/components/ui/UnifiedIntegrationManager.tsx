@@ -101,14 +101,72 @@ export default function UnifiedIntegrationManager({
       const { authUrl } = response;
 
       if (authUrl) {
-        console.log("Redirecting to:", authUrl);
-        window.location.href = authUrl;
+        console.log("Opening OAuth in new tab:", authUrl);
+
+        // Open OAuth flow in a new tab
+        const popup = window.open(
+          authUrl,
+          "oauth-popup",
+          "width=600,height=700,scrollbars=yes,resizable=yes"
+        );
+
+        if (!popup) {
+          throw new Error("Popup blocked. Please allow popups for this site.");
+        }
+
+        // Listen for messages from the popup
+        const messageHandler = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+
+          if (event.data.type === "INTEGRATION_CALLBACK") {
+            const { result } = event.data;
+
+            // Remove the event listener
+            window.removeEventListener("message", messageHandler);
+
+            // Handle the result
+            if (result.success) {
+              console.log(
+                `${type} integration completed successfully:`,
+                result.message
+              );
+              // Refresh the integrations list
+              loadAvailableIntegrations();
+            } else {
+              console.error(`${type} integration failed:`, result.error);
+              // You could show a toast notification here
+            }
+
+            // Clean up connecting state
+            setConnectingTypes((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(type);
+              return newSet;
+            });
+          }
+        };
+
+        window.addEventListener("message", messageHandler);
+
+        // Check if popup was closed manually
+        const checkClosed = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            window.removeEventListener("message", messageHandler);
+
+            // Clean up connecting state
+            setConnectingTypes((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(type);
+              return newSet;
+            });
+          }
+        }, 1000);
       } else {
         console.error("No authUrl in response:", response);
       }
     } catch (error) {
       console.error(`Error connecting ${type}:`, error);
-    } finally {
       setConnectingTypes((prev) => {
         const newSet = new Set(prev);
         newSet.delete(type);

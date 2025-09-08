@@ -434,22 +434,72 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   // INTEGRATION MANAGEMENT
   // ============================================================================
 
-  const connectIntegration = useCallback(async (type: IntegrationType) => {
-    try {
-      const { authUrl } = await connectIntegrationService(type);
-      if (authUrl) window.location.href = authUrl;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to connect integration";
-      setState((prev) => ({
-        ...prev,
-        errors: { ...prev.errors, integrations: errorMessage },
-      }));
-      throw error;
-    }
-  }, []);
+  const connectIntegration = useCallback(
+    async (type: IntegrationType) => {
+      try {
+        const { authUrl } = await connectIntegrationService(type);
+        if (authUrl) {
+          // Open OAuth flow in a new tab
+          const popup = window.open(
+            authUrl,
+            "oauth-popup",
+            "width=600,height=700,scrollbars=yes,resizable=yes"
+          );
+
+          if (!popup) {
+            throw new Error(
+              "Popup blocked. Please allow popups for this site."
+            );
+          }
+
+          // Listen for messages from the popup
+          const messageHandler = (event: MessageEvent) => {
+            if (event.origin !== window.location.origin) return;
+
+            if (event.data.type === "INTEGRATION_CALLBACK") {
+              const { result } = event.data;
+
+              // Remove the event listener
+              window.removeEventListener("message", messageHandler);
+
+              // Handle the result
+              if (result.success) {
+                console.log(
+                  `${type} integration completed successfully:`,
+                  result.message
+                );
+                // Refresh the integrations list
+                refreshIntegrations();
+              } else {
+                console.error(`${type} integration failed:`, result.error);
+              }
+            }
+          };
+
+          window.addEventListener("message", messageHandler);
+
+          // Check if popup was closed manually
+          const checkClosed = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkClosed);
+              window.removeEventListener("message", messageHandler);
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to connect integration";
+        setState((prev) => ({
+          ...prev,
+          errors: { ...prev.errors, integrations: errorMessage },
+        }));
+        throw error;
+      }
+    },
+    [refreshIntegrations]
+  );
 
   const disconnectIntegration = useCallback(
     async (integrationId: string) => {

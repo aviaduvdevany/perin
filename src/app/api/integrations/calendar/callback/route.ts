@@ -80,15 +80,23 @@ export async function GET(request: NextRequest) {
       isActive: integration.is_active,
     });
 
-    // Redirect back to chat instead of onboarding for reauth flow
+    // Redirect to callback page that will close the popup
     return Response.redirect(
-      new URL("/", request.url)
+      new URL(
+        "/integration-callback?status=success&type=calendar&message=" +
+          encodeURIComponent("Calendar connected successfully"),
+        request.url
+      )
     );
   } catch (error) {
     console.error("Error in calendar callback:", error);
-    // Redirect back to onboarding with error
+    // Redirect to callback page with error
     return Response.redirect(
-      new URL("/", request.url)
+      new URL(
+        "/integration-callback?status=error&type=calendar&error=" +
+          encodeURIComponent("Failed to connect Calendar"),
+        request.url
+      )
     );
   }
 }
