@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Bell, Bot, Network, Share2, Settings, User } from "lucide-react";
+import { Bell, Users, Share2, Settings } from "lucide-react";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
 
@@ -11,7 +11,6 @@ interface SidebarRailProps {
   size?: "md" | "lg";
   onOpenNotifications?: () => void;
   onOpenPreferences?: () => void;
-  onOpenPerin?: () => void;
 }
 
 export default function SidebarRail({
@@ -129,18 +128,18 @@ export default function SidebarRail({
         <div className="space-y-2">
           <NotificationItem />
           <Item
-            icon={Network}
+            icon={Users}
             label="Network"
             onClick={() => setNetworkOpen(true)}
           />
           <Item
             icon={Share2}
-            label="Talk to My Perin"
+            label="Share Me"
             onClick={() => actions.setDelegationOpen(true)}
           />
           <Item
             icon={Settings}
-            label="Preferences"
+            label="Settings"
             onClick={onOpenPreferences || (() => {})}
           />
         </div>

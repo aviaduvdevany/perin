@@ -4,11 +4,7 @@ import { ReactNode } from "react";
 import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import {
-  Settings,
-  Bell,
-  Network,
-} from "lucide-react";
+import { Settings, Bell, Users } from "lucide-react";
 import { Glass } from "./ui/Glass";
 import PerinAvatar from "./ui/PerinAvatar";
 import { PerinChat } from "./PerinChat";
@@ -23,11 +19,7 @@ export default function TabletLayout({
   className = "",
 }: TabletLayoutProps) {
   const { actions } = useUserData();
-  const {
-    setNetworkOpen,
-    setNotificationsOpen,
-    setPreferencesOpen,
-  } = actions;
+  const { setNetworkOpen, setNotificationsOpen, setPreferencesOpen } = actions;
   const { unreadCount, hasUnresolvedNotifications } = useNotifications();
 
   const quickActions = [
@@ -41,7 +33,7 @@ export default function TabletLayout({
     },
     {
       id: "network",
-      icon: Network,
+      icon: Users,
       label: "Network",
       onClick: () => setNetworkOpen(true),
     },

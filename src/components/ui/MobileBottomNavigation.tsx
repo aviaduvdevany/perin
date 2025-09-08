@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
-import { Bell, MessageCircle, Network, Settings, Share } from "lucide-react";
+import { Bell, Users, Settings, Share2 } from "lucide-react";
 import { FloatingInput } from "./FloatingInput";
 
 interface MobileBottomNavigationProps {
@@ -39,14 +39,14 @@ export default function MobileBottomNavigation({
     },
     {
       id: "talk-to-perin",
-      icon: Share,
+      icon: Share2,
       label: "Share Me",
       onClick: () => setDelegationOpen(true),
       badge: null,
     },
     {
       id: "network",
-      icon: Network,
+      icon: Users,
       label: "Network",
       onClick: () => setNetworkOpen(true),
       badge: null,
