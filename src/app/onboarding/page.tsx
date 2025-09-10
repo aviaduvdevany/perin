@@ -317,7 +317,7 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background-primary via-background-secondary to-background-primary">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-4 pt-8 max-w-4xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -334,7 +334,7 @@ export default function OnboardingPage() {
         </motion.div>
 
         {/* Progress Indicator */}
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center mb-6">
           <div className="flex items-center space-x-4">
             {[1, 2, 3, 4].map((step) => (
               <div key={step} className="flex items-center">

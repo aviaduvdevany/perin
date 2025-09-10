@@ -442,7 +442,7 @@ body {
   --primary-foreground: var(--background-primary);
   --secondary: rgba(255, 255, 255, 0.6);
   --secondary-foreground: var(--cta-text);
-  --muted: rgba(255, 255, 255, 0.4);
+  --muted: rgba(200, 200, 200, 0.4);
   --muted-foreground: rgba(10, 10, 10, 0.6);
   --accent: var(--accent-secondary);
   --accent-foreground: var(--background-primary);
@@ -476,7 +476,7 @@ body {
   --primary-foreground: var(--background-primary);
   --secondary: rgba(17, 18, 22, 0.6);
   --secondary-foreground: var(--cta-text);
-  --muted: rgba(17, 18, 22, 0.4);
+  --muted: rgba(117, 118, 122, 0.4);
   --muted-foreground: rgba(255, 255, 255, 0.6);
   --accent: var(--accent-secondary);
   --accent-foreground: var(--background-primary);
