@@ -11,6 +11,7 @@ import { MobilePerinChat } from "@/components/MobilePerinChat";
 import MobileBottomNavigation from "@/components/ui/MobileBottomNavigation";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { useNotifications } from "@/components/providers/NotificationContext";
+import { userNeedsOnboarding } from "@/lib/utils/onboarding";
 import NetworkModal from "@/components/dock-modals/NetworkModal";
 import PreferencesModal from "@/components/dock-modals/PreferencesModal";
 import DelegationModal from "@/components/dock-modals/DelegationModal";
@@ -61,6 +62,15 @@ export default function Home() {
       router.push("/auth/signin");
     }
   }, [isLoading, isAuthenticated, router]);
+
+  // Check if user needs onboarding
+  useEffect(() => {
+    if (isAuthenticated && state.user && !state.loading.user) {
+      if (userNeedsOnboarding(state.user)) {
+        router.push("/onboarding");
+      }
+    }
+  }, [isAuthenticated, state.user, state.loading.user, router]);
 
   const handleOpenProposalModal = (data: {
     sessionId: string;

@@ -644,3 +644,54 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+
+/* Onboarding Layout Variables */
+:root {
+  --navbar-height: 4rem; /* 64px */
+  --onboarding-header-height: 8rem; /* 128px - title and description */
+  --onboarding-progress-height: 4rem; /* 64px - progress indicator */
+  --onboarding-navigation-height: 4rem; /* 64px - back/next buttons */
+  --onboarding-padding: 2rem; /* 32px - top and bottom padding */
+  --onboarding-card-min-height: 400px; /* Minimum card height */
+}
+
+/* Dynamic onboarding card height calculation */
+.onboarding-card {
+  height: calc(
+    100vh - var(--navbar-height) - var(--onboarding-header-height) -
+      var(--onboarding-progress-height) - var(--onboarding-navigation-height) -
+      var(--onboarding-padding)
+  );
+  min-height: var(--onboarding-card-min-height);
+  max-height: calc(100vh - var(--navbar-height) - 1rem);
+}
+
+/* Responsive adjustments */
+@media (max-height: 600px) {
+  :root {
+    --onboarding-header-height: 6rem;
+    --onboarding-progress-height: 3rem;
+    --onboarding-navigation-height: 3rem;
+    --onboarding-padding: 1rem;
+    --onboarding-card-min-height: 300px;
+  }
+}
+
+@media (max-height: 500px) {
+  :root {
+    --onboarding-header-height: 4rem;
+    --onboarding-progress-height: 2rem;
+    --onboarding-navigation-height: 2rem;
+    --onboarding-padding: 0.5rem;
+    --onboarding-card-min-height: 250px;
+  }
+}
+
+@media (min-height: 800px) {
+  :root {
+    --onboarding-header-height: 10rem;
+    --onboarding-progress-height: 5rem;
+    --onboarding-navigation-height: 5rem;
+    --onboarding-padding: 3rem;
+  }
+}
