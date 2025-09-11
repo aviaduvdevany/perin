@@ -138,7 +138,7 @@ export function TimezoneSelector({
   return (
     <div className={cn("relative", className)}>
       <Select value={value} onValueChange={handleSelect} disabled={disabled}>
-        <SelectTrigger className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+        <SelectTrigger className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg ">
           <div className="flex items-center space-x-3">
             <Globe className="w-5 h-5 text-gray-400" />
             <div className="flex flex-col text-left">
