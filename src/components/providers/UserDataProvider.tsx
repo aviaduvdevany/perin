@@ -186,7 +186,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }));
 
     try {
-      const user = await getUserProfileService();
+      const response = await getUserProfileService();
+      // Extract the user data from the response object
+      const user = response.user;
       setState((prev) => ({
         ...prev,
         user,
@@ -317,7 +319,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
   const updateUser = useCallback(async (updates: UpdateUserData) => {
     try {
-      const updatedUser = await updateUserProfileService(updates);
+      const response = await updateUserProfileService(updates);
+      // Extract the user data from the response object
+      const updatedUser = response.user;
       setState((prev) => ({
         ...prev,
         user: updatedUser,

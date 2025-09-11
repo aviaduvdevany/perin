@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import { Button } from "@/components/ui/button";
+import { getUserTimezone } from "@/lib/utils/timezone";
 import {
   IntroductionStep,
   CommunicationStyleStep,
@@ -40,6 +41,17 @@ export default function OnboardingPage() {
     gmail_connected: false,
     calendar_connected: false,
   });
+
+  // Auto-detect timezone on component mount
+  useEffect(() => {
+    if (!onboardingData.timezone) {
+      const detectedTimezone = getUserTimezone();
+      setOnboardingData((prev) => ({
+        ...prev,
+        timezone: detectedTimezone,
+      }));
+    }
+  }, []);
 
   // Check URL parameters for connection status
   useEffect(() => {
@@ -174,11 +186,14 @@ export default function OnboardingPage() {
   const handleComplete = async () => {
     setIsCompleting(true);
     try {
+      // Ensure we have a valid timezone before saving
+      const timezoneToSave = onboardingData.timezone || getUserTimezone();
+
       await actions.updateUser({
         name: onboardingData.name,
         perin_name: onboardingData.perin_name,
         tone: onboardingData.tone,
-        timezone: onboardingData.timezone,
+        timezone: timezoneToSave,
         preferred_hours: onboardingData.preferred_hours,
       });
 
