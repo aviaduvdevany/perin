@@ -98,7 +98,7 @@ Respond with JSON:
 
   try {
     const response = await openaiClient.chat.completions.create({
-      model: "gpt-4",
+      model: "gpt-3.5-turbo",
       messages: [{ role: "user", content: analysisPrompt }],
       temperature: 0.1, // Low temperature for consistent analysis
       max_tokens: 200,
@@ -693,7 +693,7 @@ export const executePerinChatWithLangGraph = async (
             const plannerResponse = await withRetry(
               async () => {
                 return await openaiClient.chat.completions.create({
-                  model: "gpt-4",
+                  model: "gpt-3.5-turbo",
                   messages: plannerMessages.map((msg) => {
                     if (msg.role === "tool") {
                       return {
@@ -810,7 +810,7 @@ export const executePerinChatWithLangGraph = async (
             const responderResponse = await withRetry(
               async () => {
                 return await openaiClient.chat.completions.create({
-                  model: "gpt-4",
+                  model: "gpt-3.5-turbo",
                   messages: responderMessages.map((msg) => {
                     if (msg.role === "tool") {
                       return {
@@ -861,7 +861,7 @@ export const executePerinChatWithLangGraph = async (
             const response = await withRetry(
               async () => {
                 return await openaiClient.chat.completions.create({
-                  model: "gpt-4",
+                  model: "gpt-3.5-turbo",
                   messages: messagesWithSystem.map((msg) => ({
                     role: msg.role as "system" | "user" | "assistant",
                     content: msg.content,

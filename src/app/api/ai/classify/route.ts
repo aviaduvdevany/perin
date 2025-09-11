@@ -1,10 +1,7 @@
 import { NextRequest } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import {
-  executePerinChat,
-  validateOpenAIConfig,
-} from "@/lib/ai/openai";
+import { executePerinChat, validateOpenAIConfig } from "@/lib/ai/openai";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
 import { ErrorResponses } from "@/lib/utils/error-handlers";
 

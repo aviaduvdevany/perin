@@ -336,7 +336,7 @@ export const openaiNode = async (
     const response = await withRetry(
       async () => {
         return await openaiClient.chat.completions.create({
-          model: "gpt-4",
+          model: "gpt-3.5-turbo",
           messages: messages.map((msg) => ({
             role: msg.role as "system" | "user" | "assistant",
             content: msg.content,
