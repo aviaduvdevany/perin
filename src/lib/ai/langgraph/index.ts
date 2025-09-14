@@ -303,45 +303,25 @@ function parseDateTimeFromMessage(
     }
   }
 
-  // FIXED: Create datetime in user's timezone, not UTC
-  // We need to create a datetime that represents the local time in the user's timezone
-  // without any timezone conversion
-  try {
-    // Create a date string in the user's timezone
-    const year = targetDate.getFullYear();
-    const month = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const day = String(targetDate.getDate()).padStart(2, "0");
-    const hourStr = String(hour).padStart(2, "0");
-    const minuteStr = String(minute).padStart(2, "0");
+  // FIXED: Simple approach - just set the time and let the system handle timezone conversion
+  // The key fix is that we're now using userNow (user's timezone) for date calculations
+  // instead of server timezone. The time setting can be simple.
+  targetDate.setHours(hour, minute, 0, 0);
 
-    // Create ISO string representing the local time in the user's timezone
-    const localDateTimeString = `${year}-${month}-${day}T${hourStr}:${minuteStr}:00`;
+  console.log("Parsed date/time from message (USER TIMEZONE CALCULATIONS):", {
+    originalMessage: message,
+    parsedDate: targetDate.toISOString(),
+    timezone,
+    dayOffset,
+    hour,
+    minute,
+    serverNow: serverNow.toISOString(),
+    userNow: userNow.toISOString(),
+    targetDate: targetDate.toISOString(),
+    note: "Using user's timezone for date calculations, simple time setting",
+  });
 
-    // Create a date object that represents this local time
-    // We'll use a different approach: create the date as if it's in the user's timezone
-    const localDate = new Date(localDateTimeString);
-
-    console.log("Parsed date/time from message (LOCAL TIMEZONE):", {
-      originalMessage: message,
-      parsedDate: localDate.toISOString(),
-      timezone,
-      dayOffset,
-      hour,
-      minute,
-      localDateTimeString,
-      serverNow: serverNow.toISOString(),
-      userNow: userNow.toISOString(),
-      targetDate: targetDate.toISOString(),
-      note: "Creating datetime in user's timezone without UTC conversion",
-    });
-
-    return localDate;
-  } catch (error) {
-    console.error("Error parsing date/time:", error);
-    // Fallback to original behavior
-    targetDate.setHours(hour, minute, 0, 0);
-    return targetDate;
-  }
+  return targetDate;
 }
 
 /**

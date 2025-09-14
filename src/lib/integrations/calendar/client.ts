@@ -385,26 +385,30 @@ export const createCalendarEvent = async (
     const calendar = createCalendarClient(accessToken);
 
     // Prepare event data for Google Calendar API (typed)
-    // FIXED: The datetime is already in local time, just format it properly
+    // FIXED: Convert UTC datetime to local datetime for the specified timezone
     const timezone = isValidTimezone(eventData.timeZone || "")
       ? eventData.timeZone
       : "UTC";
 
-    // The datetime is already in local time, just format it for Google Calendar
+    // Convert UTC datetime strings to local datetime strings for the specified timezone
     const startDate = new Date(eventData.start);
     const endDate = new Date(eventData.end);
 
-    // Format as local datetime (without timezone suffix) - no conversion needed
-    const startLocal = startDate.toISOString().slice(0, 19); // Remove timezone suffix
-    const endLocal = endDate.toISOString().slice(0, 19); // Remove timezone suffix
+    // Format as local datetime (without timezone suffix) for the specified timezone
+    const startLocal = startDate
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
+    const endLocal = endDate
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
 
-    console.log("Calendar event timezone handling:", {
+    console.log("Calendar event timezone conversion:", {
       originalStart: eventData.start,
       originalEnd: eventData.end,
       timezone,
       startLocal,
       endLocal,
-      note: "Using local datetime directly for Google Calendar",
+      note: "Converting UTC datetime to local datetime for Google Calendar",
     });
 
     const googleEvent: calendar_v3.Schema$Event = {
