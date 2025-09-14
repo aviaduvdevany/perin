@@ -1,14 +1,12 @@
 "use client";
 
-import { useEffect, forwardRef, useImperativeHandle } from "react";
+import { forwardRef, useImperativeHandle } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
-import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
-import { Menu } from "lucide-react";
+import { IntegrationReauthHandler } from "./integrations/IntegrationReauthHandler";
 import { useChat } from "../hooks/useChat";
-import { Navbar } from "./ui/Navbar";
 
 interface MobilePerinChatProps {
   onOpenMenu?: () => void;
@@ -18,7 +16,7 @@ interface MobilePerinChatProps {
 export const MobilePerinChat = forwardRef<
   { handleSendMessage: (message: string) => void; isChatLoading: boolean },
   MobilePerinChatProps
->(({ onOpenMenu, className = "" }, ref) => {
+>(({ className = "" }, ref) => {
   const {
     session,
     messages,
@@ -67,7 +65,6 @@ export const MobilePerinChat = forwardRef<
     <div
       className={`h-full flex flex-col bg-[var(--background-primary)] relative ${className}`}
     >
-
       {/* Messages Container */}
       <div
         className="flex-1 overflow-y-auto px-4 py-6 space-y-4"
@@ -135,24 +132,14 @@ export const MobilePerinChat = forwardRef<
             </motion.div>
           ))}
 
-          {/* Inline reconnect UI when Perin asks for Gmail reauth */}
-          {messages.some((m) =>
-            m.content.includes("needs a quick reconnect")
-          ) && (
-            <div className="flex justify-start">
-              <Glass
-                variant="default"
-                border={true}
-                glow={false}
-                className="max-w-[85%] px-4 py-3 text-[var(--cta-text)] shadow-sm w-full"
-              >
-                <UnifiedIntegrationManager
-                  className="mt-2"
-                  showOnlyConnectable={true}
-                />
-              </Glass>
-            </div>
-          )}
+          {/* Beautiful reauth prompts for integration issues */}
+          <IntegrationReauthHandler
+            messages={messages.map((msg) => ({
+              content: msg.content,
+              role: msg.role,
+              id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+            }))}
+          />
 
           {isChatLoading && !streamingMessage && (
             <motion.div

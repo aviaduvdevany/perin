@@ -10,6 +10,29 @@ export type IntegrationType =
   | "zoom"
   | "teams";
 
+// Gmail integration data types
+export interface GmailData {
+  id: string;
+  from: string;
+  to: string;
+  subject: string;
+  snippet: string;
+  date: string;
+  unread: boolean;
+}
+
+// Calendar integration data types
+export interface CalendarData {
+  id: string;
+  summary: string;
+  description: string;
+  start: string;
+  end: string;
+  location: string;
+  isAllDay: boolean;
+  attendees: number;
+}
+
 // OAuth2 token structure
 export interface OAuth2Tokens {
   access_token: string;

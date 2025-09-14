@@ -146,43 +146,6 @@ export interface LangGraphChatState {
   };
   // Connected integrations hint from client (optional optimization)
   connectedIntegrationTypes?: IntegrationType[];
-  // Legacy context fields for backward compatibility
-  emailContext: {
-    recentEmails?: Array<{
-      from: string;
-      subject: string;
-      snippet: string;
-      date: string;
-      unread: boolean;
-    }>;
-    emailCount?: number;
-    hasUnread?: boolean;
-  };
-  calendarContext: {
-    recentEvents?: Array<{
-      id: string;
-      summary: string;
-      description: string;
-      start: string;
-      end: string;
-      location: string;
-      isAllDay: boolean;
-      attendees: number;
-    }>;
-    eventCount?: number;
-    availability?: Array<{
-      start: string;
-      end: string;
-    }>;
-    nextEvent?: {
-      id: string;
-      summary: string;
-      start: string;
-      end: string;
-    } | null;
-    hasUpcomingEvents?: boolean;
-  };
-  // New unified integrations field
   integrations?: Record<string, unknown>;
   // Tool execution results
   toolExecutionResults?: Record<string, unknown>;

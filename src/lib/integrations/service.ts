@@ -386,10 +386,18 @@ export const getUserIntegrations = async (
 export const detectRelevantIntegrations = (
   conversationText: string
 ): IntegrationType[] => {
-  return getAvailableIntegrationTypes().filter((type) => {
+  const relevantTypes = getAvailableIntegrationTypes().filter((type) => {
     const detection = detectIntegrationContext(conversationText, type);
     return detection.isRelevant;
   });
+
+  console.log("Relevant integrations detected:", {
+    conversationText: conversationText.substring(0, 100) + "...",
+    relevantTypes,
+    totalAvailable: getAvailableIntegrationTypes().length,
+  });
+
+  return relevantTypes;
 };
 
 /**

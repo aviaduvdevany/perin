@@ -29,11 +29,15 @@ export const buildSystemPrompt = (state: LangGraphChatState): string => {
     perinName,
     memoryContext,
     user,
-    emailContext,
-    calendarContext,
     integrations,
     delegationContext,
   } = state;
+
+  // Use integration contexts (the only source of truth)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const calendarContext = (integrations?.calendar as any)?.data;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const emailContext = (integrations?.gmail as any)?.data;
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
@@ -141,7 +145,8 @@ Email Context: ${
       ? `You have access to recent emails:
 ${emailContext.recentEmails
   .map(
-    (email, index) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (email: any, index: number) =>
       `${index + 1}. From: ${email.from}
    Subject: ${email.subject}
    Snippet: ${email.snippet}
@@ -152,7 +157,7 @@ ${emailContext.recentEmails
 
 Total emails: ${emailContext.emailCount}
 Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
-      : "No recent email context available"
+      : `No Gmail integration connected. When users ask about emails, messages, or inbox-related questions, you should respond with: "I don't have access to your Gmail at the moment. Your Gmail session needs a quick reconnect to continue. Click Reconnect to proceed." This will trigger the Gmail reauth flow.`
   }
 
 Calendar Context: ${
@@ -164,7 +169,8 @@ Calendar Context: ${
         } timezone:
 ${calendarContext.recentEvents
   .map(
-    (event, index) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (event: any, index: number) =>
       `${index + 1}. ${event.summary}
    Description: ${event.description}
    Start: ${event.start}
@@ -186,7 +192,7 @@ IMPORTANT: Use this calendar context to answer questions about meetings and even
 TIMEZONE INTERPRETATION: When the user says "tomorrow", "today", "next week", etc., interpret these relative to the user's timezone (${
           user?.timezone || "UTC"
         }). For example, if it's currently 11 PM in the user's timezone and they say "tomorrow", that means the next calendar day in their timezone.`
-      : "No recent calendar context available"
+      : `No calendar integration connected. When users ask about calendar events, meetings, or scheduling, you should respond with: "I don't have access to your calendar at the moment. Your calendar session needs a quick reconnect to continue. Click Reconnect to proceed." This will trigger the calendar reauth flow.`
   }
 
 Remember: You are a digital delegate, not just a chatbot. Act with agency, empathy, and persistence. When email context is available, use it to provide helpful insights about the user's inbox. When calendar context is available, use it to help with scheduling and provide insights about upcoming events.

@@ -2,32 +2,11 @@ import type {
   IntegrationType,
   IntegrationRegistryEntry,
   ContextDetectionResult,
+  GmailData,
+  CalendarData,
 } from "@/types/integrations";
 import { fetchRecentEmailsFromAll } from "@/lib/integrations/gmail/client";
 import { fetchRecentEventsFromAll } from "@/lib/integrations/calendar/client";
-
-// Gmail integration data types
-export interface GmailData {
-  id: string;
-  from: string;
-  to: string;
-  subject: string;
-  snippet: string;
-  date: string;
-  unread: boolean;
-}
-
-// Calendar integration data types
-export interface CalendarData {
-  id: string;
-  summary: string;
-  description: string;
-  start: string;
-  end: string;
-  location: string;
-  isAllDay: boolean;
-  attendees: number;
-}
 
 // Context loaders for each integration
 const gmailContextLoader = async (userId: string): Promise<GmailData[]> => {
@@ -63,16 +42,21 @@ const calendarContextLoader = async (
   userId: string
 ): Promise<CalendarData[]> => {
   try {
+    console.log("Calendar context loader called for user:", userId);
+
     // Get user's timezone
     const user = await import("@/lib/queries/users").then((m) =>
       m.getUserById(userId)
     );
     const userTimezone = user?.timezone || "UTC";
+    console.log("User timezone:", userTimezone);
 
     // Fetch recent events across all connected calendar accounts
+    console.log("Fetching recent events from all calendar accounts...");
     const events = await fetchRecentEventsFromAll(userId, 7, 5);
+    console.log("Fetched events count:", events.length);
 
-    return events.map((event) => {
+    const mappedEvents = events.map((event) => {
       // Convert times to user's timezone
       const convertToUserTimezone = (isoString: string) => {
         if (!isoString) return isoString;
@@ -107,6 +91,8 @@ const calendarContextLoader = async (
           : {}),
       } as unknown as CalendarData;
     });
+
+    return mappedEvents;
   } catch (error) {
     console.error("Error in Calendar context loader:", error);
     // Propagate so upstream can signal reauth and stop LLM streaming
@@ -228,7 +214,8 @@ export const INTEGRATION_REGISTRY: Record<
       const events = data as Array<
         CalendarData & { __accountId?: string; __accountEmail?: string }
       >;
-      return {
+
+      const transformed = {
         recentEvents: events.map((event) => ({
           id: event.id,
           summary: event.summary,
@@ -253,6 +240,8 @@ export const INTEGRATION_REGISTRY: Record<
           return { accountId, accountEmail };
         }),
       };
+
+      return transformed;
     },
   },
 
@@ -434,6 +423,26 @@ export const detectIntegrationContext = (
       : 0;
 
   const isRelevant = confidence > 0.3; // Threshold for relevance
+
+  if (integrationType === "calendar") {
+    console.log("Calendar detection:", {
+      conversationText: normalizedText,
+      matchedKeywords,
+      confidence,
+      isRelevant,
+      threshold: 0.3,
+    });
+  }
+
+  if (integrationType === "gmail") {
+    console.log("Gmail detection:", {
+      conversationText: normalizedText,
+      matchedKeywords,
+      confidence,
+      isRelevant,
+      threshold: 0.3,
+    });
+  }
 
   return {
     isRelevant,

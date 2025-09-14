@@ -3,9 +3,9 @@
 import { motion } from "framer-motion";
 import PerinAvatar from "./ui/PerinAvatar";
 import { FloatingInput } from "./ui/FloatingInput";
-import UnifiedIntegrationManager from "./ui/UnifiedIntegrationManager";
 import { PerinLoading } from "./ui/PerinLoading";
 import { Glass } from "./ui/Glass";
+import { IntegrationReauthHandler } from "./integrations/IntegrationReauthHandler";
 import { useChat } from "../hooks/useChat";
 
 export function PerinChat() {
@@ -106,24 +106,14 @@ export function PerinChat() {
           </motion.div>
         ))}
 
-        {/* Inline reconnect UI when Perin asks for Gmail reauth */}
-        {messages.some((m) =>
-          m.content.includes("needs a quick reconnect")
-        ) && (
-          <div className="flex justify-start">
-            <Glass
-              variant="default"
-              border={true}
-              glow={false}
-              className="max-w-[85%] lg:max-w-lg px-4 py-3 text-[var(--cta-text)] shadow-sm w-full"
-            >
-              <UnifiedIntegrationManager
-                className="mt-2"
-                showOnlyConnectable={true}
-              />
-            </Glass>
-          </div>
-        )}
+        {/* Beautiful reauth prompts for integration issues */}
+        <IntegrationReauthHandler
+          messages={messages.map((msg) => ({
+            content: msg.content,
+            role: msg.role,
+            id: msg.id || `msg-${Date.now()}-${Math.random()}`,
+          }))}
+        />
 
         {isChatLoading && !streamingMessage && (
           <motion.div
