@@ -17,7 +17,6 @@ import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
 import { multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
-import { getTimezoneOffset } from "@/lib/utils/timezone";
 import {
   createDelegationSteps,
   registerDelegationStepExecutors,
@@ -304,58 +303,25 @@ function parseDateTimeFromMessage(
     }
   }
 
-  // FIXED: Properly handle timezone conversion
-  // Create a date string in the user's timezone, then convert to UTC
-  try {
-    // Create a date string in ISO format for the target date and time
-    const year = targetDate.getFullYear();
-    const month = String(targetDate.getMonth() + 1).padStart(2, "0");
-    const day = String(targetDate.getDate()).padStart(2, "0");
-    const hourStr = String(hour).padStart(2, "0");
-    const minuteStr = String(minute).padStart(2, "0");
+  // FIXED: Simple approach - just set the time and let the system handle timezone conversion
+  // The key fix is that we're now using userNow (user's timezone) for date calculations
+  // instead of server timezone. The time setting can be simple.
+  targetDate.setHours(hour, minute, 0, 0);
 
-    // Create ISO string in the user's timezone
-    const localDateTimeString = `${year}-${month}-${day}T${hourStr}:${minuteStr}:00`;
+  console.log("Parsed date/time from message (USER TIMEZONE CALCULATIONS):", {
+    originalMessage: message,
+    parsedDate: targetDate.toISOString(),
+    timezone,
+    dayOffset,
+    hour,
+    minute,
+    serverNow: serverNow.toISOString(),
+    userNow: userNow.toISOString(),
+    targetDate: targetDate.toISOString(),
+    note: "Using user's timezone for date calculations, simple time setting",
+  });
 
-    // Convert this to a proper Date object in the user's timezone
-    // We need to create a date that represents the local time in the user's timezone
-    // and then convert it to UTC for storage
-
-    // Method: Create a temporary date object and adjust for timezone offset
-    const tempDate = new Date(`${localDateTimeString}Z`); // Treat as UTC first
-    const utcTime = tempDate.getTime();
-    const localOffset = tempDate.getTimezoneOffset() * 60000; // Convert to milliseconds
-
-    // Get the timezone offset for the user's timezone
-    const userTimezoneOffset = getTimezoneOffset(timezone, tempDate) * 60000;
-
-    // Calculate the correct UTC time
-    const correctUtcTime = utcTime + localOffset - userTimezoneOffset;
-    const finalDate = new Date(correctUtcTime);
-
-    console.log("Parsed date/time from message (TIMEZONE-AWARE):", {
-      originalMessage: message,
-      parsedDate: finalDate.toISOString(),
-      timezone,
-      dayOffset,
-      hour,
-      minute,
-      localDateTimeString,
-      userTimezoneOffset: userTimezoneOffset / 60000, // Convert back to minutes for logging
-      tempDate: tempDate.toISOString(),
-      finalDate: finalDate.toISOString(),
-      serverNow: serverNow.toISOString(),
-      userNow: userNow.toISOString(),
-      note: "All date calculations now use user's timezone instead of server timezone",
-    });
-
-    return finalDate;
-  } catch (error) {
-    console.error("Error parsing date/time with timezone:", error);
-    // Fallback to original behavior
-    targetDate.setHours(hour, minute, 0, 0);
-    return targetDate;
-  }
+  return targetDate;
 }
 
 /**
