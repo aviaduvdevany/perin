@@ -4,6 +4,7 @@ import { validateAndAccessDelegation } from "@/lib/delegation/session-manager";
 import { createDelegationMessage } from "@/lib/queries/delegation";
 import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
 import { rateLimit } from "@/lib/utils/rate-limit";
+import { timezoneSchema, getUserTimezone } from "@/lib/utils/timezone";
 
 // Validation schema for chat requests
 const chatRequestSchema = z.object({
@@ -11,7 +12,7 @@ const chatRequestSchema = z.object({
   message: z.string().min(1).max(2000),
   externalUserName: z.string().max(100).optional(),
   signature: z.string().optional(),
-  timezone: z.string().optional(),
+  timezone: timezoneSchema.optional(),
 });
 
 export const POST = async (request: NextRequest) => {
@@ -29,12 +30,18 @@ export const POST = async (request: NextRequest) => {
   const { delegationId, message, externalUserName, signature, timezone } =
     validation.data;
 
+  // Ensure we have a valid timezone - fallback to auto-detection if needed
+  const validatedTimezone = timezone || getUserTimezone();
+
   // Debug logging for timezone detection
   console.log("🌍 Delegation chat timezone received:", {
     delegationId,
-    timezone,
+    originalTimezone: timezone,
+    validatedTimezone,
     externalUserName,
     userAgent: request.headers.get("user-agent")?.substring(0, 100),
+    serverTime: new Date().toISOString(),
+    serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
 
   // Rate limiting for delegation chat
@@ -101,7 +108,7 @@ export const POST = async (request: NextRequest) => {
           }),
           constraints: session.constraints as Record<string, unknown>,
           isDelegation: true,
-          externalUserTimezone: timezone,
+          externalUserTimezone: validatedTimezone,
         },
       }
     );

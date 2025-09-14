@@ -313,3 +313,188 @@ export function getTimezoneInfo(timezone: string, date: Date = new Date()) {
     currentTime: getCurrentTimeInTimezone(timezone),
   };
 }
+
+/**
+ * Parse natural language date/time in user's timezone context
+ * This is the KEY function to fix delegation timezone issues
+ */
+export function parseTimeInUserTimezone(
+  timeInput: string,
+  userTimezone: string,
+  _referenceDate: Date = new Date()
+): Date | null {
+  if (!isValidTimezone(userTimezone)) {
+    console.warn(`Invalid timezone: ${userTimezone}, falling back to UTC`);
+    userTimezone = "UTC";
+  }
+
+  try {
+    // Get current time in user's timezone for relative parsing
+    const nowInUserTz = getCurrentTimeInTimezone(userTimezone);
+
+    // Common time patterns
+    const timePatterns = [
+      // Absolute times: "2pm", "14:00", "2:30pm"
+      /(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
+      /(\d{1,2}):(\d{2})/,
+
+      // Relative times: "tomorrow at 2pm", "next Tuesday at 3:30pm"
+      /(tomorrow|today)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
+      /(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
+    ];
+
+    let parsedDate: Date | null = null;
+
+    // Try to parse with different patterns
+    for (const pattern of timePatterns) {
+      const match = timeInput.toLowerCase().match(pattern);
+      if (match) {
+        parsedDate = parseMatchedTime(match, userTimezone, nowInUserTz);
+        if (parsedDate) break;
+      }
+    }
+
+    // If no pattern matched, try Date.parse with timezone context
+    if (!parsedDate) {
+      // Create a date string with timezone context
+      const dateStr = `${timeInput} ${getTimezoneAbbreviation(userTimezone)}`;
+      const parsed = new Date(dateStr);
+      if (!isNaN(parsed.getTime())) {
+        // Convert to user timezone if needed
+        parsedDate = userTimezoneToUtc(parsed, userTimezone);
+      }
+    }
+
+    return parsedDate;
+  } catch (error) {
+    console.error("Error parsing time in user timezone:", error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to parse matched time patterns
+ */
+function parseMatchedTime(
+  match: RegExpMatchArray,
+  userTimezone: string,
+  referenceDate: Date
+): Date | null {
+  try {
+    let hour: number;
+    let minute = 0;
+    const targetDate = new Date(referenceDate);
+
+    if (match[0].includes("am") || match[0].includes("pm")) {
+      // 12-hour format
+      hour = parseInt(match[1]);
+      minute = parseInt(match[2]) || 0;
+      const isPM = match[0].toLowerCase().includes("pm");
+
+      if (hour === 12) hour = 0; // Convert 12am to 0, 12pm stays 12
+      if (isPM && hour !== 0) hour += 12;
+    } else {
+      // 24-hour format
+      hour = parseInt(match[1]);
+      minute = parseInt(match[2]) || 0;
+    }
+
+    // Handle relative dates
+    if (match[0].includes("tomorrow")) {
+      targetDate.setDate(targetDate.getDate() + 1);
+    } else if (match[0].includes("next")) {
+      const dayName = match[0].match(
+        /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i
+      )?.[1];
+      if (dayName) {
+        const targetDay = [
+          "sunday",
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+        ].indexOf(dayName.toLowerCase());
+        const currentDay = targetDate.getDay();
+        const daysUntilTarget = (targetDay + 7 - currentDay) % 7 || 7;
+        targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+      }
+    }
+
+    // Set the time in user's timezone
+    const timeInUserTz = new Date(
+      targetDate.getFullYear(),
+      targetDate.getMonth(),
+      targetDate.getDate(),
+      hour,
+      minute,
+      0,
+      0
+    );
+
+    // Convert to UTC for storage
+    return userTimezoneToUtc(timeInUserTz, userTimezone);
+  } catch (error) {
+    console.error("Error parsing matched time:", error);
+    return null;
+  }
+}
+
+/**
+ * Format time for user display with timezone awareness
+ */
+export function formatTimeForUser(
+  utcDate: Date | string,
+  userTimezone: string,
+  options: {
+    includeDate?: boolean;
+    includeTimezone?: boolean;
+    relative?: boolean;
+  } = {}
+): string {
+  const date = typeof utcDate === "string" ? new Date(utcDate) : utcDate;
+
+  if (!isValidTimezone(userTimezone)) {
+    userTimezone = "UTC";
+  }
+
+  const formatOptions: Intl.DateTimeFormatOptions = {
+    timeZone: userTimezone,
+    hour: "2-digit",
+    minute: "2-digit",
+  };
+
+  if (options.includeDate) {
+    formatOptions.weekday = "short";
+    formatOptions.month = "short";
+    formatOptions.day = "numeric";
+  }
+
+  if (options.includeTimezone) {
+    formatOptions.timeZoneName = "short";
+  }
+
+  try {
+    let formatted = date.toLocaleString("en-US", formatOptions);
+
+    if (options.relative) {
+      const now = new Date();
+      const diffMs = date.getTime() - now.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+      if (diffDays === 0) {
+        formatted = `Today at ${formatted.split(" ").slice(-2).join(" ")}`;
+      } else if (diffDays === 1) {
+        formatted = `Tomorrow at ${formatted.split(" ").slice(-2).join(" ")}`;
+      } else if (diffDays === -1) {
+        formatted = `Yesterday at ${formatted.split(" ").slice(-2).join(" ")}`;
+      }
+    }
+
+    return formatted;
+  } catch (error) {
+    console.error("Error formatting time for user:", error);
+    return date.toISOString();
+  }
+}

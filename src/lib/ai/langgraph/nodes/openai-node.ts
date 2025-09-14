@@ -158,7 +158,24 @@ IMPORTANT: Always refer to times in the user's timezone (${
     user?.timezone || "UTC"
   }), never say "UTC" unless the user specifically asks for UTC time.
 
+${
+  delegationContext?.isDelegation
+    ? `DELEGATION MODE: You are acting on behalf of the owner for an external user.
+- External user timezone: ${delegationContext.externalUserTimezone || "UTC"}
+- When discussing meeting times, always express them in the EXTERNAL USER's timezone
+- When creating calendar events, use the external user's timezone for clarity
+- Be explicit about timezone when confirming meetings`
+    : ""
+}
+
 DEBUG: User timezone is "${user?.timezone || "UTC"}"
+${
+  delegationContext?.isDelegation
+    ? `DEBUG: External user timezone is "${
+        delegationContext.externalUserTimezone || "UTC"
+      }"`
+    : ""
+}
 DEBUG: Full user object: ${JSON.stringify(user, null, 2)}
 
 Email Context: ${

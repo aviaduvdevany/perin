@@ -19,6 +19,7 @@ import {
   checkCalendarAvailability,
 } from "@/lib/integrations/calendar/client";
 import { isReauthError } from "@/lib/integrations/errors";
+import { formatTimeForUser } from "@/lib/utils/timezone";
 
 /**
  * Check Owner Availability Tool Arguments
@@ -335,13 +336,16 @@ export const scheduleWithOwnerHandler: ToolHandler<
       attendees: attendees.length > 0 ? attendees : undefined,
     });
 
+    // Format time properly in user's timezone
+    const formattedTime = formatTimeForUser(startTime, timezone, {
+      includeDate: true,
+      includeTimezone: true,
+      relative: true,
+    });
+
     const successMessage = externalUserEmail
-      ? `I've successfully scheduled "${
-          args.title
-        }" for ${startTime.toLocaleString()} (${timezone}). The meeting has been added to the owner's calendar and a calendar invitation has been sent to ${externalUserName} at ${externalUserEmail}.`
-      : `I've successfully scheduled "${
-          args.title
-        }" for ${startTime.toLocaleString()} (${timezone}). The meeting has been added to the owner's calendar. Please share the meeting details with ${externalUserName} separately.`;
+      ? `I've successfully scheduled "${args.title}" for ${formattedTime}. The meeting has been added to the owner's calendar and a calendar invitation has been sent to ${externalUserName} at ${externalUserEmail}.`
+      : `I've successfully scheduled "${args.title}" for ${formattedTime}. The meeting has been added to the owner's calendar. Please share the meeting details with ${externalUserName} separately.`;
 
     return createToolSuccess({
       success: true,

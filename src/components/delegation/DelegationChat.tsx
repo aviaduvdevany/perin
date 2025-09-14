@@ -70,19 +70,29 @@ export default function DelegationChat({
     inputRef.current?.focus();
   }, []);
 
-  // Detect user's timezone
+  // Detect user's timezone with comprehensive debugging
   useEffect(() => {
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setUserTimezone(timezone);
-      console.log("🌍 Delegation Chat - Detected user timezone:", {
-        timezone,
+
+      // Enhanced debugging for timezone detection
+      console.log("🌍 Delegation Chat - Timezone Detection:", {
+        detectedTimezone: timezone,
+        currentTime: new Date().toISOString(),
+        localTime: new Date().toLocaleString(),
+        timeInDetectedTz: new Date().toLocaleString("en-US", {
+          timeZone: timezone,
+        }),
+        timezoneOffset: new Date().getTimezoneOffset(),
         userAgent: navigator.userAgent?.substring(0, 100),
         platform: navigator.platform,
         language: navigator.language,
+        supportedTimezones:
+          Intl.supportedValuesOf?.("timeZone")?.length || "unavailable",
       });
     } catch (err) {
-      console.warn("Could not detect timezone, using UTC", err);
+      console.error("❌ Timezone detection failed:", err);
       setUserTimezone("UTC");
     }
   }, []);
