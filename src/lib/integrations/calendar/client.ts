@@ -385,21 +385,43 @@ export const createCalendarEvent = async (
     const calendar = createCalendarClient(accessToken);
 
     // Prepare event data for Google Calendar API (typed)
+    // FIXED: Convert UTC datetime to local datetime for the specified timezone
+    const timezone = isValidTimezone(eventData.timeZone || "")
+      ? eventData.timeZone
+      : "UTC";
+
+    // Convert UTC datetime strings to local datetime strings for the specified timezone
+    const startDate = new Date(eventData.start);
+    const endDate = new Date(eventData.end);
+
+    // Format as local datetime (without timezone suffix) for the specified timezone
+    const startLocal = startDate
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
+    const endLocal = endDate
+      .toLocaleString("sv-SE", { timeZone: timezone })
+      .replace(" ", "T");
+
+    console.log("Calendar event timezone conversion:", {
+      originalStart: eventData.start,
+      originalEnd: eventData.end,
+      timezone,
+      startLocal,
+      endLocal,
+      note: "Converting UTC datetime to local datetime for Google Calendar",
+    });
+
     const googleEvent: calendar_v3.Schema$Event = {
       summary: eventData.summary,
       description: eventData.description,
       location: eventData.location,
       start: {
-        dateTime: eventData.start,
-        timeZone: isValidTimezone(eventData.timeZone || "")
-          ? eventData.timeZone
-          : "UTC",
+        dateTime: startLocal,
+        timeZone: timezone,
       },
       end: {
-        dateTime: eventData.end,
-        timeZone: isValidTimezone(eventData.timeZone || "")
-          ? eventData.timeZone
-          : "UTC",
+        dateTime: endLocal,
+        timeZone: timezone,
       },
       attendees: eventData.attendees?.map((attendee) => ({
         email: attendee.email,
