@@ -6,7 +6,7 @@ import { Calendar, Mail, MessageSquare, FileText } from "lucide-react";
 import {
   connectIntegrationService,
   getAvailableIntegrationsService,
-} from "@/app/services/integrations";
+} from "@/app/(main-app)/services/integrations";
 import type { IntegrationType } from "@/types/integrations";
 
 interface Integration {

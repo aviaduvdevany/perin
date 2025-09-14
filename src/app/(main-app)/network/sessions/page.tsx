@@ -7,7 +7,7 @@ import {
   getNetworkTranscriptService,
   sendProposalsService,
   confirmMeetingService,
-} from "@/app/services/network";
+} from "@/app/(main-app)/services/network";
 
 interface ProposalMessagePayload {
   proposals: Array<{ start: string; end: string; tz?: string }>;
@@ -23,10 +23,10 @@ type TranscriptMessage = {
   created_at: string;
 };
 type SessionType = {
-    id: string;
-    status: string;
-    outcome?: { selectedSlot?: { start: string; end: string } };
-  } | null;
+  id: string;
+  status: string;
+  outcome?: { selectedSlot?: { start: string; end: string } };
+} | null;
 
 export default function SessionsPage() {
   const [connectionId, setConnectionId] = useState("");

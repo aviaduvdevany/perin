@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { registerNotificationDeviceService } from "@/app/services/notifications";
+import { registerNotificationDeviceService } from "@/app/(main-app)/services/notifications";
 
 type OneSignalApi = {
   init: (opts: { appId: string }) => Promise<void> | void;

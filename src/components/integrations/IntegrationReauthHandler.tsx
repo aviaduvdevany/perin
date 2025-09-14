@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import { ReauthPrompt } from "./ReauthPrompt";
-import { connectIntegrationService } from "@/app/services/integrations";
+import { connectIntegrationService } from "@/app/(main-app)/services/integrations";
 import { useUserData } from "@/components/providers/UserDataProvider";
 import type { IntegrationType } from "@/types/integrations";
 

@@ -16,18 +16,18 @@ import type { IntegrationStatus, IntegrationType } from "@/types/integrations";
 import {
   getUserProfileService,
   updateUserProfileService,
-} from "@/app/services/users";
+} from "@/app/(main-app)/services/users";
 import {
   listConnectionsService,
   createConnectionService,
   acceptConnectionService,
   revokeConnectionService,
-} from "@/app/services/network";
+} from "@/app/(main-app)/services/network";
 import {
   getUserIntegrationsService,
   connectIntegrationService,
   disconnectIntegrationService,
-} from "@/app/services/integrations";
+} from "@/app/(main-app)/services/integrations";
 
 // ============================================================================
 // TYPES & INTERFACES

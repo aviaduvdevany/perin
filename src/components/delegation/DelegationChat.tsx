@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Glass } from "@/components/ui/Glass";
 import PerinAvatar from "@/components/ui/PerinAvatar";
-import { sendDelegationChatStreamingService } from "@/app/services/delegation";
+import { sendDelegationChatStreamingService } from "@/app/(main-app)/services/delegation";
 import { useMultiStepParser } from "@/hooks/useMultiStepParser";
 import { MultiStepMessage } from "@/components/ui/MultiStepMessage";
 import type { DelegationSession } from "@/types/delegation";
@@ -315,7 +315,7 @@ export default function DelegationChat({
       </Glass>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 ">
         <AnimatePresence>
           {messages.map((message) => (
             <motion.div
@@ -332,14 +332,15 @@ export default function DelegationChat({
                   message.fromExternal ? "order-2" : "order-1"
                 }`}
               >
-                <Glass
-                  variant="default"
-                  border={true}
-                  glow={false}
-                  className={`p-3 ${
+                <div
+                  className={`p-3
+                    rounded-2xl
+                    shadow-lg
+                    glow-primary
+                    ${
                     message.fromExternal
-                      ? "bg-[var(--accent-primary)]/20 border-[var(--accent-primary)]/30"
-                      : "bg-[var(--background-secondary)]/50"
+                      ? "bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                      : "bg-[var(--background-secondary)]/50 "
                   }`}
                 >
                   {message.isLoading ? (
@@ -374,7 +375,7 @@ export default function DelegationChat({
                       )}
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 ">
                       {/* Show final multi-step summary if it was a multi-step message and not a separate message */}
                       {message.isMultiStep &&
                         !message.isSeparateMessage &&
@@ -392,23 +393,17 @@ export default function DelegationChat({
 
                       {/* Regular message content */}
                       {message.content && (
-                        <p className="text-sm text-[var(--cta-text)] whitespace-pre-wrap">
+                        <p className="text-sm whitespace-pre-wrap ">
                           {message.content}
                         </p>
                       )}
                     </div>
                   )}
-                </Glass>
-                <p className="text-xs text-[var(--foreground-muted)] mt-1 text-center">
+                </div>
+                <p className="text-xs mt-1 text-center">
                   {formatTime(message.timestamp)}
                 </p>
               </div>
-
-              {!message.fromExternal && (
-                <div className="order-2 ml-2">
-                  <PerinAvatar size="sm" />
-                </div>
-              )}
             </motion.div>
           ))}
         </AnimatePresence>

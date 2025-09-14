@@ -9,7 +9,7 @@ import {
   copyToClipboard,
   shareDelegationLink,
   validateConstraints,
-} from "@/app/services/delegation";
+} from "@/app/(main-app)/services/delegation";
 import type {
   CreateDelegationRequest,
   MeetingConstraints,

@@ -12,7 +12,7 @@ import {
   createCalendarEvent,
   deleteCalendarEvent,
 } from "@/lib/integrations/calendar/client";
-import { ConfirmSchema, safeParse } from "@/app/api/network/schemas";
+import { ConfirmSchema, safeParse } from "@/app/(main-app)/api/network/schemas";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions/:id/confirm

@@ -11,7 +11,7 @@ import type {
 import {
   UpdateConnectionPermissionsSchema,
   safeParse,
-} from "@/app/api/network/schemas";
+} from "@/app/(main-app)/api/network/schemas";
 
 function extractConnectionIdFromUrl(url: string): string | null {
   const { pathname } = new URL(url);
