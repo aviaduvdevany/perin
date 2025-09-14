@@ -395,12 +395,30 @@ export const createCalendarEvent = async (
     const endDate = new Date(eventData.end);
 
     // Format as local datetime (without timezone suffix) for the specified timezone
+    // Use a more reliable method that works consistently across environments
+    const formatOptions: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: timezone,
+    };
+
     const startLocal = startDate
-      .toLocaleString("sv-SE", { timeZone: timezone })
-      .replace(" ", "T");
+      .toLocaleString("en-US", formatOptions)
+      .replace(
+        /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
+        "$3-$1-$2T$4:$5:$6"
+      );
     const endLocal = endDate
-      .toLocaleString("sv-SE", { timeZone: timezone })
-      .replace(" ", "T");
+      .toLocaleString("en-US", formatOptions)
+      .replace(
+        /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
+        "$3-$1-$2T$4:$5:$6"
+      );
 
     console.log("Calendar event timezone conversion:", {
       originalStart: eventData.start,

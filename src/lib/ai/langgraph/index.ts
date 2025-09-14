@@ -22,6 +22,7 @@ import {
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
 import { OpenAI } from "openai";
+import { getTimezoneOffset } from "@/lib/utils/timezone";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -224,12 +225,14 @@ function parseDateTimeFromMessage(
 ): Date | null {
   const lowerMessage = message.toLowerCase();
 
-  // FIXED: Get current date in the USER'S timezone, not server timezone
-  // Create a date that represents "now" in the user's timezone
-  const serverNow = new Date();
-  const userNow = new Date(
-    serverNow.toLocaleString("en-US", { timeZone: timezone })
-  );
+  // FIXED: Properly get current date in the USER'S timezone
+  // Use a more reliable method to get the current time in the user's timezone
+  const now = new Date();
+
+  // Get the current time in the user's timezone by calculating the offset
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
+  const userTimezoneOffset = getTimezoneOffset(timezone, now);
+  const userNow = new Date(utcTime - userTimezoneOffset * 60000);
 
   // Parse day of week
   let targetDate = new Date(userNow);
@@ -315,7 +318,7 @@ function parseDateTimeFromMessage(
     dayOffset,
     hour,
     minute,
-    serverNow: serverNow.toISOString(),
+    serverNow: now.toISOString(),
     userNow: userNow.toISOString(),
     targetDate: targetDate.toISOString(),
     note: "Using user's timezone for date calculations, simple time setting",
