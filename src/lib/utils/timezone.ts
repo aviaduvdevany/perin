@@ -321,7 +321,7 @@ export function getTimezoneInfo(timezone: string, date: Date = new Date()) {
 export function parseTimeInUserTimezone(
   timeInput: string,
   userTimezone: string,
-  _referenceDate: Date = new Date()
+  referenceDate: Date = new Date()
 ): Date | null {
   if (!isValidTimezone(userTimezone)) {
     console.warn(`Invalid timezone: ${userTimezone}, falling back to UTC`);
@@ -332,15 +332,18 @@ export function parseTimeInUserTimezone(
     // Get current time in user's timezone for relative parsing
     const nowInUserTz = getCurrentTimeInTimezone(userTimezone);
 
-    // Common time patterns
+    // Common time patterns - ORDER MATTERS! More specific patterns first
     const timePatterns = [
-      // Absolute times: "2pm", "14:00", "2:30pm"
+      // Day + time patterns (most specific first)
+      /(tomorrow|today)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?/i,
+      /(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)?/i,
+
+      // Check for day names without "at" - "Friday 15:00"
+      /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(\d{1,2}):(\d{2})/i,
+
+      // Absolute times without day context (least specific - fallback to today)
       /(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
       /(\d{1,2}):(\d{2})/,
-
-      // Relative times: "tomorrow at 2pm", "next Tuesday at 3:30pm"
-      /(tomorrow|today)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
-      /(next\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2}):?(\d{2})?\s*(am|pm)/i,
     ];
 
     let parsedDate: Date | null = null;
@@ -385,40 +388,84 @@ function parseMatchedTime(
     let minute = 0;
     const targetDate = new Date(referenceDate);
 
-    if (match[0].includes("am") || match[0].includes("pm")) {
+    console.log("🔍 Parsing matched pattern:", {
+      fullMatch: match[0],
+      groups: match.slice(1),
+    });
+
+    // Check for day names in the match
+    const dayNames = [
+      "sunday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday",
+      "saturday",
+    ];
+    const matchedDay = dayNames.find((day) =>
+      match[0].toLowerCase().includes(day)
+    );
+
+    if (matchedDay) {
+      console.log("📅 Found day-specific pattern:", matchedDay);
+
+      // This is a day + time pattern like "Friday 15:00" or "Friday at 15:00"
+      const targetDay = dayNames.indexOf(matchedDay);
+      const currentDay = targetDate.getDay();
+
+      // Calculate days until target day (always next occurrence if not specified as "next")
+      let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      if (daysUntilTarget === 0) {
+        // If it's the same day, check if the time has passed
+        daysUntilTarget = 7; // Default to next week for same day to be safe
+      }
+
+      targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+
+      // Extract time from the appropriate capture groups
+      if (match[0].includes("at")) {
+        // Pattern like "Friday at 15:00"
+        const timeGroups = match.slice(2); // Skip day-related groups
+        hour = parseInt(
+          timeGroups.find((g) => g && /^\d{1,2}$/.test(g)) || "0"
+        );
+        minute = parseInt(
+          timeGroups.find((g) => g && /^\d{2}$/.test(g)) || "0"
+        );
+      } else {
+        // Pattern like "Friday 15:00" - time should be in groups 2 and 3
+        hour = parseInt(match[2] || "0");
+        minute = parseInt(match[3] || "0");
+      }
+    } else if (match[0].includes("am") || match[0].includes("pm")) {
       // 12-hour format
-      hour = parseInt(match[1]);
-      minute = parseInt(match[2]) || 0;
+      hour = parseInt(match[1] || match[2] || "0");
+      minute = parseInt(match[2] || match[3] || "0");
       const isPM = match[0].toLowerCase().includes("pm");
 
       if (hour === 12) hour = 0; // Convert 12am to 0, 12pm stays 12
       if (isPM && hour !== 0) hour += 12;
     } else {
-      // 24-hour format
-      hour = parseInt(match[1]);
-      minute = parseInt(match[2]) || 0;
+      // 24-hour format without day
+      hour = parseInt(match[1] || "0");
+      minute = parseInt(match[2] || "0");
     }
 
-    // Handle relative dates
-    if (match[0].includes("tomorrow")) {
-      targetDate.setDate(targetDate.getDate() + 1);
-    } else if (match[0].includes("next")) {
-      const dayName = match[0].match(
-        /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i
-      )?.[1];
-      if (dayName) {
-        const targetDay = [
-          "sunday",
-          "monday",
-          "tuesday",
-          "wednesday",
-          "thursday",
-          "friday",
-          "saturday",
-        ].indexOf(dayName.toLowerCase());
-        const currentDay = targetDate.getDay();
-        const daysUntilTarget = (targetDay + 7 - currentDay) % 7 || 7;
-        targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+    // Handle relative dates (for non-day-specific patterns)
+    if (!matchedDay) {
+      if (match[0].includes("tomorrow")) {
+        targetDate.setDate(targetDate.getDate() + 1);
+      } else if (match[0].includes("next")) {
+        const dayName = match[0].match(
+          /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/i
+        )?.[1];
+        if (dayName) {
+          const targetDay = dayNames.indexOf(dayName.toLowerCase());
+          const currentDay = targetDate.getDay();
+          const daysUntilTarget = (targetDay + 7 - currentDay) % 7 || 7;
+          targetDate.setDate(targetDate.getDate() + daysUntilTarget);
+        }
       }
     }
 
