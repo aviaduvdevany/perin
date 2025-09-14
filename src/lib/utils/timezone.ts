@@ -529,38 +529,23 @@ function parseTimeFromDate(
     }
   }
 
-  // SIMPLE AND CORRECT: Use Intl.DateTimeFormat to create a date in the user's timezone
-  const year = baseDate.getFullYear();
-  const month = String(baseDate.getMonth() + 1).padStart(2, "0");
-  const day = String(baseDate.getDate()).padStart(2, "0");
-  const timeString = `${year}-${month}-${day}T${String(hour).padStart(
-    2,
-    "0"
-  )}:${String(minute).padStart(2, "0")}:00`;
+  // SIMPLE TEST: Let's just return the date as-is and see what happens
+  // Maybe the issue is elsewhere in the system
 
-  // Create a date in the user's timezone using Intl.DateTimeFormat
-  const tempDate = new Date(timeString);
-  const localTimeString = tempDate.toLocaleString("sv-SE", {
-    timeZone: userTimezone,
+  const resultDate = new Date(baseDate);
+  resultDate.setHours(hour, minute, 0, 0);
+
+  console.log("🔍 DEBUG: parseTimeFromDate (SIMPLE TEST):", {
+    originalInput: timeInput,
+    userTimezone,
+    baseDate: baseDate.toISOString(),
+    resultDate: resultDate.toISOString(),
+    hour,
+    minute,
+    note: "SIMPLE TEST: Just return the date as-is",
   });
-  const utcResult = new Date(localTimeString.replace(" ", "T"));
 
-  console.log(
-    "🔍 DEBUG: parseTimeFromDate timezone conversion (SIMPLE AND CORRECT):",
-    {
-      originalInput: timeInput,
-      userTimezone,
-      baseDate: baseDate.toISOString(),
-      timeString,
-      localTimeString,
-      utcResult: utcResult.toISOString(),
-      hour,
-      minute,
-      note: "SIMPLE AND CORRECT: Using Intl.DateTimeFormat for timezone conversion",
-    }
-  );
-
-  return utcResult;
+  return resultDate;
 }
 
 /**
