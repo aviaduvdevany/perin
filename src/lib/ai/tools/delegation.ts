@@ -201,6 +201,15 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
     const startTime = new Date(args.startTime);
     const endTime = new Date(startTime.getTime() + args.durationMins * 60000);
 
+    console.log("🔍 DEBUG: checkOwnerAvailabilityHandler called with:", {
+      args,
+      timezone,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      startTimeLocal: startTime.toLocaleString(),
+      endTimeLocal: endTime.toLocaleString(),
+    });
+
     // Check real calendar availability using the calendar integration
     try {
       // Use the real availability checking function
@@ -209,6 +218,11 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
         startTime,
         endTime
       );
+
+      console.log("🔍 DEBUG: Calendar availability result:", {
+        isAvailable: availabilityResult.isAvailable,
+        conflictingEvents: availabilityResult.conflictingEvents,
+      });
 
       if (availabilityResult.isAvailable) {
         return createToolSuccess({

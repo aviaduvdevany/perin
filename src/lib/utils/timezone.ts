@@ -497,7 +497,7 @@ function parseTimeString(timeInput: string, userTimezone: string): Date | null {
 function parseTimeFromDate(
   baseDate: Date,
   timeInput: string,
-  _userTimezone: string
+  userTimezone: string
 ): Date {
   const lowerInput = timeInput.toLowerCase();
 
@@ -533,7 +533,27 @@ function parseTimeFromDate(
   const resultDate = new Date(baseDate);
   resultDate.setHours(hour, minute, 0, 0);
 
-  return resultDate;
+  // CRITICAL FIX: Convert the local time to UTC properly
+  // The issue is that setHours() sets the time in the local timezone of the server
+  // But we want to set the time in the user's timezone and get the equivalent UTC time
+
+  // Get the timezone offset for the user's timezone
+  const utcTime = resultDate.getTime() + resultDate.getTimezoneOffset() * 60000;
+  const userTimezoneOffset = getTimezoneOffset(userTimezone, resultDate);
+  const utcResult = new Date(utcTime - userTimezoneOffset * 60000);
+
+  console.log("🔍 DEBUG: parseTimeFromDate timezone conversion:", {
+    originalInput: timeInput,
+    userTimezone,
+    baseDate: baseDate.toISOString(),
+    resultDate: resultDate.toISOString(),
+    utcResult: utcResult.toISOString(),
+    hour,
+    minute,
+    userTimezoneOffset,
+  });
+
+  return utcResult;
 }
 
 /**
