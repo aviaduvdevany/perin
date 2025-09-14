@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Loader2,
 } from "lucide-react";
+import { Logo } from "../ui/Logo";
 
 interface DelegationChatProps {
   delegationId: string;
@@ -267,7 +268,7 @@ export default function DelegationChat({
         className="p-4 border-b border-[var(--card-border)]"
       >
         <div className="flex items-center gap-4">
-          <PerinAvatar size="md" />
+          <Logo size="md" showText={false} animated={false} />
           <div className="flex-1">
             <h1 className="text-lg font-semibold text-[var(--cta-text)]">
               Talk to Perin
@@ -465,3 +466,5 @@ export default function DelegationChat({
     </div>
   );
 }
+
+export const noLayout = true;
