@@ -17,6 +17,7 @@ import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
 import { multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
+import { getTimezoneOffset } from "@/lib/utils/timezone";
 import {
   createDelegationSteps,
   registerDelegationStepExecutors,
@@ -224,11 +225,15 @@ function parseDateTimeFromMessage(
 ): Date | null {
   const lowerMessage = message.toLowerCase();
 
-  // Get current date in user's timezone
-  const now = new Date();
+  // FIXED: Get current date in the USER'S timezone, not server timezone
+  // Create a date that represents "now" in the user's timezone
+  const serverNow = new Date();
+  const userNow = new Date(
+    serverNow.toLocaleString("en-US", { timeZone: timezone })
+  );
 
   // Parse day of week
-  let targetDate = new Date(now);
+  let targetDate = new Date(userNow);
   const dayPatterns = [
     { pattern: /monday|mon/i, dayOffset: 1 },
     { pattern: /tuesday|tue/i, dayOffset: 2 },
@@ -252,18 +257,18 @@ function parseDateTimeFromMessage(
     dayOffset = 1; // tomorrow
   }
 
-  // Calculate target date
+  // Calculate target date - FIXED: Use user's timezone for all calculations
   if (lowerMessage.includes("today")) {
-    targetDate = new Date(now);
+    targetDate = new Date(userNow);
   } else if (lowerMessage.includes("tomorrow")) {
-    targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    targetDate = new Date(userNow.getTime() + 24 * 60 * 60 * 1000);
   } else if (dayOffset > 0) {
     // Find next occurrence of the specified day
-    const currentDay = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const currentDay = userNow.getDay(); // 0 = Sunday, 1 = Monday, etc.
     let daysUntilTarget = (dayOffset - currentDay + 7) % 7;
     if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week
     targetDate = new Date(
-      now.getTime() + daysUntilTarget * 24 * 60 * 60 * 1000
+      userNow.getTime() + daysUntilTarget * 24 * 60 * 60 * 1000
     );
   }
 
@@ -299,19 +304,58 @@ function parseDateTimeFromMessage(
     }
   }
 
-  // Set the time on the target date
-  targetDate.setHours(hour, minute, 0, 0);
+  // FIXED: Properly handle timezone conversion
+  // Create a date string in the user's timezone, then convert to UTC
+  try {
+    // Create a date string in ISO format for the target date and time
+    const year = targetDate.getFullYear();
+    const month = String(targetDate.getMonth() + 1).padStart(2, "0");
+    const day = String(targetDate.getDate()).padStart(2, "0");
+    const hourStr = String(hour).padStart(2, "0");
+    const minuteStr = String(minute).padStart(2, "0");
 
-  console.log("Parsed date/time from message:", {
-    originalMessage: message,
-    parsedDate: targetDate.toISOString(),
-    timezone,
-    dayOffset,
-    hour,
-    minute,
-  });
+    // Create ISO string in the user's timezone
+    const localDateTimeString = `${year}-${month}-${day}T${hourStr}:${minuteStr}:00`;
 
-  return targetDate;
+    // Convert this to a proper Date object in the user's timezone
+    // We need to create a date that represents the local time in the user's timezone
+    // and then convert it to UTC for storage
+
+    // Method: Create a temporary date object and adjust for timezone offset
+    const tempDate = new Date(`${localDateTimeString}Z`); // Treat as UTC first
+    const utcTime = tempDate.getTime();
+    const localOffset = tempDate.getTimezoneOffset() * 60000; // Convert to milliseconds
+
+    // Get the timezone offset for the user's timezone
+    const userTimezoneOffset = getTimezoneOffset(timezone, tempDate) * 60000;
+
+    // Calculate the correct UTC time
+    const correctUtcTime = utcTime + localOffset - userTimezoneOffset;
+    const finalDate = new Date(correctUtcTime);
+
+    console.log("Parsed date/time from message (TIMEZONE-AWARE):", {
+      originalMessage: message,
+      parsedDate: finalDate.toISOString(),
+      timezone,
+      dayOffset,
+      hour,
+      minute,
+      localDateTimeString,
+      userTimezoneOffset: userTimezoneOffset / 60000, // Convert back to minutes for logging
+      tempDate: tempDate.toISOString(),
+      finalDate: finalDate.toISOString(),
+      serverNow: serverNow.toISOString(),
+      userNow: userNow.toISOString(),
+      note: "All date calculations now use user's timezone instead of server timezone",
+    });
+
+    return finalDate;
+  } catch (error) {
+    console.error("Error parsing date/time with timezone:", error);
+    // Fallback to original behavior
+    targetDate.setHours(hour, minute, 0, 0);
+    return targetDate;
+  }
 }
 
 /**

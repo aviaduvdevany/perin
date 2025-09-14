@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Glass } from "@/components/ui/Glass";
-import PerinAvatar from "@/components/ui/PerinAvatar";
 import { sendDelegationChatStreamingService } from "@/app/(main-app)/services/delegation";
 import { useMultiStepParser } from "@/hooks/useMultiStepParser";
 import { MultiStepMessage } from "@/components/ui/MultiStepMessage";
@@ -76,6 +75,12 @@ export default function DelegationChat({
     try {
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       setUserTimezone(timezone);
+      console.log("🌍 Delegation Chat - Detected user timezone:", {
+        timezone,
+        userAgent: navigator.userAgent?.substring(0, 100),
+        platform: navigator.platform,
+        language: navigator.language,
+      });
     } catch (err) {
       console.warn("Could not detect timezone, using UTC", err);
       setUserTimezone("UTC");
@@ -137,6 +142,12 @@ export default function DelegationChat({
         signature: signature || undefined,
         timezone: userTimezone,
       };
+
+      console.log("📤 Delegation Chat - Sending request with timezone:", {
+        timezone: userTimezone,
+        message: userMessage.content,
+        delegationId,
+      });
 
       // Use streaming service
       const stream = await sendDelegationChatStreamingService(requestData);
