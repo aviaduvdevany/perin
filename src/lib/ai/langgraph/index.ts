@@ -29,13 +29,24 @@ function extractNetworkParams(messages: ChatMessage[]): {
   durationMins?: number;
   conversationText: string;
 } {
-  const text = messages.map((m) => m.content).join("\n");
+  // For integration detection, use only the last user message
+  // This prevents language mixing and context confusion
+  const lastUserMessage = messages
+    .slice()
+    .reverse()
+    .find((m) => m.role === "user");
+
+  const currentMessageText = lastUserMessage?.content || "";
+
+  // For other purposes, keep the full conversation context
+  // const fullConversationText = messages.map((m) => m.content).join("\n");
+
   // Guardrails: do not attempt to parse IDs from free text; require explicit IDs via UI
   return {
     counterpartUserId: undefined,
     connectionId: undefined,
     durationMins: undefined,
-    conversationText: text.slice(-1000),
+    conversationText: currentMessageText, // Use only current message for integration detection
   };
 }
 
@@ -321,6 +332,7 @@ function shouldUseToolMode(
 
   // Keywords that suggest actionable intents
   const actionableKeywords = [
+    // English keywords
     "schedule",
     "meeting",
     "appointment",
@@ -335,9 +347,47 @@ function shouldUseToolMode(
     "arrange",
     "book",
     "reserve",
+    // Hebrew keywords
+    "לקבוע",
+    "פגישה",
+    "פגישות",
+    "הפגישות",
+    "אירוע",
+    "אירועים",
+    "תזמון",
+    "תזמן",
+    "אשר",
+    "אישור",
+    "בטל",
+    "ביטול",
+    "דחה",
+    "דחייה",
+    "הציע",
+    "הצעה",
+    "תאם",
+    "תיאום",
+    "תכנן",
+    "תכנון",
+    "הזמן",
+    "הזמנה",
+    "שמור",
+    "שמירה",
   ];
 
-  return actionableKeywords.some((keyword) => text.includes(keyword));
+  const hasActionableKeyword = actionableKeywords.some((keyword) =>
+    text.includes(keyword)
+  );
+
+  console.log("Tool mode detection:", {
+    lastUserMessage: text,
+    hasActionableKeyword,
+    matchedKeywords: actionableKeywords.filter((keyword) =>
+      text.includes(keyword)
+    ),
+    specialization,
+  });
+
+  return hasActionableKeyword;
 }
 
 /**
@@ -382,6 +432,10 @@ export const executePerinChatWithLangGraph = async (
 
     // Add user data if provided
     if (user) {
+      console.log("LangGraph: Adding user data to state:", {
+        timezone: user.timezone,
+        fullUser: user,
+      });
       state = { ...state, user };
     }
 
@@ -405,6 +459,17 @@ export const executePerinChatWithLangGraph = async (
     const { conversationText, counterpartUserId, connectionId, durationMins } =
       extractNetworkParams(messages);
     state = { ...state, conversationContext: conversationText };
+
+    // Debug: Log message processing
+    console.log("LangGraph: Message processing debug:", {
+      totalMessages: messages.length,
+      lastUserMessage: messages
+        .slice()
+        .reverse()
+        .find((m) => m.role === "user")?.content,
+      conversationText,
+      messageRoles: messages.map((m, i) => `${i}: ${m.role}`),
+    });
 
     // Create a streaming response that processes the workflow in real-time
     const stream = new ReadableStream({

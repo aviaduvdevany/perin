@@ -24,8 +24,14 @@ export async function POST(request: NextRequest) {
 
     // Parse request body
     const body = await request.json();
-    const { messages, tone, perinName, specialization, clientIntegrations } =
-      body;
+    const {
+      messages,
+      tone,
+      perinName,
+      specialization,
+      clientIntegrations,
+      frontendTimezone,
+    } = body;
 
     // Validate required fields
     if (!messages || !Array.isArray(messages)) {
@@ -73,7 +79,7 @@ export async function POST(request: NextRequest) {
       {
         perin_name: user.perin_name || undefined,
         tone: user.tone || undefined,
-        timezone: user.timezone,
+        timezone: frontendTimezone || user.timezone || "UTC", // Frontend timezone first, then DB, then UTC
         preferred_hours: user.preferred_hours || undefined,
         memory: user.memory || undefined,
       },
@@ -95,6 +101,11 @@ export async function POST(request: NextRequest) {
       hasIntegrations: Array.isArray(clientIntegrations)
         ? clientIntegrations.length > 0
         : false,
+      timezoneInfo: {
+        frontendTimezone,
+        databaseTimezone: user.timezone,
+        finalTimezone: frontendTimezone || user.timezone || "UTC",
+      },
     });
 
     return response;

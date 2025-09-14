@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { getUserIdFromSession } from "@/lib/utils/session-helpers";
+import { getUserTimezone } from "@/lib/utils/timezone";
 import type {
   PerinChatRequest,
   PerinMemoryRequest,
@@ -58,6 +59,9 @@ export function usePerinAI(): UsePerinAI {
           )
         );
 
+        // Get frontend-detected timezone (most accurate)
+        const frontendTimezone = getUserTimezone();
+
         const response = await fetch("/api/ai/chat", {
           method: "POST",
           headers: {
@@ -66,6 +70,7 @@ export function usePerinAI(): UsePerinAI {
           body: JSON.stringify({
             ...request,
             clientIntegrations: connectedTypes,
+            frontendTimezone, // Send frontend-detected timezone
           }),
         });
 

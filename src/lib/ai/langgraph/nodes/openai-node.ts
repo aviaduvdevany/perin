@@ -41,6 +41,8 @@ export const buildSystemPrompt = (state: LangGraphChatState): string => {
 
   const basePrompt = `You are ${perinName}, a tone-aware digital delegate and personal AI assistant.
 
+**LANGUAGE INSTRUCTION: Always respond in the same language as the user's message. If they write in Hebrew, respond in Hebrew. If they write in English, respond in English. Match their language exactly.**
+
 ${
   delegationContext?.isDelegation
     ? `
@@ -94,6 +96,11 @@ Key Principles:
 6. Maintain persistent identity across conversations
 7. When email context is available, use it to provide informed responses about emails
 8. When calendar context is available, use it to help with scheduling and provide insights about upcoming events
+9. **CRITICAL: Always respond in the same language as the user's message**
+   - If user writes in Hebrew (עברית), respond in Hebrew
+   - If user writes in English, respond in English
+   - If user writes in Arabic, respond in Arabic
+   - Match the user's language exactly for natural conversation
 
 Tool Usage Guidelines:
 ${
@@ -139,6 +146,7 @@ IMPORTANT: Always refer to times in the user's timezone (${
   }), never say "UTC" unless the user specifically asks for UTC time.
 
 DEBUG: User timezone is "${user?.timezone || "UTC"}"
+DEBUG: Full user object: ${JSON.stringify(user, null, 2)}
 
 Email Context: ${
     emailContext && emailContext.recentEmails

@@ -113,6 +113,7 @@ export const INTEGRATION_REGISTRY: Record<
     name: "Gmail",
     scopes: ["https://www.googleapis.com/auth/gmail.readonly"],
     keywords: [
+      // English keywords
       "email",
       "message",
       "inbox",
@@ -125,6 +126,21 @@ export const INTEGRATION_REGISTRY: Record<
       "outbox",
       "draft",
       "attachment",
+      // Hebrew keywords
+      "אימייל",
+      "הודעה",
+      "הודעות",
+      "תיבת דואר",
+      "דואר נכנס",
+      "נשלח",
+      "תשובה",
+      "תגובה",
+      "דואר",
+      "ג'ימייל",
+      "התכתבות",
+      "טיוטה",
+      "קובץ מצורף",
+      "צירוף",
     ],
     contextLoader: gmailContextLoader,
     authUrl: "/api/integrations/gmail/connect",
@@ -176,6 +192,7 @@ export const INTEGRATION_REGISTRY: Record<
       "https://www.googleapis.com/auth/calendar.events",
     ],
     keywords: [
+      // English keywords
       "calendar",
       "schedule",
       "meeting",
@@ -193,6 +210,31 @@ export const INTEGRATION_REGISTRY: Record<
       "time",
       "agenda",
       "availability",
+      // Hebrew keywords
+      "לוח",
+      "לוח זמנים",
+      "תזמון",
+      "פגישה",
+      "הפגישות",
+      "פגישות",
+      "פגישה",
+      "אירוע",
+      "אירועים",
+      "תור",
+      "הזמנה",
+      "זמין",
+      "עסוק",
+      "זמן פנוי",
+      "מחר",
+      "שבוע הבא",
+      "היום",
+      "מתי",
+      "שעה",
+      "זמן",
+      "סדר יום",
+      "זמינות",
+      "בלו״ז",
+      "לוז",
     ],
     contextLoader: calendarContextLoader,
     authUrl: "/api/integrations/calendar/connect",
@@ -431,6 +473,7 @@ export const detectIntegrationContext = (
       confidence,
       isRelevant,
       threshold: 0.3,
+      textLength: normalizedText.length,
     });
   }
 
@@ -441,6 +484,7 @@ export const detectIntegrationContext = (
       confidence,
       isRelevant,
       threshold: 0.3,
+      textLength: normalizedText.length,
     });
   }
 
