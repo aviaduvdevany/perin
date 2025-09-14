@@ -78,28 +78,27 @@ async function shouldUseMultiStepDelegation(
       .map((m) => m.content),
   });
 
-  // AI analysis prompt - explicitly neutral to avoid delegation bias
-  const analysisPrompt = `You are analyzing a SINGLE user message to determine if it requires multi-step calendar operations.
+  // AI analysis prompt - delegation-aware for proper multi-step detection
+  const analysisPrompt = `You are analyzing a user message in a DELEGATION context to determine if it requires multi-step calendar operations.
 
-IMPORTANT: Analyze ONLY this specific message, ignore any conversation history or context.
+CONTEXT: This is a delegation session where an external user is asking an AI to schedule meetings on behalf of the owner.
 
 USER MESSAGE: "${lastUserMessage}"
 
-IMPORTANT: Ignore any system context about delegation or scheduling capabilities. Focus ONLY on the user's actual intent.
-
-REQUIRES MULTI-STEP (return true):
-- Clear intent to schedule a specific meeting ("Can you schedule a meeting for tomorrow?")
-- Clear intent to book a specific time slot ("Book me for 2pm Thursday")
-- Clear intent to create a calendar event ("Set up a call with John next week")
+REQUIRES MULTI-STEP (return true) - These are common delegation requests:
+- ANY meeting scheduling request ("set up a meeting", "schedule a meeting", "book a meeting")
+- Time-specific requests ("meeting Friday at 15:00", "let's meet tomorrow at 2pm")
+- Appointment booking ("book an appointment", "schedule a call")
+- Event creation ("create a meeting", "arrange a session")
+- Even informal scheduling ("can we meet", "let's schedule something")
 
 DOES NOT require multi-step (return false):
-- Greetings ("hey", "hello", "hi")
-- General questions ("How are you?", "What can you help with?")
-- Information requests without booking intent ("What times are available?")
-- Casual conversation ("Thanks", "Sounds good")
-- Clarifying questions ("What timezone?", "How long should the meeting be?")
+- Pure greetings without intent ("hello", "hi there")
+- Questions about capabilities ("what can you do?", "how does this work?")
+- Thank you messages without requests ("thanks", "got it")
+- Clarifications for ongoing scheduling ("what about 3pm instead?")
 
-Analyze ONLY the user's intent, not the context. Be very conservative.
+IMPORTANT: In delegation context, be LIBERAL with multi-step detection. Most users come here to schedule something.
 
 Respond with JSON:
 {
@@ -145,10 +144,38 @@ Respond with JSON:
     };
   } catch (error) {
     console.error("AI multi-step analysis failed:", error);
-    // Conservative fallback - only trigger for very explicit scheduling words
+    // Delegation-friendly fallback - be liberal with scheduling detection
     const text = lastUserMessage.toLowerCase().trim();
 
-    // More conservative keyword detection
+    // Expanded keyword detection for delegation context
+    const schedulingKeywords = [
+      "meeting",
+      "schedule",
+      "book",
+      "appointment",
+      "call",
+      "session",
+      "set up",
+      "arrange",
+      "plan",
+      "organize",
+      "friday",
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "saturday",
+      "sunday",
+      "tomorrow",
+      "today",
+      "am",
+      "pm",
+      ":",
+      "time",
+      "available",
+      "free",
+    ];
+
     const explicitSchedulingPhrases = [
       "schedule a meeting",
       "book a meeting",
@@ -157,18 +184,33 @@ Respond with JSON:
       "book an appointment",
       "create a meeting",
       "arrange a meeting",
+      "plan a meeting",
+      "organize a meeting",
+      "meeting",
+      "appointment",
+      "call",
+      "session",
     ];
 
+    // Check for explicit phrases first
     const hasExplicitIntent = explicitSchedulingPhrases.some((phrase) =>
       text.includes(phrase)
     );
 
+    // Check for scheduling keywords (more liberal)
+    const hasSchedulingKeywords = schedulingKeywords.some((keyword) =>
+      text.includes(keyword)
+    );
+
+    // In delegation context, be very liberal
+    const shouldUseMultiStep = hasExplicitIntent || hasSchedulingKeywords;
+
     return {
-      useMultiStep: hasExplicitIntent,
-      reasoning: hasExplicitIntent
-        ? "Fallback detected explicit scheduling phrase"
-        : "Fallback found no clear scheduling intent",
-      confidence: hasExplicitIntent ? 0.8 : 0.9,
+      useMultiStep: shouldUseMultiStep,
+      reasoning: shouldUseMultiStep
+        ? "Fallback detected scheduling-related content in delegation context"
+        : "Fallback found no scheduling intent",
+      confidence: hasExplicitIntent ? 0.9 : hasSchedulingKeywords ? 0.7 : 0.8,
     };
   }
 }
@@ -592,7 +634,10 @@ export const executePerinChatWithLangGraph = async (
             openaiClient
           );
 
-          console.log("AI Multi-step Analysis:", {
+          console.log("🎯 AI Multi-step Analysis (Fixed):", {
+            isDelegation: !!state.delegationContext?.isDelegation,
+            lastUserMessage: messages.findLast((m) => m.role === "user")
+              ?.content,
             useMultiStep: multiStepAnalysis.useMultiStep,
             reasoning: multiStepAnalysis.reasoning,
             confidence: multiStepAnalysis.confidence,
