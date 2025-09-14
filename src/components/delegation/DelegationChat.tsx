@@ -338,10 +338,10 @@ export default function DelegationChat({
                     shadow-lg
                     glow-primary
                     ${
-                    message.fromExternal
-                      ? "bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
-                      : "bg-[var(--background-secondary)]/50 "
-                  }`}
+                      message.fromExternal
+                        ? "bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white"
+                        : "bg-[var(--background-secondary)]/50 "
+                    }`}
                 >
                   {message.isLoading ? (
                     <div className="space-y-3">
