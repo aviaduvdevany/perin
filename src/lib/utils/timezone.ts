@@ -533,16 +533,17 @@ function parseTimeFromDate(
   const resultDate = new Date(baseDate);
   resultDate.setHours(hour, minute, 0, 0);
 
-  // CRITICAL FIX: Convert the local time to UTC properly
-  // The issue is that setHours() sets the time in the local timezone of the server
-  // But we want to set the time in the user's timezone and get the equivalent UTC time
+  // CORRECT APPROACH: Use the existing getTimezoneOffset function properly
+  // The key insight: we want to convert FROM user timezone TO UTC
 
-  // Get the timezone offset for the user's timezone
-  const utcTime = resultDate.getTime() + resultDate.getTimezoneOffset() * 60000;
+  // Get the timezone offset for the user's timezone (in minutes)
   const userTimezoneOffset = getTimezoneOffset(userTimezone, resultDate);
-  const utcResult = new Date(utcTime - userTimezoneOffset * 60000);
 
-  console.log("🔍 DEBUG: parseTimeFromDate timezone conversion:", {
+  // Create a date that represents the local time in the user's timezone
+  // Then adjust it to get the equivalent UTC time
+  const utcResult = new Date(resultDate.getTime() - userTimezoneOffset * 60000);
+
+  console.log("🔍 DEBUG: parseTimeFromDate timezone conversion (CORRECT):", {
     originalInput: timeInput,
     userTimezone,
     baseDate: baseDate.toISOString(),
@@ -551,9 +552,46 @@ function parseTimeFromDate(
     hour,
     minute,
     userTimezoneOffset,
+    note: "Using correct approach: local time - offset = UTC time",
   });
 
   return utcResult;
+}
+
+/**
+ * Get timezone offset string for a given timezone and date
+ */
+function getTimezoneOffsetString(timezone: string, date: Date): string {
+  try {
+    // Create a date formatter for the timezone
+    const formatter = new Intl.DateTimeFormat("en", {
+      timeZone: timezone,
+      timeZoneName: "longOffset",
+    });
+
+    // Get the offset string (e.g., "+03:00" or "-05:00")
+    const parts = formatter.formatToParts(date);
+    const offsetPart = parts.find((part) => part.type === "timeZoneName");
+
+    if (offsetPart && offsetPart.value) {
+      // Convert "GMT+03:00" to "+03:00"
+      return offsetPart.value.replace("GMT", "");
+    }
+
+    // Fallback: calculate offset manually
+    const offset = getTimezoneOffset(timezone, date);
+    const hours = Math.floor(Math.abs(offset) / 60);
+    const minutes = Math.abs(offset) % 60;
+    const sign = offset >= 0 ? "+" : "-";
+
+    return `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(
+      2,
+      "0"
+    )}`;
+  } catch (error) {
+    console.warn("Failed to get timezone offset string:", error);
+    return "+00:00"; // UTC fallback
+  }
 }
 
 /**
