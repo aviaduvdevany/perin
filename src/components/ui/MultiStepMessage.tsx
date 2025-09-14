@@ -498,31 +498,6 @@ export function MultiStepMessage({
                 >
                   {statusConfig.label}
                 </motion.div>
-
-                {userCanControl && (
-                  <div className="flex items-center space-x-1">
-                    <Glass
-                      variant="subtle"
-                      className="p-1 cursor-pointer"
-                      onClick={togglePlayback}
-                    >
-                      {isPlaying ? (
-                        <Pause className="w-3 h-3 text-[var(--foreground-muted)]" />
-                      ) : (
-                        <Play className="w-3 h-3 text-[var(--foreground-muted)]" />
-                      )}
-                    </Glass>
-                    <Glass
-                      variant="subtle"
-                      className="px-2 py-1 cursor-pointer"
-                      onClick={skipToEnd}
-                    >
-                      <span className="text-xs text-[var(--foreground-muted)]">
-                        Skip
-                      </span>
-                    </Glass>
-                  </div>
-                )}
               </div>
             </div>
           </div>
