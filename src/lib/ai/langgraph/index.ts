@@ -22,7 +22,7 @@ import {
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
 import { OpenAI } from "openai";
-import { getTimezoneOffset } from "@/lib/utils/timezone";
+import { parseUserTimeInput } from "@/lib/utils/timezone";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -223,108 +223,28 @@ function parseDateTimeFromMessage(
   message: string,
   timezone: string
 ): Date | null {
-  const lowerMessage = message.toLowerCase();
+  // Use the new clean timezone parsing approach
 
-  // FIXED: Properly get current date in the USER'S timezone
-  // Use a more reliable method to get the current time in the user's timezone
-  const now = new Date();
+  const result = parseUserTimeInput(message, timezone);
 
-  // Get the current time in the user's timezone by calculating the offset
-  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;
-  const userTimezoneOffset = getTimezoneOffset(timezone, now);
-  const userNow = new Date(utcTime - userTimezoneOffset * 60000);
-
-  // Parse day of week
-  let targetDate = new Date(userNow);
-  const dayPatterns = [
-    { pattern: /monday|mon/i, dayOffset: 1 },
-    { pattern: /tuesday|tue/i, dayOffset: 2 },
-    { pattern: /wednesday|wed/i, dayOffset: 3 },
-    { pattern: /thursday|thu/i, dayOffset: 4 },
-    { pattern: /friday|fri/i, dayOffset: 5 },
-    { pattern: /saturday|sat/i, dayOffset: 6 },
-    { pattern: /sunday|sun/i, dayOffset: 0 },
-  ];
-
-  let dayOffset = 0;
-  for (const { pattern, dayOffset: offset } of dayPatterns) {
-    if (pattern.test(lowerMessage)) {
-      dayOffset = offset;
-      break;
-    }
+  if (!result.isValid) {
+    console.log("Could not parse date/time from message:", {
+      message,
+      timezone,
+      error: result.error,
+    });
+    return null;
   }
 
-  // If no day specified, default to tomorrow
-  if (dayOffset === 0 && !lowerMessage.includes("today")) {
-    dayOffset = 1; // tomorrow
-  }
-
-  // Calculate target date - FIXED: Use user's timezone for all calculations
-  if (lowerMessage.includes("today")) {
-    targetDate = new Date(userNow);
-  } else if (lowerMessage.includes("tomorrow")) {
-    targetDate = new Date(userNow.getTime() + 24 * 60 * 60 * 1000);
-  } else if (dayOffset > 0) {
-    // Find next occurrence of the specified day
-    const currentDay = userNow.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    let daysUntilTarget = (dayOffset - currentDay + 7) % 7;
-    if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week
-    targetDate = new Date(
-      userNow.getTime() + daysUntilTarget * 24 * 60 * 60 * 1000
-    );
-  }
-
-  // Parse time
-  let hour = 14; // Default to 2 PM
-  let minute = 0;
-
-  // Look for time patterns
-  const timePatterns = [
-    /(\d{1,2}):(\d{2})/, // 14:00, 2:30
-    /(\d{1,2})\s*(am|pm)/i, // 2pm, 2:30pm
-    /(\d{1,2})\s*(\d{2})\s*(am|pm)/i, // 2 30pm
-  ];
-
-  for (const pattern of timePatterns) {
-    const match = lowerMessage.match(pattern);
-    if (match) {
-      if (match[3]) {
-        // AM/PM format
-        hour = parseInt(match[1]);
-        minute = match[2] ? parseInt(match[2]) : 0;
-        if (match[3].toLowerCase() === "pm" && hour !== 12) {
-          hour += 12;
-        } else if (match[3].toLowerCase() === "am" && hour === 12) {
-          hour = 0;
-        }
-      } else {
-        // 24-hour format
-        hour = parseInt(match[1]);
-        minute = parseInt(match[2]);
-      }
-      break;
-    }
-  }
-
-  // FIXED: Simple approach - just set the time and let the system handle timezone conversion
-  // The key fix is that we're now using userNow (user's timezone) for date calculations
-  // instead of server timezone. The time setting can be simple.
-  targetDate.setHours(hour, minute, 0, 0);
-
-  console.log("Parsed date/time from message (USER TIMEZONE CALCULATIONS):", {
+  console.log("Parsed date/time from message (CLEAN APPROACH):", {
     originalMessage: message,
-    parsedDate: targetDate.toISOString(),
-    timezone,
-    dayOffset,
-    hour,
-    minute,
-    serverNow: now.toISOString(),
-    userNow: userNow.toISOString(),
-    targetDate: targetDate.toISOString(),
-    note: "Using user's timezone for date calculations, simple time setting",
+    parsedDate: result.dateTime.toISOString(),
+    timezone: result.timezone,
+    isValid: result.isValid,
+    note: "Using clean timezone approach - no conversion, just parsing",
   });
 
-  return targetDate;
+  return result.dateTime;
 }
 
 /**

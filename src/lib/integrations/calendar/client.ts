@@ -394,39 +394,18 @@ export const createCalendarEvent = async (
     const startDate = new Date(eventData.start);
     const endDate = new Date(eventData.end);
 
-    // Format as local datetime (without timezone suffix) for the specified timezone
-    // Use a more reliable method that works consistently across environments
-    const formatOptions: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-      timeZone: timezone,
-    };
+    // NEW APPROACH: Use the datetime as-is, let Google Calendar handle timezone conversion
+    // The datetime should already be in the correct timezone from the user input
+    const startLocal = startDate.toISOString().replace("Z", "");
+    const endLocal = endDate.toISOString().replace("Z", "");
 
-    const startLocal = startDate
-      .toLocaleString("en-US", formatOptions)
-      .replace(
-        /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
-        "$3-$1-$2T$4:$5:$6"
-      );
-    const endLocal = endDate
-      .toLocaleString("en-US", formatOptions)
-      .replace(
-        /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/,
-        "$3-$1-$2T$4:$5:$6"
-      );
-
-    console.log("Calendar event timezone conversion:", {
+    console.log("Calendar event timezone handling (CLEAN APPROACH):", {
       originalStart: eventData.start,
       originalEnd: eventData.end,
       timezone,
       startLocal,
       endLocal,
-      note: "Converting UTC datetime to local datetime for Google Calendar",
+      note: "Using clean approach - passing timezone to Google Calendar directly",
     });
 
     const googleEvent: calendar_v3.Schema$Event = {

@@ -62,12 +62,75 @@ export const TIMEZONE_OPTIONS = [
 export type TimezoneOption = (typeof TIMEZONE_OPTIONS)[number];
 
 /**
- * Get user's timezone from browser
+ * Get user's timezone from browser with robust detection
  */
 export function getUserTimezone(): string {
   try {
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    return timezoneSchema.safeParse(timezone).success ? timezone : "UTC";
+    // Primary method: Intl.DateTimeFormat
+    if (typeof Intl !== "undefined" && Intl.DateTimeFormat) {
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (timezone && timezoneSchema.safeParse(timezone).success) {
+        return timezone;
+      }
+    }
+
+    // Fallback method: Check if timezone is supported
+    const testDate = new Date();
+    const testTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    try {
+      // Test if the timezone is actually supported
+      new Intl.DateTimeFormat("en-US", { timeZone: testTimezone }).format(
+        testDate
+      );
+      return testTimezone;
+    } catch {
+      // If not supported, try to detect from offset
+      return detectTimezoneFromOffset();
+    }
+  } catch {
+    return detectTimezoneFromOffset();
+  }
+}
+
+/**
+ * Fallback timezone detection from offset
+ */
+function detectTimezoneFromOffset(): string {
+  try {
+    const offset = new Date().getTimezoneOffset();
+    const offsetHours = -offset / 60;
+
+    // Common timezone mappings based on offset
+    const timezoneMap: Record<number, string> = {
+      "-12": "Pacific/Kwajalein",
+      "-11": "Pacific/Midway",
+      "-10": "Pacific/Honolulu",
+      "-9": "America/Anchorage",
+      "-8": "America/Los_Angeles",
+      "-7": "America/Denver",
+      "-6": "America/Chicago",
+      "-5": "America/New_York",
+      "-4": "America/Caracas",
+      "-3": "America/Argentina/Buenos_Aires",
+      "-2": "Atlantic/South_Georgia",
+      "-1": "Atlantic/Azores",
+      "0": "UTC",
+      "1": "Europe/London",
+      "2": "Europe/Paris",
+      "3": "Europe/Moscow",
+      "4": "Asia/Dubai",
+      "5": "Asia/Karachi",
+      "6": "Asia/Dhaka",
+      "7": "Asia/Bangkok",
+      "8": "Asia/Shanghai",
+      "9": "Asia/Tokyo",
+      "10": "Australia/Sydney",
+      "11": "Pacific/Norfolk",
+      "12": "Pacific/Auckland",
+    };
+
+    return timezoneMap[offsetHours as keyof typeof timezoneMap] || "UTC";
   } catch {
     return "UTC";
   }
@@ -312,4 +375,160 @@ export function getTimezoneInfo(timezone: string, date: Date = new Date()) {
     isDST: isDST(timezone, date),
     currentTime: getCurrentTimeInTimezone(timezone),
   };
+}
+
+/**
+ * Parse user input time and return it as-is in the user's timezone
+ * This is the key function for the new approach - no conversion, just parsing
+ */
+export function parseUserTimeInput(
+  timeInput: string,
+  userTimezone: string
+): {
+  dateTime: Date;
+  timezone: string;
+  isValid: boolean;
+  error?: string;
+} {
+  try {
+    // Validate timezone first
+    if (!isValidTimezone(userTimezone)) {
+      return {
+        dateTime: new Date(),
+        timezone: "UTC",
+        isValid: false,
+        error: "Invalid timezone",
+      };
+    }
+
+    // Parse the time input (this is where we'd add more sophisticated parsing)
+    const parsedDate = parseTimeString(timeInput, userTimezone);
+
+    if (!parsedDate) {
+      return {
+        dateTime: new Date(),
+        timezone: userTimezone,
+        isValid: false,
+        error: "Could not parse time input",
+      };
+    }
+
+    return {
+      dateTime: parsedDate,
+      timezone: userTimezone,
+      isValid: true,
+    };
+  } catch (error) {
+    return {
+      dateTime: new Date(),
+      timezone: userTimezone,
+      isValid: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+/**
+ * Parse time string in user's timezone context
+ */
+function parseTimeString(timeInput: string, userTimezone: string): Date | null {
+  const lowerInput = timeInput.toLowerCase();
+
+  // Get current time in user's timezone for context
+  const now = new Date();
+  const userNow = new Date(
+    now.toLocaleString("en-US", { timeZone: userTimezone })
+  );
+
+  // Parse relative times (tomorrow, next week, etc.)
+  if (lowerInput.includes("tomorrow")) {
+    const tomorrow = new Date(userNow);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return parseTimeFromDate(tomorrow, lowerInput, userTimezone);
+  }
+
+  if (lowerInput.includes("today")) {
+    return parseTimeFromDate(userNow, lowerInput, userTimezone);
+  }
+
+  // Parse day of week
+  const dayPatterns = [
+    { pattern: /monday|mon/i, dayOffset: 1 },
+    { pattern: /tuesday|tue/i, dayOffset: 2 },
+    { pattern: /wednesday|wed/i, dayOffset: 3 },
+    { pattern: /thursday|thu/i, dayOffset: 4 },
+    { pattern: /friday|fri/i, dayOffset: 5 },
+    { pattern: /saturday|sat/i, dayOffset: 6 },
+    { pattern: /sunday|sun/i, dayOffset: 0 },
+  ];
+
+  for (const { pattern, dayOffset } of dayPatterns) {
+    if (pattern.test(lowerInput)) {
+      const targetDate = getNextDayOfWeek(userNow, dayOffset);
+      return parseTimeFromDate(targetDate, lowerInput, userTimezone);
+    }
+  }
+
+  // Default to tomorrow if no specific day mentioned
+  const tomorrow = new Date(userNow);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return parseTimeFromDate(tomorrow, lowerInput, userTimezone);
+}
+
+/**
+ * Parse time from a given date
+ */
+function parseTimeFromDate(
+  baseDate: Date,
+  timeInput: string,
+  _userTimezone: string
+): Date {
+  const lowerInput = timeInput.toLowerCase();
+
+  // Default time
+  let hour = 14; // 2 PM
+  let minute = 0;
+
+  // Parse time patterns
+  const timePatterns = [
+    /(\d{1,2}):(\d{2})\s*(am|pm)?/i,
+    /(\d{1,2})\s*(am|pm)/i,
+  ];
+
+  for (const pattern of timePatterns) {
+    const match = lowerInput.match(pattern);
+    if (match) {
+      hour = parseInt(match[1]);
+      minute = match[2] ? parseInt(match[2]) : 0;
+
+      if (match[3]) {
+        const ampm = match[3].toLowerCase();
+        if (ampm === "pm" && hour !== 12) {
+          hour += 12;
+        } else if (ampm === "am" && hour === 12) {
+          hour = 0;
+        }
+      }
+      break;
+    }
+  }
+
+  // Create the date in user's timezone
+  const resultDate = new Date(baseDate);
+  resultDate.setHours(hour, minute, 0, 0);
+
+  return resultDate;
+}
+
+/**
+ * Get next occurrence of a day of week
+ */
+function getNextDayOfWeek(fromDate: Date, targetDay: number): Date {
+  const currentDay = fromDate.getDay();
+  let daysUntilTarget = (targetDay - currentDay + 7) % 7;
+  if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week
+
+  const targetDate = new Date(fromDate);
+  targetDate.setDate(fromDate.getDate() + daysUntilTarget);
+  return targetDate;
 }

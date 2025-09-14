@@ -19,6 +19,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
+import { getUserTimezone } from "@/lib/utils/timezone";
 
 interface DelegationChatProps {
   delegationId: string;
@@ -70,16 +71,20 @@ export default function DelegationChat({
     inputRef.current?.focus();
   }, []);
 
-  // Detect user's timezone
+  // Detect user's timezone with robust detection
   useEffect(() => {
     try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Use the robust timezone detection
+      const timezone = getUserTimezone();
       setUserTimezone(timezone);
-      console.log("🌍 Delegation Chat - Detected user timezone:", {
-        timezone,
+
+      console.log("🌍 Delegation Chat - Robust timezone detection:", {
+        detectedTimezone: timezone,
         userAgent: navigator.userAgent?.substring(0, 100),
         platform: navigator.platform,
         language: navigator.language,
+        currentTime: new Date().toISOString(),
+        localTime: new Date().toLocaleString(),
       });
     } catch (err) {
       console.warn("Could not detect timezone, using UTC", err);
