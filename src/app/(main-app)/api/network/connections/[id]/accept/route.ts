@@ -6,7 +6,10 @@ import { ErrorResponses, withErrorHandler } from "@/lib/utils/error-handlers";
 import * as networkQueries from "@/lib/queries/network";
 import * as notif from "@/lib/queries/notifications";
 import type { AcceptConnectionRequest } from "@/types/network";
-import { AcceptConnectionSchema, safeParse } from "@/app/api/network/schemas";
+import {
+  AcceptConnectionSchema,
+  safeParse,
+} from "@/app/(main-app)/api/network/schemas";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 function extractConnectionIdFromUrl(url: string): string | null {

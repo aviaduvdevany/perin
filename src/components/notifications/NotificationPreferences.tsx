@@ -7,7 +7,7 @@ import { Glass } from "@/components/ui/Glass";
 import {
   getNotificationPreferencesService,
   updateNotificationPreferencesService,
-} from "@/app/services/notifications";
+} from "@/app/(main-app)/services/notifications";
 
 interface NotificationPreferences {
   timezone?: string | null;

@@ -6,11 +6,11 @@ import {
   listConnectionsService,
   acceptConnectionService,
   revokeConnectionService,
-} from "@/app/services/network";
+} from "@/app/(main-app)/services/network";
 import {
   listNotificationsService,
   markNotificationReadService,
-} from "@/app/services/notifications";
+} from "@/app/(main-app)/services/notifications";
 import type { UserConnection } from "@/types/network";
 import type { Notification as NotificationType } from "@/types/notifications";
 

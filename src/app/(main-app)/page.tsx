@@ -22,7 +22,7 @@ import {
 import {
   confirmTimeProposalService,
   declineTimeProposalService,
-} from "@/app/services/notifications";
+} from "@/app/(main-app)/services/notifications";
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();

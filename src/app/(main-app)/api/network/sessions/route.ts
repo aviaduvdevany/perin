@@ -8,7 +8,7 @@ import type { StartNetworkSessionRequest } from "@/types/network";
 import {
   StartNetworkSessionSchema,
   safeParse,
-} from "@/app/api/network/schemas";
+} from "@/app/(main-app)/api/network/schemas";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // POST /api/network/sessions - Start a negotiation/scheduling session

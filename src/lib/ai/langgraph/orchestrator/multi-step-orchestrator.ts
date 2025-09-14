@@ -269,6 +269,15 @@ export class MultiStepOrchestrator {
         MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_COMPLETE()
       );
 
+      // Emit a concluding message to make the conversation feel natural
+      const concludingMessage = this.generateConcludingMessage(context, state);
+      if (concludingMessage) {
+        this.emitToStream(
+          streamController,
+          MULTI_STEP_CONTROL_TOKENS.SEPARATE_MESSAGE(concludingMessage)
+        );
+      }
+
       this.options.onComplete?.(context);
     } catch (error) {
       context.status = "failed";
@@ -304,6 +313,23 @@ export class MultiStepOrchestrator {
       progressMessage: `✅ ${step.name} completed successfully`,
     };
   };
+
+  /**
+   * Generate a concluding message based on the context and completed steps
+   */
+  private generateConcludingMessage(
+    context: MultiStepContext,
+    state: LangGraphChatState
+  ): string | null {
+    // Only generate concluding messages for delegation contexts
+    if (!state.delegationContext?.isDelegation) {
+      return null;
+    }
+
+    // Simple, universal message - the LLM will naturally respond in the user's language
+    // based on the conversation context it already has
+    return "Perfect! I've completed that for you. Is there anything else I can help with?";
+  }
 
   /**
    * Helper to emit content to stream

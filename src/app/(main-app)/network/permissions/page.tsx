@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   getConnectionPermissionsService,
   updateConnectionPermissionsService,
-} from "@/app/services/network";
+} from "@/app/(main-app)/services/network";
 import type {
   ConnectionPermission,
   ConnectionConstraints,

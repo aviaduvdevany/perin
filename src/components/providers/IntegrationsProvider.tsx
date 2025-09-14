@@ -13,7 +13,7 @@ import {
   getUserIntegrationsService,
   connectIntegrationService,
   disconnectIntegrationService,
-} from "@/app/services/integrations";
+} from "@/app/(main-app)/services/integrations";
 
 export type IntegrationsContextValue = {
   integrations: IntegrationStatus[];

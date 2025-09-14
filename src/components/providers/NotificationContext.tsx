@@ -12,7 +12,7 @@ import { useSession } from "next-auth/react";
 import {
   listNotificationsService,
   markNotificationReadService,
-} from "@/app/services/notifications";
+} from "@/app/(main-app)/services/notifications";
 import type { Notification } from "@/types/notifications";
 
 interface NotificationContextType {

@@ -11,7 +11,7 @@ import {
   confirmTimeProposalService,
   declineTimeProposalService,
   getSessionProposalsService,
-} from "@/app/services/notifications";
+} from "@/app/(main-app)/services/notifications";
 import type { Notification } from "@/types/notifications";
 
 interface NotificationsModalProps {

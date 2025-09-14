@@ -29,6 +29,14 @@ export const POST = async (request: NextRequest) => {
   const { delegationId, message, externalUserName, signature, timezone } =
     validation.data;
 
+  // Debug logging for timezone detection
+  console.log("🌍 Delegation chat timezone received:", {
+    delegationId,
+    timezone,
+    externalUserName,
+    userAgent: request.headers.get("user-agent")?.substring(0, 100),
+  });
+
   // Rate limiting for delegation chat
   const rateLimitAllowed = rateLimit(
     `delegation-${delegationId}`,
