@@ -399,14 +399,19 @@ export const createCalendarEvent = async (
     const startLocal = startDate.toISOString().replace("Z", "");
     const endLocal = endDate.toISOString().replace("Z", "");
 
-    console.log("Calendar event timezone handling (CLEAN APPROACH):", {
-      originalStart: eventData.start,
-      originalEnd: eventData.end,
-      timezone,
-      startLocal,
-      endLocal,
-      note: "Using clean approach - passing timezone to Google Calendar directly",
-    });
+    console.log(
+      "🔍 DEBUG: Calendar event timezone handling (CLEAN APPROACH):",
+      {
+        originalStart: eventData.start,
+        originalEnd: eventData.end,
+        timezone,
+        startLocal,
+        endLocal,
+        startDateObject: startDate.toISOString(),
+        endDateObject: endDate.toISOString(),
+        note: "Using clean approach - passing timezone to Google Calendar directly",
+      }
+    );
 
     const googleEvent: calendar_v3.Schema$Event = {
       summary: eventData.summary,

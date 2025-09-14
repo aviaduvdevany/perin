@@ -390,9 +390,16 @@ export function parseUserTimeInput(
   isValid: boolean;
   error?: string;
 } {
+  console.log("🔍 DEBUG: parseUserTimeInput called with:", {
+    timeInput,
+    userTimezone,
+    currentTime: new Date().toISOString(),
+  });
+
   try {
     // Validate timezone first
     if (!isValidTimezone(userTimezone)) {
+      console.log("🔍 DEBUG: Invalid timezone detected:", userTimezone);
       return {
         dateTime: new Date(),
         timezone: "UTC",
@@ -405,6 +412,7 @@ export function parseUserTimeInput(
     const parsedDate = parseTimeString(timeInput, userTimezone);
 
     if (!parsedDate) {
+      console.log("🔍 DEBUG: Could not parse time string:", timeInput);
       return {
         dateTime: new Date(),
         timezone: userTimezone,
@@ -413,12 +421,20 @@ export function parseUserTimeInput(
       };
     }
 
+    console.log("🔍 DEBUG: Successfully parsed time:", {
+      originalInput: timeInput,
+      userTimezone,
+      parsedDate: parsedDate.toISOString(),
+      parsedDateLocal: parsedDate.toLocaleString(),
+    });
+
     return {
       dateTime: parsedDate,
       timezone: userTimezone,
       isValid: true,
     };
   } catch (error) {
+    console.log("🔍 DEBUG: Error in parseUserTimeInput:", error);
     return {
       dateTime: new Date(),
       timezone: userTimezone,

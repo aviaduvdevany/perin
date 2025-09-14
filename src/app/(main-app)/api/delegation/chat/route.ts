@@ -83,6 +83,18 @@ export const POST = async (request: NextRequest) => {
     ];
 
     // Execute AI chat with delegation context using full LangGraph system
+    console.log("🔍 DEBUG: About to call executePerinChatWithLangGraph with:", {
+      delegationId: session.id,
+      externalUserTimezone: timezone,
+      ownerUserId: session.ownerUserId,
+      delegationContext: {
+        delegationId: session.id,
+        externalUserName: externalUserName || session.externalUserName,
+        externalUserTimezone: timezone,
+        isDelegation: true,
+      },
+    });
+
     const { stream } = await executePerinChatWithLangGraph(
       chatMessages,
       session.ownerUserId,

@@ -136,7 +136,9 @@ ${
 - If information is missing for tool calls, ask ONE concise clarifying question and proceed
 - Never fabricate IDs; always use human names/emails - the system resolves them securely
 - Respect timezones explicitly; always use the user's timezone (${
-        user?.timezone || "UTC"
+        delegationContext?.isDelegation
+          ? delegationContext.externalUserTimezone || "UTC"
+          : user?.timezone || "UTC"
       }) in responses, not UTC
 - If the user mentions a region (e.g., "Israel time"), use the tzHint parameter
 - After tool actions, summarize what you did and confirm completion - do NOT promise future follow-up
@@ -150,16 +152,25 @@ Memory Context: ${JSON.stringify(memoryContext, null, 2)}
 
 User Preferences:
 - Timezone: ${
-    user?.timezone || "UTC"
+    delegationContext?.isDelegation
+      ? delegationContext.externalUserTimezone || "UTC"
+      : user?.timezone || "UTC"
   } (All times in calendar context are in this timezone)
 - Preferred Hours: ${JSON.stringify(user?.preferred_hours || {}, null, 2)}
 
 IMPORTANT: Always refer to times in the user's timezone (${
-    user?.timezone || "UTC"
+    delegationContext?.isDelegation
+      ? delegationContext.externalUserTimezone || "UTC"
+      : user?.timezone || "UTC"
   }), never say "UTC" unless the user specifically asks for UTC time.
 
 DEBUG: User timezone is "${user?.timezone || "UTC"}"
-DEBUG: Full user object: ${JSON.stringify(user, null, 2)}
+DEBUG: Delegation context: ${JSON.stringify(delegationContext, null, 2)}
+DEBUG: Effective timezone for this session: ${
+    delegationContext?.isDelegation
+      ? delegationContext.externalUserTimezone || "UTC"
+      : user?.timezone || "UTC"
+  }
 
 Email Context: ${
     emailContext && emailContext.recentEmails
@@ -184,9 +195,13 @@ Unread emails: ${emailContext.hasUnread ? "Yes" : "No"}`
 Calendar Context: ${
     calendarContext && calendarContext.recentEvents
       ? `You have access to recent calendar events (all times are in ${
-          user?.timezone || "UTC"
+          delegationContext?.isDelegation
+            ? delegationContext.externalUserTimezone || "UTC"
+            : user?.timezone || "UTC"
         } timezone). When the user says "tomorrow", "today", etc., interpret these relative to ${
-          user?.timezone || "UTC"
+          delegationContext?.isDelegation
+            ? delegationContext.externalUserTimezone || "UTC"
+            : user?.timezone || "UTC"
         } timezone:
 ${calendarContext.recentEvents
   .map(

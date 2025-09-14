@@ -223,8 +223,14 @@ function parseDateTimeFromMessage(
   message: string,
   timezone: string
 ): Date | null {
-  // Use the new clean timezone parsing approach
+  console.log("🔍 DEBUG: parseDateTimeFromMessage called with:", {
+    message,
+    timezone,
+    currentTime: new Date().toISOString(),
+    localTime: new Date().toLocaleString(),
+  });
 
+  // Use the new clean timezone parsing approach
   const result = parseUserTimeInput(message, timezone);
 
   if (!result.isValid) {
@@ -382,6 +388,10 @@ export const executePerinChatWithLangGraph = async (
 
     // Add delegation context if provided
     if (options?.delegationContext) {
+      console.log("🔍 DEBUG: Adding delegation context to state:", {
+        delegationContext: options.delegationContext,
+        externalUserTimezone: options.delegationContext.externalUserTimezone,
+      });
       state = {
         ...state,
         delegationContext: options.delegationContext,
