@@ -529,31 +529,36 @@ function parseTimeFromDate(
     }
   }
 
-  // Create the date in user's timezone
-  const resultDate = new Date(baseDate);
-  resultDate.setHours(hour, minute, 0, 0);
+  // SIMPLE AND CORRECT: Use Intl.DateTimeFormat to create a date in the user's timezone
+  const year = baseDate.getFullYear();
+  const month = String(baseDate.getMonth() + 1).padStart(2, "0");
+  const day = String(baseDate.getDate()).padStart(2, "0");
+  const timeString = `${year}-${month}-${day}T${String(hour).padStart(
+    2,
+    "0"
+  )}:${String(minute).padStart(2, "0")}:00`;
 
-  // CORRECT APPROACH: Use the existing getTimezoneOffset function properly
-  // The key insight: we want to convert FROM user timezone TO UTC
-
-  // Get the timezone offset for the user's timezone (in minutes)
-  const userTimezoneOffset = getTimezoneOffset(userTimezone, resultDate);
-
-  // Create a date that represents the local time in the user's timezone
-  // Then adjust it to get the equivalent UTC time
-  const utcResult = new Date(resultDate.getTime() - userTimezoneOffset * 60000);
-
-  console.log("🔍 DEBUG: parseTimeFromDate timezone conversion (CORRECT):", {
-    originalInput: timeInput,
-    userTimezone,
-    baseDate: baseDate.toISOString(),
-    resultDate: resultDate.toISOString(),
-    utcResult: utcResult.toISOString(),
-    hour,
-    minute,
-    userTimezoneOffset,
-    note: "Using correct approach: local time - offset = UTC time",
+  // Create a date in the user's timezone using Intl.DateTimeFormat
+  const tempDate = new Date(timeString);
+  const localTimeString = tempDate.toLocaleString("sv-SE", {
+    timeZone: userTimezone,
   });
+  const utcResult = new Date(localTimeString.replace(" ", "T"));
+
+  console.log(
+    "🔍 DEBUG: parseTimeFromDate timezone conversion (SIMPLE AND CORRECT):",
+    {
+      originalInput: timeInput,
+      userTimezone,
+      baseDate: baseDate.toISOString(),
+      timeString,
+      localTimeString,
+      utcResult: utcResult.toISOString(),
+      hour,
+      minute,
+      note: "SIMPLE AND CORRECT: Using Intl.DateTimeFormat for timezone conversion",
+    }
+  );
 
   return utcResult;
 }
