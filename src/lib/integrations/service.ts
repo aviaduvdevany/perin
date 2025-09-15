@@ -83,7 +83,6 @@ export const handleIntegrationCallback = async (
         accountLabel = "Primary";
       } else if (type === "calendar") {
         // Use Calendar API to get primary calendar details
-        const { google } = await import("googleapis");
         const accessToken = tokens.access_token || "";
         const calendar = google.calendar({
           version: "v3",

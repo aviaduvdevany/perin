@@ -17,6 +17,20 @@ import {
 } from "./types";
 import { createCalendarEvent } from "@/lib/integrations/calendar/client";
 import { isReauthError } from "@/lib/integrations/errors";
+import { getUserById } from "@/lib/queries/users";
+
+/**
+ * Format datetime for Google Calendar API (local time without timezone suffix)
+ */
+function formatLocalDateTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
 
 /**
  * Create Solo Calendar Event Tool Arguments
@@ -106,9 +120,7 @@ export const createSoloEventHandler: ToolHandler<
 
   try {
     // Get user's timezone from database
-    const user = await import("@/lib/queries/users").then((m) =>
-      m.getUserById(userId)
-    );
+    const user = await getUserById(userId);
     const userTimezone = user?.timezone || "UTC";
 
     const startTime = new Date(args.startTime);
@@ -119,8 +131,8 @@ export const createSoloEventHandler: ToolHandler<
     const event = await createCalendarEvent(userId, {
       summary: args.title,
       description: args.description || "",
-      start: startTime.toISOString(),
-      end: endTime.toISOString(),
+      start: formatLocalDateTime(startTime),
+      end: formatLocalDateTime(endTime),
       timeZone: timezone,
       location: args.location,
     });

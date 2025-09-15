@@ -21,6 +21,19 @@ import {
 import { isReauthError } from "@/lib/integrations/errors";
 
 /**
+ * Format datetime for Google Calendar API (local time without timezone suffix)
+ */
+function formatLocalDateTime(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+}
+
+/**
  * Check Owner Availability Tool Arguments
  */
 export const checkOwnerAvailabilitySchema = z.object({
@@ -211,12 +224,21 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
       );
 
       if (availabilityResult.isAvailable) {
+        // Detect user's language for response from conversation context
+        const isHebrew =
+          context.conversationContext &&
+          /[\u0590-\u05FF]/.test(context.conversationContext);
+
+        const availableMessage = isHebrew
+          ? `בדקתי את היומן על ${startTime.toLocaleString()} (${timezone}) והזמן פנוי.`
+          : `I've checked the owner's calendar for ${startTime.toLocaleString()} (${timezone}) and the time slot is available.`;
+
         return createToolSuccess({
           isAvailable: true,
           proposedStartTime: startTime.toISOString(),
           proposedEndTime: endTime.toISOString(),
           timezone,
-          message: `I've checked the owner's calendar for ${startTime.toLocaleString()} (${timezone}) and the time slot is available.`,
+          message: availableMessage,
         });
       } else {
         // Time slot has conflicts
@@ -226,17 +248,30 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
           .map((event) => event.summary)
           .join(", ");
 
+        // Detect user's language for conflict message
+        const isHebrew =
+          context.conversationContext &&
+          /[\u0590-\u05FF]/.test(context.conversationContext);
+
+        const conflictMessage = isHebrew
+          ? `הזמן המבוקש מתנגש עם ${conflictCount} ${
+              conflictCount > 1 ? "ים" : ""
+            } ${conflictCount > 1 ? "ים" : "אירוע"}${
+              conflictSummary ? `: ${conflictSummary}` : ""
+            }.`
+          : `The requested time slot conflicts with ${conflictCount} existing event${
+              conflictCount > 1 ? "s" : ""
+            }${
+              conflictSummary ? `: ${conflictSummary}` : ""
+            }. Please suggest alternative times.`;
+
         return createToolSuccess({
           isAvailable: false,
           proposedStartTime: startTime.toISOString(),
           proposedEndTime: endTime.toISOString(),
           timezone,
           conflictingEvents: availabilityResult.conflictingEvents,
-          message: `The requested time slot conflicts with ${conflictCount} existing event${
-            conflictCount > 1 ? "s" : ""
-          }${
-            conflictSummary ? `: ${conflictSummary}` : ""
-          }. Please suggest alternative times.`,
+          message: conflictMessage,
         });
       }
     } catch (error) {
@@ -325,12 +360,24 @@ export const scheduleWithOwnerHandler: ToolHandler<
       .filter(Boolean)
       .join("\n");
 
+    // Format datetime for Google Calendar (local time without timezone suffix)
+    // Our parser returns a Date in local time, so we need to format it properly
+
+    console.log("🕐 Delegation calendar event formatting:", {
+      originalStartTime: startTime.toString(),
+      originalEndTime: endTime.toString(),
+      timezone,
+      startFormatted: formatLocalDateTime(startTime),
+      endFormatted: formatLocalDateTime(endTime),
+      note: "Formatting local time for Google Calendar API",
+    });
+
     // Create calendar event with proper attendee management
     const event = await createCalendarEvent(userId, {
       summary: eventTitle,
       description,
-      start: startTime.toISOString(),
-      end: endTime.toISOString(),
+      start: formatLocalDateTime(startTime),
+      end: formatLocalDateTime(endTime),
       timeZone: timezone,
       attendees: attendees.length > 0 ? attendees : undefined,
     });

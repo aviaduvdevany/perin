@@ -389,13 +389,19 @@ export const createCalendarEvent = async (
       ? eventData.timeZone
       : "UTC";
 
-    // Use the datetime directly as local time (no conversion needed)
-    const startDate = new Date(eventData.start);
-    const endDate = new Date(eventData.end);
+    // Use the datetime string directly - no Date conversion to avoid timezone issues
+    // Google Calendar API expects local datetime string + timezone parameter
+    const startLocal = eventData.start; // Already formatted as "2025-09-19T15:00:00"
+    const endLocal = eventData.end; // Already formatted as "2025-09-19T15:30:00"
 
-    // Format as local datetime string (Google Calendar expects local time + timezone)
-    const startLocal = startDate.toISOString().slice(0, 19); // Remove 'Z' suffix
-    const endLocal = endDate.toISOString().slice(0, 19); // Remove 'Z' suffix
+    console.log("🔍 Calendar client - using datetime strings directly:", {
+      inputStart: eventData.start,
+      inputEnd: eventData.end,
+      startLocal,
+      endLocal,
+      timezone,
+      note: "No Date conversion - using strings directly to avoid timezone conversion",
+    });
 
     console.log("Calendar event (NO TIMEZONE CONVERSION):", {
       originalStart: eventData.start,
