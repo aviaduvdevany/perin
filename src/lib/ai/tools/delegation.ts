@@ -211,12 +211,21 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
       );
 
       if (availabilityResult.isAvailable) {
+        // Detect user's language for response from conversation context
+        const isHebrew =
+          context.conversationContext &&
+          /[\u0590-\u05FF]/.test(context.conversationContext);
+
+        const availableMessage = isHebrew
+          ? `בדקתי את היומן על ${startTime.toLocaleString()} (${timezone}) והזמן פנוי.`
+          : `I've checked the owner's calendar for ${startTime.toLocaleString()} (${timezone}) and the time slot is available.`;
+
         return createToolSuccess({
           isAvailable: true,
           proposedStartTime: startTime.toISOString(),
           proposedEndTime: endTime.toISOString(),
           timezone,
-          message: `I've checked the owner's calendar for ${startTime.toLocaleString()} (${timezone}) and the time slot is available.`,
+          message: availableMessage,
         });
       } else {
         // Time slot has conflicts
@@ -226,17 +235,30 @@ export const checkOwnerAvailabilityHandler: ToolHandler<
           .map((event) => event.summary)
           .join(", ");
 
+        // Detect user's language for conflict message
+        const isHebrew =
+          context.conversationContext &&
+          /[\u0590-\u05FF]/.test(context.conversationContext);
+
+        const conflictMessage = isHebrew
+          ? `הזמן המבוקש מתנגש עם ${conflictCount} ${
+              conflictCount > 1 ? "ים" : ""
+            } ${conflictCount > 1 ? "ים" : "אירוע"}${
+              conflictSummary ? `: ${conflictSummary}` : ""
+            }.`
+          : `The requested time slot conflicts with ${conflictCount} existing event${
+              conflictCount > 1 ? "s" : ""
+            }${
+              conflictSummary ? `: ${conflictSummary}` : ""
+            }. Please suggest alternative times.`;
+
         return createToolSuccess({
           isAvailable: false,
           proposedStartTime: startTime.toISOString(),
           proposedEndTime: endTime.toISOString(),
           timezone,
           conflictingEvents: availabilityResult.conflictingEvents,
-          message: `The requested time slot conflicts with ${conflictCount} existing event${
-            conflictCount > 1 ? "s" : ""
-          }${
-            conflictSummary ? `: ${conflictSummary}` : ""
-          }. Please suggest alternative times.`,
+          message: conflictMessage,
         });
       }
     } catch (error) {

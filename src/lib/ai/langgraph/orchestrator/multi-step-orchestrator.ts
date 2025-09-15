@@ -178,8 +178,17 @@ export class MultiStepOrchestrator {
             // Provide user-friendly failure message based on step type
             let failureMessage = "";
             if (step.id === "check_availability") {
-              failureMessage =
-                "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
+              // Detect user's language from the last message
+              const lastUserMessage = state.messages.findLast(
+                (m) => m.role === "user"
+              );
+              const isHebrew =
+                lastUserMessage?.content &&
+                /[\u0590-\u05FF]/.test(lastUserMessage.content);
+
+              failureMessage = isHebrew
+                ? "יש התנגשויות בזמן שהצעת. ננסה זמן אחר באותו יום?"
+                : "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
             } else {
               failureMessage = `❌ Required step failed: ${step.name}. Process stopped.`;
             }

@@ -175,16 +175,16 @@ Respond with JSON:
 /**
  * Extract meeting parameters from user message for delegation
  */
-function extractDelegationMeetingParams(
+async function extractDelegationMeetingParams(
   messages: ChatMessage[],
   delegationContext: LangGraphChatState["delegationContext"]
-): {
+): Promise<{
   startTime: string;
   durationMins: number;
   title: string;
   timezone?: string;
   externalUserName?: string;
-} | null {
+} | null> {
   if (!delegationContext) return null;
 
   const lastUserMessage =
@@ -195,14 +195,21 @@ function extractDelegationMeetingParams(
     (delegationContext.constraints as Record<string, unknown>) || {};
   const defaultDuration = (constraints.defaultDuration as number) || 30;
 
-  // Parse date and time from user message
-  const parsedDateTime = parseDateTimeFromMessage(
+  // Build conversation context from all messages
+  const conversationContext = messages.map((m) => m.content).join(" ");
+
+  // Parse date and time from user message with conversation context
+  const parsedDateTime = await parseDateTimeFromMessage(
     lastUserMessage,
-    delegationContext.externalUserTimezone || "UTC"
+    delegationContext.externalUserTimezone || "UTC",
+    conversationContext
   );
 
   if (!parsedDateTime) {
-    console.log("Could not parse date/time from message:", lastUserMessage);
+    console.log(
+      "⚠️ Could not parse date/time from message - will trigger user clarification:",
+      lastUserMessage
+    );
     return null;
   }
 
@@ -216,12 +223,85 @@ function extractDelegationMeetingParams(
 }
 
 /**
+ * Try LLM-based date/time parsing for ambiguous cases
+ */
+async function tryLLMDateParsing(
+  message: string,
+  conversationContext: string | undefined,
+  timezone: string,
+  userNow: Date
+): Promise<Date | null> {
+  try {
+    const { initializeOpenAI } = await import("./nodes/openai-node");
+    const openaiClient = initializeOpenAI();
+
+    const analysisPrompt = `You are a precise date/time parser. Analyze this scheduling request and extract the intended date and time.
+
+CURRENT DATE/TIME: ${userNow.toLocaleString()} (${timezone})
+CONVERSATION CONTEXT: ${conversationContext || "None"}
+USER MESSAGE: "${message}"
+
+Rules:
+1. If the user mentions a specific day (Monday, Tuesday, etc.), assume the NEXT occurrence of that day
+2. If the user only mentions a time (like "16:00") and there's a day mentioned in the conversation context, use that day
+3. If the user says "today" or "tomorrow", be explicit about which date that means
+4. If you cannot determine the date with confidence, respond with "UNCLEAR"
+
+Respond with JSON only:
+{
+  "confident": boolean,
+  "date": "YYYY-MM-DD" or null,
+  "time": "HH:MM" or null,
+  "reasoning": "Brief explanation"
+}`;
+
+    const response = await openaiClient.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: analysisPrompt }],
+      temperature: 0.1,
+      max_tokens: 300,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) return null;
+
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+
+    const analysis = JSON.parse(jsonMatch[0]);
+
+    if (!analysis.confident || !analysis.date || !analysis.time) {
+      console.log("LLM analysis not confident:", analysis);
+      return null;
+    }
+
+    // Parse the LLM-provided date and time
+    const [year, month, day] = analysis.date.split("-").map(Number);
+    const [hour, minute] = analysis.time.split(":").map(Number);
+
+    const parsedDate = new Date(year, month - 1, day, hour, minute, 0, 0);
+
+    console.log("LLM parsed date/time:", {
+      original: message,
+      analysis,
+      parsedDate: parsedDate.toISOString(),
+    });
+
+    return parsedDate;
+  } catch (error) {
+    console.error("LLM date parsing failed:", error);
+    return null;
+  }
+}
+
+/**
  * Parse date and time from user message
  */
-function parseDateTimeFromMessage(
+async function parseDateTimeFromMessage(
   message: string,
-  timezone: string
-): Date | null {
+  timezone: string,
+  conversationContext?: string
+): Promise<Date | null> {
   const lowerMessage = message.toLowerCase();
 
   // Create a date that represents "now" in the user's timezone
@@ -250,21 +330,48 @@ function parseDateTimeFromMessage(
   ];
 
   let dayOffset = 0;
+  let dayFoundInMessage = false;
+
+  // First, check if the current message contains a specific day
   for (const { pattern, dayOffset: offset } of dayPatterns) {
     if (pattern.test(lowerMessage)) {
       dayOffset = offset;
+      dayFoundInMessage = true;
       break;
     }
   }
 
-  // If no day specified, default to tomorrow
-  if (
-    dayOffset === 0 &&
-    !lowerMessage.includes("today") &&
-    !lowerMessage.includes("היום")
-  ) {
-    dayOffset = 1; // tomorrow
+  // If no day specified in current message, try to extract from conversation context
+  if (!dayFoundInMessage && conversationContext) {
+    console.log(
+      "No day in current message, checking conversation context:",
+      conversationContext
+    );
+
+    // Look for the most recent day mentioned in conversation
+    for (const { pattern, dayOffset: offset } of dayPatterns) {
+      if (pattern.test(conversationContext.toLowerCase())) {
+        dayOffset = offset;
+        console.log(
+          `Found day in context: ${
+            [
+              "Sunday",
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+            ][offset]
+          }`
+        );
+        break;
+      }
+    }
   }
+
+  // If still no day specified and no context, we'll need LLM analysis or clarification
+  // DO NOT default to tomorrow - this is dangerous for scheduling!
 
   // Calculate target date - FIXED: Use user's timezone for all calculations
   if (lowerMessage.includes("today") || lowerMessage.includes("היום")) {
@@ -321,9 +428,11 @@ function parseDateTimeFromMessage(
   // instead of server timezone. The time setting can be simple.
   targetDate.setHours(hour, minute, 0, 0);
 
-  console.log("Parsed date/time from message (MULTILINGUAL + LOCAL TIME):", {
+  console.log("Parsed date/time from message (CONTEXT-AWARE + MULTILINGUAL):", {
     originalMessage: message,
+    conversationContext: conversationContext || "none",
     timezone,
+    dayFoundInMessage,
     dayOffset,
     hour,
     minute,
@@ -340,8 +449,41 @@ function parseDateTimeFromMessage(
             "Friday",
             "Saturday",
           ][dayOffset],
-    note: "Multilingual day parsing (English + Hebrew) - returning local time directly",
+    note: "Context-aware parsing with conversation history fallback",
   });
+
+  // Check if parsing is uncertain and needs LLM analysis
+  const isUncertainParsing =
+    !dayFoundInMessage &&
+    dayOffset === 0 &&
+    !lowerMessage.includes("today") &&
+    !lowerMessage.includes("היום") &&
+    !lowerMessage.includes("tomorrow") &&
+    !lowerMessage.includes("מחר");
+
+  if (isUncertainParsing) {
+    console.log("🤖 Uncertain date parsing - triggering LLM analysis:", {
+      message,
+      hasTime: hour !== 14 || minute !== 0,
+      hasConversationContext: !!conversationContext,
+    });
+
+    // Try LLM analysis for better date/time understanding
+    const llmParsedDate = await tryLLMDateParsing(
+      message,
+      conversationContext,
+      timezone,
+      userNow
+    );
+    if (llmParsedDate) {
+      console.log("✅ LLM successfully parsed ambiguous date/time");
+      return llmParsedDate;
+    }
+
+    // If LLM also can't parse confidently, return null to trigger user clarification
+    console.log("❌ Date/time too ambiguous - requiring user clarification");
+    return null;
+  }
 
   return targetDate;
 }
@@ -718,7 +860,7 @@ export const executePerinChatWithLangGraph = async (
             registerDelegationStepExecutors(multiStepOrchestrator);
 
             // Extract meeting parameters
-            const meetingParams = extractDelegationMeetingParams(
+            const meetingParams = await extractDelegationMeetingParams(
               messages,
               state.delegationContext
             );
@@ -754,10 +896,28 @@ export const executePerinChatWithLangGraph = async (
                 return;
               }
             } else {
-              // Fall back to regular delegation mode if we can't extract parameters
+              // Could not extract clear meeting parameters - need user clarification
               console.log(
-                "Could not extract meeting parameters, falling back to regular mode"
+                "❓ Could not extract clear meeting parameters - asking for clarification"
               );
+
+              // Emit a clarification request message (language-aware)
+              const lastUserMessage = messages.findLast(
+                (m) => m.role === "user"
+              );
+              const isHebrew =
+                lastUserMessage?.content &&
+                /[\u0590-\u05FF]/.test(lastUserMessage.content);
+
+              const clarificationMessage = isHebrew
+                ? "אני צריך פרטים נוספים לתזמון הפגישה. האם תוכל לציין את היום והשעה? לדוגמה: 'תזמן פגישה ליום שישי בשעה 15:00'"
+                : "I need more details to schedule your meeting. Could you please specify both the day and time? For example: 'Schedule a meeting for Friday at 3 PM'";
+
+              controller.enqueue(
+                new TextEncoder().encode(clarificationMessage)
+              );
+              controller.close();
+              return;
             }
           }
 
