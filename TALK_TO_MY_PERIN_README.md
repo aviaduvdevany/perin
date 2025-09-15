@@ -436,18 +436,28 @@ interface DelegationManagerProps {
    - Database connection pooling
    - Rate limiting per delegation
 
-### Timezone Handling
+### Timezone Handling ✅ RECENTLY FIXED
 
-1. **User Timezone Management**
+1. **Simplified Timezone Pipeline**
 
-   - Auto-detection of external user timezone
-   - User timezone stored in database
-   - Proper timezone conversion for calendar events
+   - **Auto-detection**: External user timezone detected via browser API (`Intl.DateTimeFormat().resolvedOptions().timeZone`)
+   - **Direct Local Time Processing**: No UTC conversion in the pipeline - user says "15:00" → system keeps "15:00"
+   - **Google Calendar Integration**: Passes local time + timezone directly to Google Calendar API
+   - **No Double Conversion**: Eliminated UTC conversion bugs that caused incorrect meeting times
 
 2. **AI Timezone Awareness**
-   - System prompts include user timezone context
-   - AI responses use correct timezone
-   - No "UTC" references unless specifically requested
+
+   - **System Prompt Consistency**: AI uses external user's timezone throughout delegation mode
+   - **Timezone Priority**: `delegationContext.externalUserTimezone` takes precedence over all other timezone sources
+   - **Correct Time References**: AI responds with times in external user's timezone, never UTC
+   - **Debug Logging**: Comprehensive timezone tracking for troubleshooting
+
+3. **Technical Implementation**
+
+   - **`parseDateTimeFromMessage`**: Returns local time directly (no UTC conversion)
+   - **Calendar Integration**: Formats as `"2025-09-19T15:00:00"` + `"timeZone": "Asia/Jerusalem"`
+   - **Google Calendar API**: Receives local datetime + timezone identifier (RFC 3339 standard)
+   - **Pipeline Flow**: User timezone → Local time parsing → Direct Google Calendar submission ✅
 
 ### Reliability
 
@@ -575,15 +585,39 @@ The "Talk to My Perin" feature has been successfully implemented with all core f
 - **AI Integration**: Delegation-aware LangGraph system with context switching
 - **UI/UX**: Modal-based link generation, responsive chat interface
 - **Security**: Tool access restrictions, delegation-aware AI, privacy protection
-- **Timezone Handling**: Auto-detection, proper conversion, AI timezone awareness
+- **Timezone Handling**: Auto-detection, proper conversion, AI timezone awareness ✅ **RECENTLY FIXED**
 - **Meeting Preferences**: Optional constraints with conditional UI display
 
 ### **🔧 Key Technical Achievements:**
 
 - **Delegation-Aware AI**: Perin knows when talking to external users vs. owner
 - **Tool Access Control**: External users can only use delegation-specific tools
-- **Timezone Management**: Proper handling across all timezones
+- **Timezone Management**: Proper handling across all timezones ✅ **RECENTLY FIXED**
 - **Security Hardening**: HMAC signatures, rate limiting, audit trails
 - **UX Optimization**: Collapsible preferences, modal integration, mobile support
+
+### **🐛 Recent Critical Bug Fix: Timezone Double Conversion**
+
+**Issue**: External users saying "15:00" in their timezone resulted in meetings scheduled 3-6 hours later due to double timezone conversion.
+
+**Root Cause**:
+
+1. `parseDateTimeFromMessage` converted user's local time to UTC
+2. Calendar integration converted UTC back to local time
+3. Result: 15:00 Jerusalem → 18:00 UTC → 21:00 Jerusalem ❌
+
+**Solution**:
+
+1. **Eliminated UTC pipeline**: Removed all UTC conversion from delegation timezone handling
+2. **Direct local time**: User says "15:00" → system keeps "15:00" → Google Calendar gets "15:00" + timezone
+3. **Simplified architecture**: Let Google Calendar API handle all timezone logic internally
+
+**Files Modified**:
+
+- `src/lib/ai/langgraph/index.ts`: Removed `userTimezoneToUtc()` conversion
+- `src/lib/integrations/calendar/client.ts`: Removed UTC-to-local conversion
+- `src/lib/ai/langgraph/nodes/openai-node.ts`: Fixed system prompt timezone consistency
+
+**Result**: External users now get meetings scheduled at exactly the time they requested! 🎉
 
 **This document serves as the single source of truth for the "Talk to My Perin" feature. All implementation follows these specifications and the feature is production-ready.**

@@ -198,7 +198,6 @@ async function extractDelegationMeetingParams(
   // Build conversation context from all messages
   const conversationContext = messages.map((m) => m.content).join(" ");
 
-  // Parse date and time from user message with conversation context
   const parsedDateTime = await parseDateTimeFromMessage(
     lastUserMessage,
     delegationContext.externalUserTimezone || "UTC",
@@ -423,34 +422,20 @@ async function parseDateTimeFromMessage(
     }
   }
 
-  // FIXED: Simple approach - just set the time and let the system handle timezone conversion
-  // The key fix is that we're now using userNow (user's timezone) for date calculations
-  // instead of server timezone. The time setting can be simple.
   targetDate.setHours(hour, minute, 0, 0);
 
-  console.log("Parsed date/time from message (CONTEXT-AWARE + MULTILINGUAL):", {
-    originalMessage: message,
-    conversationContext: conversationContext || "none",
-    timezone,
-    dayFoundInMessage,
-    dayOffset,
-    hour,
-    minute,
-    localTime: targetDate.toISOString(),
-    detectedDay:
-      dayOffset === 0
-        ? "today/tomorrow"
-        : [
-            "Sunday",
-            "Monday",
-            "Tuesday",
-            "Wednesday",
-            "Thursday",
-            "Friday",
-            "Saturday",
-          ][dayOffset],
-    note: "Context-aware parsing with conversation history fallback",
-  });
+  console.log(
+    "Parsed date/time from message (LOCAL TIME - NO UTC CONVERSION):",
+    {
+      originalMessage: message,
+      timezone,
+      dayOffset,
+      hour,
+      minute,
+      localTime: targetDate.toISOString(),
+      note: "Returning local time directly - Google Calendar will handle timezone",
+    }
+  );
 
   // Check if parsing is uncertain and needs LLM analysis
   const isUncertainParsing =

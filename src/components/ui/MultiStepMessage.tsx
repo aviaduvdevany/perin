@@ -243,30 +243,6 @@ export function MultiStepMessage({
     };
   }, []);
 
-  const togglePlayback = () => {
-    setIsPlaying(!isPlaying);
-    if (!isPlaying) {
-      // Resume real-time processing - steps will continue to update as they come in
-      // No need to restart sequence since it's now driven by real backend events
-    } else {
-      // Pause - clear any pending timeouts
-      cinematicTimeouts.current.forEach(clearTimeout);
-    }
-  };
-
-  const skipToEnd = () => {
-    cinematicTimeouts.current.forEach(clearTimeout);
-    setCinematicSteps((prev) =>
-      prev.map((step, index) => ({
-        ...step,
-        cinematicStatus:
-          steps[index]?.status === "failed" ? "failed" : "completed",
-        cinematicProgress: 100,
-      }))
-    );
-    setCinematicIndex(steps.length - 1);
-    setCelebrationMode(true);
-  };
 
   const getStepIcon = (step: CinematicStep, index: number) => {
     const iconClass = "w-5 h-5 transition-all duration-500";
