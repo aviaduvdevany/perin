@@ -22,7 +22,6 @@ import {
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
 import { OpenAI } from "openai";
-import { userTimezoneToUtc } from "@/lib/utils/timezone";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -304,21 +303,20 @@ async function parseDateTimeFromMessage(
 
   targetDate.setHours(hour, minute, 0, 0);
 
-  // Convert from user's timezone to UTC
-  const utcDate = userTimezoneToUtc(targetDate, timezone);
+  console.log(
+    "Parsed date/time from message (LOCAL TIME - NO UTC CONVERSION):",
+    {
+      originalMessage: message,
+      timezone,
+      dayOffset,
+      hour,
+      minute,
+      localTime: targetDate.toISOString(),
+      note: "Returning local time directly - Google Calendar will handle timezone",
+    }
+  );
 
-  console.log("Parsed date/time from message (FIXED UTC CONVERSION):", {
-    originalMessage: message,
-    timezone,
-    dayOffset,
-    hour,
-    minute,
-    localTime: targetDate.toISOString(),
-    utcTime: utcDate.toISOString(),
-    note: "Properly converting user's local time to UTC",
-  });
-
-  return utcDate;
+  return targetDate;
 }
 
 /**
