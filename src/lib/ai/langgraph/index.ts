@@ -224,23 +224,29 @@ function parseDateTimeFromMessage(
 ): Date | null {
   const lowerMessage = message.toLowerCase();
 
-  // FIXED: Get current date in the USER'S timezone, not server timezone
   // Create a date that represents "now" in the user's timezone
   const serverNow = new Date();
   const userNow = new Date(
     serverNow.toLocaleString("en-US", { timeZone: timezone })
   );
 
-  // Parse day of week
+  // Parse day of week (multilingual support)
   let targetDate = new Date(userNow);
   const dayPatterns = [
-    { pattern: /monday|mon/i, dayOffset: 1 },
-    { pattern: /tuesday|tue/i, dayOffset: 2 },
-    { pattern: /wednesday|wed/i, dayOffset: 3 },
-    { pattern: /thursday|thu/i, dayOffset: 4 },
-    { pattern: /friday|fri/i, dayOffset: 5 },
-    { pattern: /saturday|sat/i, dayOffset: 6 },
-    { pattern: /sunday|sun/i, dayOffset: 0 },
+    // English + Hebrew Sunday (ראשון)
+    { pattern: /sunday|sun|ראשון/i, dayOffset: 0 },
+    // English + Hebrew Monday (שני)
+    { pattern: /monday|mon|שני/i, dayOffset: 1 },
+    // English + Hebrew Tuesday (שלישי)
+    { pattern: /tuesday|tue|שלישי/i, dayOffset: 2 },
+    // English + Hebrew Wednesday (רביעי)
+    { pattern: /wednesday|wed|רביעי/i, dayOffset: 3 },
+    // English + Hebrew Thursday (חמישי)
+    { pattern: /thursday|thu|חמישי/i, dayOffset: 4 },
+    // English + Hebrew Friday (שישי)
+    { pattern: /friday|fri|שישי/i, dayOffset: 5 },
+    // English + Hebrew Saturday (שבת)
+    { pattern: /saturday|sat|שבת/i, dayOffset: 6 },
   ];
 
   let dayOffset = 0;
@@ -252,14 +258,21 @@ function parseDateTimeFromMessage(
   }
 
   // If no day specified, default to tomorrow
-  if (dayOffset === 0 && !lowerMessage.includes("today")) {
+  if (
+    dayOffset === 0 &&
+    !lowerMessage.includes("today") &&
+    !lowerMessage.includes("היום")
+  ) {
     dayOffset = 1; // tomorrow
   }
 
   // Calculate target date - FIXED: Use user's timezone for all calculations
-  if (lowerMessage.includes("today")) {
+  if (lowerMessage.includes("today") || lowerMessage.includes("היום")) {
     targetDate = new Date(userNow);
-  } else if (lowerMessage.includes("tomorrow")) {
+  } else if (
+    lowerMessage.includes("tomorrow") ||
+    lowerMessage.includes("מחר")
+  ) {
     targetDate = new Date(userNow.getTime() + 24 * 60 * 60 * 1000);
   } else if (dayOffset > 0) {
     // Find next occurrence of the specified day
@@ -308,17 +321,26 @@ function parseDateTimeFromMessage(
   // instead of server timezone. The time setting can be simple.
   targetDate.setHours(hour, minute, 0, 0);
 
-  console.log("Parsed date/time from message (USER TIMEZONE CALCULATIONS):", {
+  console.log("Parsed date/time from message (MULTILINGUAL + LOCAL TIME):", {
     originalMessage: message,
-    parsedDate: targetDate.toISOString(),
     timezone,
     dayOffset,
     hour,
     minute,
-    serverNow: serverNow.toISOString(),
-    userNow: userNow.toISOString(),
-    targetDate: targetDate.toISOString(),
-    note: "Using user's timezone for date calculations, simple time setting",
+    localTime: targetDate.toISOString(),
+    detectedDay:
+      dayOffset === 0
+        ? "today/tomorrow"
+        : [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ][dayOffset],
+    note: "Multilingual day parsing (English + Hebrew) - returning local time directly",
   });
 
   return targetDate;
