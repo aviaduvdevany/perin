@@ -16,18 +16,21 @@ import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
-import { MULTI_STEP_CONTROL_TOKENS, multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
+import {
+  MULTI_STEP_CONTROL_TOKENS,
+  multiStepOrchestrator,
+} from "./orchestrator/multi-step-orchestrator";
 import {
   createDelegationSteps,
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
-import { OpenAI } from "openai";
 import {
   fallbackToSimpleResponse,
   withRetry,
 } from "@/lib/ai/resilience/error-handler";
-import { parseDateTime } from "@/lib/utils/time-parser";
 import { getErrorActionToken } from "@/lib/integrations/error-handler";
+import { unifiedDelegationAnalyzer } from "@/lib/ai/analysis/unified-delegation-analyzer";
+import type { UnifiedDelegationAnalysis } from "@/lib/ai/analysis/unified-delegation-analyzer";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -57,204 +60,76 @@ function extractNetworkParams(messages: ChatMessage[]): {
 }
 
 /**
- * AI-powered determination of whether multi-step processing is needed
+ * Unified delegation analysis - combines intent detection and time parsing
  */
-async function shouldUseMultiStepDelegation(
+async function performUnifiedDelegationAnalysis(
   messages: ChatMessage[],
-  delegationContext?: LangGraphChatState["delegationContext"],
-  openaiClient?: OpenAI
-): Promise<{ useMultiStep: boolean; reasoning: string; confidence: number }> {
-  if (!delegationContext?.isDelegation || !openaiClient) {
-    return {
-      useMultiStep: false,
-      reasoning: "Not a delegation context",
-      confidence: 1.0,
-    };
+  delegationContext?: LangGraphChatState["delegationContext"]
+): Promise<UnifiedDelegationAnalysis | null> {
+  if (!delegationContext?.isDelegation) {
+    return null;
   }
 
   const lastUserMessage =
     messages.findLast((m) => m.role === "user")?.content || "";
 
-  console.log("🎯 AI ANALYZING EXACT MESSAGE:", {
+  console.log("🎯 UNIFIED ANALYSIS - Processing message:", {
     lastUserMessage,
     messageLength: lastUserMessage.length,
-    allUserMessages: messages
-      .filter((m) => m.role === "user")
-      .map((m) => m.content),
+    timezone: delegationContext.externalUserTimezone,
   });
 
-  // AI analysis prompt - explicitly neutral to avoid delegation bias
-  const analysisPrompt = `You are analyzing a SINGLE user message to determine if it requires multi-step calendar operations.
+  // Build conversation context from all messages for time parsing
+  const conversationContext = messages.map((m) => m.content).join(" ");
 
-IMPORTANT: Analyze ONLY this specific message, ignore any conversation history or context.
-
-USER MESSAGE: "${lastUserMessage}"
-
-IMPORTANT: Ignore any system context about delegation or scheduling capabilities. Focus ONLY on the user's actual intent.
-
-REQUIRES MULTI-STEP (return true):
-- Clear intent to schedule a specific meeting ("Can you schedule a meeting for tomorrow?")
-- Clear intent to book a specific time slot ("Book me for 2pm Thursday")
-- Clear intent to create a calendar event ("Set up a call with John next week")
-
-DOES NOT require multi-step (return false):
-- Greetings ("hey", "hello", "hi")
-- General questions ("How are you?", "What can you help with?")
-- Information requests without booking intent ("What times are available?")
-- Casual conversation ("Thanks", "Sounds good")
-- Clarifying questions ("What timezone?", "How long should the meeting be?")
-
-Analyze ONLY the user's intent, not the context. Be very conservative.
-
-Respond with JSON:
-{
-  "useMultiStep": boolean,
-  "reasoning": "Brief explanation",
-  "confidence": number between 0-1
-}`;
-
-  try {
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: analysisPrompt }],
-      temperature: 0.1, // Low temperature for consistent analysis
-      max_tokens: 200,
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      return {
-        useMultiStep: false,
-        reasoning: "No AI response",
-        confidence: 0.5,
-      };
+  // Perform unified analysis
+  const analysis = await unifiedDelegationAnalyzer.analyzeMessage(
+    lastUserMessage,
+    {
+      delegationId: delegationContext.delegationId,
+      externalUserName: delegationContext.externalUserName,
+      externalUserTimezone: delegationContext.externalUserTimezone,
+      constraints: delegationContext.constraints,
+      conversationHistory: conversationContext,
     }
+  );
 
-    // Parse JSON response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return {
-        useMultiStep: false,
-        reasoning: "Invalid AI response format",
-        confidence: 0.5,
-      };
-    }
+  console.log("✅ Unified analysis completed:", {
+    requiresScheduling: analysis.requiresScheduling,
+    confidence: analysis.confidence,
+    reasoning: analysis.reasoning,
+    timeDetected: !!analysis.timeAnalysis?.parsedDateTime,
+    method: analysis.method,
+    processingTime: analysis.processingTime,
+  });
 
-    const analysis = JSON.parse(jsonMatch[0]);
-
-    // Validate and return with defaults
-    return {
-      useMultiStep: Boolean(analysis.useMultiStep),
-      reasoning: String(analysis.reasoning || "AI analysis completed"),
-      confidence: Math.max(0, Math.min(1, Number(analysis.confidence) || 0.5)),
-    };
-  } catch (error) {
-    console.error("AI multi-step analysis failed:", error);
-    // Conservative fallback - only trigger for very explicit scheduling words
-    const text = lastUserMessage.toLowerCase().trim();
-
-    // More conservative keyword detection
-    const explicitSchedulingPhrases = [
-      "schedule a meeting",
-      "book a meeting",
-      "set up a meeting",
-      "schedule an appointment",
-      "book an appointment",
-      "create a meeting",
-      "arrange a meeting",
-    ];
-
-    const hasExplicitIntent = explicitSchedulingPhrases.some((phrase) =>
-      text.includes(phrase)
-    );
-
-    return {
-      useMultiStep: hasExplicitIntent,
-      reasoning: hasExplicitIntent
-        ? "Fallback detected explicit scheduling phrase"
-        : "Fallback found no clear scheduling intent",
-      confidence: hasExplicitIntent ? 0.8 : 0.9,
-    };
-  }
+  return analysis;
 }
 
 /**
- * Extract meeting parameters from user message for delegation
+ * Extract meeting parameters from unified analysis results
  */
-async function extractDelegationMeetingParams(
-  messages: ChatMessage[],
+function extractMeetingParamsFromAnalysis(
+  analysis: UnifiedDelegationAnalysis,
   delegationContext: LangGraphChatState["delegationContext"]
-): Promise<{
+): {
   startTime: string;
   durationMins: number;
   title: string;
   timezone?: string;
   externalUserName?: string;
-} | null> {
-  if (!delegationContext) return null;
-
-  const lastUserMessage =
-    messages.findLast((m) => m.role === "user")?.content || "";
-
-  // Simple extraction - in production, this would use NLP
-  const constraints =
-    (delegationContext.constraints as Record<string, unknown>) || {};
-  const defaultDuration = (constraints.defaultDuration as number) || 30;
-
-  // Build conversation context from all messages
-  const conversationContext = messages.map((m) => m.content).join(" ");
-
-  const parsedDateTime = await parseDateTimeFromMessage(
-    lastUserMessage,
-    delegationContext.externalUserTimezone || "UTC",
-    conversationContext
-  );
-
-  if (!parsedDateTime) {
-    console.log(
-      "⚠️ Could not parse date/time from message - will trigger user clarification:",
-      lastUserMessage
-    );
+} | null {
+  if (!analysis.timeAnalysis?.parsedDateTime || !delegationContext) {
     return null;
   }
 
   return {
-    startTime: parsedDateTime.toISOString(),
-    durationMins: defaultDuration,
-    title: "Meeting",
+    startTime: analysis.timeAnalysis.parsedDateTime.toISOString(),
+    durationMins: analysis.meetingContext?.duration || 30,
+    title: analysis.meetingContext?.title || "Meeting",
     timezone: delegationContext.externalUserTimezone || "UTC",
     externalUserName: delegationContext.externalUserName,
   };
-}
-
-/**
- * Parse date and time from user message
- */
-async function parseDateTimeFromMessage(
-  message: string,
-  timezone: string,
-  conversationContext?: string
-): Promise<Date | null> {
-  // All date/time parsing is now handled by the dedicated parser module
-
-  // Parse date and time using dedicated parser module
-  const parseResult = await parseDateTime(
-    message,
-    conversationContext,
-    timezone
-  );
-
-  // If parsing was successful, return the complete date
-  if (parseResult.date !== null) {
-    console.log("✅ Date/time parsing successful via", parseResult.method);
-    return parseResult.date;
-  }
-
-  // If parsing failed, return null to trigger user clarification
-  console.log(
-    "❌ Date/time parsing failed completely - requiring user clarification"
-  );
-  return null;
 }
 
 /**
@@ -589,35 +464,35 @@ export const executePerinChatWithLangGraph = async (
             };
           }
 
-          // Step 3: AI-powered analysis of whether multi-step processing is needed
-          const multiStepAnalysis = await shouldUseMultiStepDelegation(
+          // Step 3: Unified delegation analysis (intent + time parsing)
+          const unifiedAnalysis = await performUnifiedDelegationAnalysis(
             messages,
-            state.delegationContext,
-            openaiClient
+            state.delegationContext
           );
 
-          console.log("AI Multi-step Analysis:", {
-            useMultiStep: multiStepAnalysis.useMultiStep,
-            reasoning: multiStepAnalysis.reasoning,
-            confidence: multiStepAnalysis.confidence,
+          console.log("Unified Analysis Result:", {
+            requiresScheduling: unifiedAnalysis?.requiresScheduling,
+            reasoning: unifiedAnalysis?.reasoning,
+            confidence: unifiedAnalysis?.confidence,
+            timeDetected: !!unifiedAnalysis?.timeAnalysis?.parsedDateTime,
             userId,
           });
 
-          if (multiStepAnalysis.useMultiStep) {
+          if (unifiedAnalysis?.requiresScheduling) {
             // MULTI-STEP DELEGATION MODE
             console.log("Using multi-step delegation mode", {
               userId,
               delegationId: state.delegationContext?.delegationId,
-              reasoning: multiStepAnalysis.reasoning,
-              confidence: multiStepAnalysis.confidence,
+              reasoning: unifiedAnalysis.reasoning,
+              confidence: unifiedAnalysis.confidence,
             });
 
             // Emit multi-step initiation token to frontend
             controller.enqueue(
               new TextEncoder().encode(
                 MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_INITIATED(
-                  multiStepAnalysis.reasoning,
-                  multiStepAnalysis.confidence
+                  unifiedAnalysis.reasoning,
+                  unifiedAnalysis.confidence
                 )
               )
             );
@@ -625,9 +500,9 @@ export const executePerinChatWithLangGraph = async (
             // Register delegation step executors
             registerDelegationStepExecutors(multiStepOrchestrator);
 
-            // Extract meeting parameters
-            const meetingParams = await extractDelegationMeetingParams(
-              messages,
+            // Extract meeting parameters from unified analysis
+            const meetingParams = extractMeetingParamsFromAnalysis(
+              unifiedAnalysis,
               state.delegationContext
             );
 
@@ -667,6 +542,10 @@ export const executePerinChatWithLangGraph = async (
                 "❓ Could not extract clear meeting parameters - asking for clarification"
               );
 
+              // Use fallback suggestions from unified analysis if available
+              const suggestions =
+                unifiedAnalysis.timeAnalysis?.fallbackSuggestions || [];
+
               // Emit a clarification request message (language-aware)
               const lastUserMessage = messages.findLast(
                 (m) => m.role === "user"
@@ -677,6 +556,10 @@ export const executePerinChatWithLangGraph = async (
 
               const clarificationMessage = isHebrew
                 ? "אני צריך פרטים נוספים לתזמון הפגישה. האם תוכל לציין את היום והשעה? לדוגמה: 'תזמן פגישה ליום שישי בשעה 15:00'"
+                : suggestions.length > 0
+                ? `I need more details to schedule your meeting. ${suggestions.join(
+                    " "
+                  )}`
                 : "I need more details to schedule your meeting. Could you please specify both the day and time? For example: 'Schedule a meeting for Friday at 3 PM'";
 
               controller.enqueue(
