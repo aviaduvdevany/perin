@@ -175,16 +175,16 @@ Respond with JSON:
 /**
  * Extract meeting parameters from user message for delegation
  */
-function extractDelegationMeetingParams(
+async function extractDelegationMeetingParams(
   messages: ChatMessage[],
   delegationContext: LangGraphChatState["delegationContext"]
-): {
+): Promise<{
   startTime: string;
   durationMins: number;
   title: string;
   timezone?: string;
   externalUserName?: string;
-} | null {
+} | null> {
   if (!delegationContext) return null;
 
   const lastUserMessage =
@@ -196,7 +196,7 @@ function extractDelegationMeetingParams(
   const defaultDuration = (constraints.defaultDuration as number) || 30;
 
   // Parse date and time from user message
-  const parsedDateTime = parseDateTimeFromMessage(
+  const parsedDateTime = await parseDateTimeFromMessage(
     lastUserMessage,
     delegationContext.externalUserTimezone || "UTC"
   );
@@ -218,14 +218,12 @@ function extractDelegationMeetingParams(
 /**
  * Parse date and time from user message
  */
-function parseDateTimeFromMessage(
+async function parseDateTimeFromMessage(
   message: string,
   timezone: string
-): Date | null {
+): Promise<Date | null> {
   const lowerMessage = message.toLowerCase();
 
-  // FIXED: Get current date in the USER'S timezone, not server timezone
-  // Create a date that represents "now" in the user's timezone
   const serverNow = new Date();
   const userNow = new Date(
     serverNow.toLocaleString("en-US", { timeZone: timezone })
@@ -303,23 +301,20 @@ function parseDateTimeFromMessage(
     }
   }
 
-  // FIXED: Simple approach - just set the time and let the system handle timezone conversion
-  // The key fix is that we're now using userNow (user's timezone) for date calculations
-  // instead of server timezone. The time setting can be simple.
   targetDate.setHours(hour, minute, 0, 0);
 
-  console.log("Parsed date/time from message (USER TIMEZONE CALCULATIONS):", {
-    originalMessage: message,
-    parsedDate: targetDate.toISOString(),
-    timezone,
-    dayOffset,
-    hour,
-    minute,
-    serverNow: serverNow.toISOString(),
-    userNow: userNow.toISOString(),
-    targetDate: targetDate.toISOString(),
-    note: "Using user's timezone for date calculations, simple time setting",
-  });
+  console.log(
+    "Parsed date/time from message (LOCAL TIME - NO UTC CONVERSION):",
+    {
+      originalMessage: message,
+      timezone,
+      dayOffset,
+      hour,
+      minute,
+      localTime: targetDate.toISOString(),
+      note: "Returning local time directly - Google Calendar will handle timezone",
+    }
+  );
 
   return targetDate;
 }
@@ -696,7 +691,7 @@ export const executePerinChatWithLangGraph = async (
             registerDelegationStepExecutors(multiStepOrchestrator);
 
             // Extract meeting parameters
-            const meetingParams = extractDelegationMeetingParams(
+            const meetingParams = await extractDelegationMeetingParams(
               messages,
               state.delegationContext
             );
