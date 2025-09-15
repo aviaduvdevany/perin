@@ -90,7 +90,7 @@ export class DelegationAI {
       model: this.model,
       messages: [{ role: "user", content: analysisPrompt }],
       temperature: 0.1, // Low temperature for consistent analysis
-      max_tokens: 800, // Increased for both analysis and conversational response
+      max_tokens: 3500, // Increased for both analysis and conversational response
     });
 
     const content = response.choices[0]?.message?.content;
