@@ -1,9 +1,14 @@
+/**
+ * Delegation-specific step executors for multi-step scheduling flows
+ * Moved from LangGraph orchestrator and adapted for Delegation AI
+ */
+
 import type {
   StepDefinition,
   LangGraphChatState,
   MultiStepContext,
 } from "@/types/ai";
-import type { StepExecutor } from "./multi-step-orchestrator";
+import type { StepExecutor } from "../../langgraph/orchestrator/multi-step-orchestrator";
 import {
   checkOwnerAvailabilityHandler,
   scheduleWithOwnerHandler,
@@ -11,6 +16,7 @@ import {
   type ScheduleWithOwnerArgs,
 } from "../../tools/delegation";
 import type { ToolContext } from "../../tools/types";
+import type { TimeAnalysis, MeetingContext } from "../core/delegation-types";
 
 // Extended step definition with data
 interface StepDefinitionWithData<T = unknown> extends StepDefinition {
@@ -26,7 +32,18 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
   _context: MultiStepContext,
   onProgress
 ) => {
-  onProgress("Analyzing your request...");
+  // Use contextual messages if available, otherwise fall back to defaults
+  const checkingMessage =
+    state.contextualMessages?.checkingAvailability ||
+    "Analyzing your request...";
+
+  console.log("📋 Delegation Step Executor - Using checking message:", {
+    contextualMessage: state.contextualMessages?.checkingAvailability,
+    fallbackMessage: "Analyzing your request...",
+    finalMessage: checkingMessage,
+  });
+
+  onProgress(checkingMessage);
 
   try {
     // Extract step data (should be passed through step metadata)
@@ -62,27 +79,46 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       const data = result.data;
 
       if (data.isAvailable) {
-        onProgress("✅ Time slot is available!");
+        const availableMessage =
+          state.contextualMessages?.availabilityConfirmed ||
+          "✅ Time slot is available!";
+        onProgress(availableMessage);
 
         return {
           stepId: step.id,
           status: "completed",
           result: data,
-          progressMessage:
-            data.message ||
-            `Found available slot: ${new Date(
-              data.proposedStartTime
-            ).toLocaleString()}`,
+          progressMessage: availableMessage,
         };
       } else {
-        onProgress("❌ Time slot is not available, checking alternatives...");
+        // Use contextual message if available and not empty, otherwise use language-aware fallback
+        let conflictMessage = state.contextualMessages?.timeConflict;
+
+        if (!conflictMessage || conflictMessage.trim() === "") {
+          // Detect user's language from conversation for fallback
+          const isHebrew =
+            state.conversationContext &&
+            /[\u0590-\u05FF]/.test(state.conversationContext);
+          conflictMessage = isHebrew
+            ? "❌ יש התנגשות בזמן המבוקש, בודק חלופות..."
+            : "❌ Time slot is not available, checking alternatives...";
+        }
+
+        console.log("📋 Delegation Step Executor - Using conflict message:", {
+          contextualMessage: state.contextualMessages?.timeConflict,
+          fallbackMessage: conflictMessage,
+          isHebrew:
+            state.conversationContext &&
+            /[\u0590-\u05FF]/.test(state.conversationContext),
+        });
+
+        onProgress(conflictMessage);
 
         return {
           stepId: step.id,
           status: "failed",
           result: data,
-          progressMessage:
-            data.message || "Time slot unavailable, alternatives found",
+          progressMessage: conflictMessage,
         };
       }
     } else {
@@ -138,7 +174,11 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
   _context: MultiStepContext,
   onProgress
 ) => {
-  onProgress("Preparing to schedule the meeting...");
+  // Use contextual messages for scheduling progress
+  const schedulingMessage =
+    state.contextualMessages?.schedulingMeeting ||
+    "Preparing to schedule the meeting...";
+  onProgress(schedulingMessage);
 
   try {
     // Extract step data
@@ -171,15 +211,16 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
 
     if (result.ok && result.data) {
       const data = result.data;
-      onProgress("✅ Meeting scheduled successfully!");
+      const successMessage =
+        state.contextualMessages?.meetingScheduled ||
+        "✅ Meeting scheduled successfully!";
+      onProgress(successMessage);
 
       return {
         stepId: step.id,
         status: "completed",
         result: data,
-        progressMessage: `Meeting scheduled for ${new Date(
-          data.startTime
-        ).toLocaleString()}`,
+        progressMessage: successMessage,
       };
     } else {
       const errorMessage = result.error || "Meeting scheduling failed";
@@ -218,87 +259,20 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
 };
 
 /**
- * Step executor for analyzing meeting request intent
+ * Create delegation step definitions with Delegation AI analysis results
  */
-export const delegationAnalyzeRequestExecutor: StepExecutor = async (
-  state: LangGraphChatState,
-  step: StepDefinition,
-  _context: MultiStepContext,
-  onProgress
-) => {
-  onProgress("Understanding your meeting request...");
-
-  try {
-    // Get the last user message
-    const lastUserMessage = state.messages.findLast((m) => m.role === "user");
-    if (!lastUserMessage) {
-      throw new Error("No user message found");
-    }
-
-    onProgress("Extracting meeting details...");
-
-    // Simple intent analysis (in production, this could use NLP)
-    const content = lastUserMessage.content.toLowerCase();
-    const hasTimeReference =
-      /tomorrow|today|next week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|\d{1,2}:\d{2}|\d{1,2} (am|pm)/i.test(
-        content
-      );
-    const hasDurationReference = /\d+\s*(minutes?|mins?|hours?|hrs?)/i.test(
-      content
-    );
-
-    onProgress("Analyzing meeting constraints...");
-
-    // Check delegation constraints
-    const constraints = state.delegationContext?.constraints as
-      | Record<string, unknown>
-      | undefined;
-    const allowedMeetingTypes = (constraints?.meetingType as string[]) || [
-      "video",
-      "in-person",
-    ];
-    const defaultDuration = (constraints?.defaultDuration as number) || 30;
-
-    const analysisResult = {
-      hasTimeReference,
-      hasDurationReference,
-      suggestedDuration: defaultDuration,
-      allowedMeetingTypes,
-      userMessage: lastUserMessage.content,
-      timezone: state.delegationContext?.externalUserTimezone || "UTC",
-    };
-
-    onProgress("✅ Request analyzed successfully!");
-
-    return {
-      stepId: step.id,
-      status: "completed",
-      result: analysisResult,
-      progressMessage: "Meeting request understood and analyzed",
-    };
-  } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Unknown error";
-
-    return {
-      stepId: step.id,
-      status: "failed",
-      error: errorMessage,
-      progressMessage: `❌ Failed to analyze request: ${errorMessage}`,
-    };
+export function createDelegationSteps(
+  timeAnalysis: TimeAnalysis,
+  meetingContext: MeetingContext
+): StepDefinitionWithData[] {
+  if (!timeAnalysis.parsedDateTime) {
+    throw new Error("No valid date/time found in analysis");
   }
-};
 
-/**
- * Create delegation step definitions for a typical scheduling flow
- */
-export function createDelegationSteps(requestData: {
-  startTime: string;
-  durationMins: number;
-  title: string;
-  timezone?: string;
-  externalUserName?: string;
-}): StepDefinitionWithData[] {
+  const startTime = timeAnalysis.parsedDateTime.toISOString();
+  const durationMins = meetingContext.duration || 30;
+  const title = meetingContext.title || "Meeting";
+
   return [
     {
       id: "check_availability",
@@ -307,9 +281,9 @@ export function createDelegationSteps(requestData: {
       required: true,
       estimatedDuration: 3,
       data: {
-        startTime: requestData.startTime,
-        durationMins: requestData.durationMins,
-        timezone: requestData.timezone,
+        startTime,
+        durationMins,
+        timezone: timeAnalysis.extractedComponents.timezone,
       } as CheckOwnerAvailabilityArgs,
     },
     {
@@ -319,11 +293,11 @@ export function createDelegationSteps(requestData: {
       required: true,
       estimatedDuration: 4,
       data: {
-        startTime: requestData.startTime,
-        durationMins: requestData.durationMins,
-        title: requestData.title,
-        timezone: requestData.timezone,
-        externalUserName: requestData.externalUserName,
+        startTime,
+        durationMins,
+        title,
+        timezone: timeAnalysis.extractedComponents.timezone,
+        externalUserName: "External User", // Will be replaced with actual name in context
       } as ScheduleWithOwnerArgs,
     },
   ];
@@ -335,10 +309,6 @@ export function createDelegationSteps(requestData: {
 export function registerDelegationStepExecutors(orchestrator: {
   registerStepExecutor: (id: string, executor: StepExecutor) => void;
 }) {
-  orchestrator.registerStepExecutor(
-    "analyze_request",
-    delegationAnalyzeRequestExecutor
-  );
   orchestrator.registerStepExecutor(
     "check_availability",
     delegationCheckAvailabilityExecutor

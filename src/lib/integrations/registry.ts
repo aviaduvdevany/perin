@@ -7,6 +7,7 @@ import type {
 } from "@/types/integrations";
 import { fetchRecentEmailsFromAll } from "@/lib/integrations/gmail/client";
 import { fetchRecentEventsFromAll } from "@/lib/integrations/calendar/client";
+import { getUserById } from "../queries/users";
 
 // Context loaders for each integration
 const gmailContextLoader = async (userId: string): Promise<GmailData[]> => {
@@ -45,9 +46,8 @@ const calendarContextLoader = async (
     console.log("Calendar context loader called for user:", userId);
 
     // Get user's timezone
-    const user = await import("@/lib/queries/users").then((m) =>
-      m.getUserById(userId)
-    );
+    const user = await getUserById(userId)
+    
     const userTimezone = user?.timezone || "UTC";
     console.log("User timezone:", userTimezone);
 

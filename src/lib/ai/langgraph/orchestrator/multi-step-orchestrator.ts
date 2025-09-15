@@ -178,17 +178,26 @@ export class MultiStepOrchestrator {
             // Provide user-friendly failure message based on step type
             let failureMessage = "";
             if (step.id === "check_availability") {
-              // Detect user's language from the last message
-              const lastUserMessage = state.messages.findLast(
-                (m) => m.role === "user"
-              );
-              const isHebrew =
-                lastUserMessage?.content &&
-                /[\u0590-\u05FF]/.test(lastUserMessage.content);
+              // Use contextual message if available, otherwise detect language
+              if (
+                state.contextualMessages?.timeConflict &&
+                state.contextualMessages.timeConflict.trim() !== ""
+              ) {
+                failureMessage =
+                  state.contextualMessages.timeConflict + " ננסה זמן אחר?";
+              } else {
+                // Detect user's language from the last message
+                const lastUserMessage = state.messages.findLast(
+                  (m) => m.role === "user"
+                );
+                const isHebrew =
+                  lastUserMessage?.content &&
+                  /[\u0590-\u05FF]/.test(lastUserMessage.content);
 
-              failureMessage = isHebrew
-                ? "יש התנגשויות בזמן שהצעת. ננסה זמן אחר באותו יום?"
-                : "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
+                failureMessage = isHebrew
+                  ? "יש התנגשויות בזמן שהצעת. ננסה זמן אחר באותו יום?"
+                  : "There are conflicts in the time you suggested. Would you like to try a different time for that day?";
+              }
             } else {
               failureMessage = `❌ Required step failed: ${step.name}. Process stopped.`;
             }
@@ -335,9 +344,26 @@ export class MultiStepOrchestrator {
       return null;
     }
 
-    // Simple, universal message - the LLM will naturally respond in the user's language
-    // based on the conversation context it already has
-    return "Perfect! I've completed that for you. Is there anything else I can help with?";
+    // Check if we have a successful meeting scheduling in the steps
+    const hasSuccessfulScheduling = context.stepResults.some(
+      (result) =>
+        result.status === "completed" && result.stepId === "schedule_meeting"
+    );
+
+    // Use LLM-generated contextual message if available, otherwise fallback
+    if (hasSuccessfulScheduling && state.contextualMessages?.meetingScheduled) {
+      return state.contextualMessages.meetingScheduled;
+    }
+
+    // Fallback message - try to match user's language from last message
+    const lastUserMessage = state.messages.findLast((m) => m.role === "user");
+    const isHebrew =
+      lastUserMessage?.content &&
+      /[\u0590-\u05FF]/.test(lastUserMessage.content);
+
+    return isHebrew
+      ? "מושלם! סיימתי את זה בשבילך. יש עוד משהו שאני יכול לעזור?"
+      : "Perfect! I've completed that for you. Is there anything else I can help with?";
   }
 
   /**

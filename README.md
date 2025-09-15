@@ -38,6 +38,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see the application.
 Perin is an AI-powered digital delegate that helps users manage emails, schedule meetings, and coordinate tasks. Built with Next.js, OpenAI GPT-4, and PostgreSQL, it features:
 
 - **Intelligent AI Assistant**: Context-aware conversations with semantic memory management
+- **Delegation AI System**: Dedicated system for external users to interact with Perin on behalf of owners
 - **Unified Integrations**: Single framework for Gmail, Calendar, and future services
 - **Production-Ready Error Handling**: Retry logic, circuit breakers, and graceful degradation
 - **LangGraph Workflow**: Multi-step reasoning with parallel integration loading
@@ -78,6 +79,15 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 - **Dynamic Prompts**: Personalized system prompts based on user preferences
 - **Intent Classification**: Smart routing for different types of requests
 
+### 🤝 Delegation AI System
+
+- **Personality-Driven Responses**: External users interact with Perin as if talking to the owner directly
+- **Single LLM Call**: Combined analysis and conversational response for efficiency
+- **Owner Context**: Embeds owner's name, timezone, Perin personality, and communication style
+- **Language-Aware**: Automatically responds in the same language as the user's message
+- **Multi-Step Scheduling**: Seamless calendar integration for meeting scheduling
+- **Clean Architecture**: Completely separate from regular Perin AI for better maintainability
+
 ### 🔗 Unified Integration System
 
 - **Single Framework**: Handles Gmail, Calendar, Slack, Notion, and future services
@@ -106,6 +116,7 @@ Perin is an AI-powered digital delegate that helps users manage emails, schedule
 ### Core Documentation
 
 - **[AI Integration](./AI_INTEGRATION_README.md)** - Complete AI system with unified integrations, error handling, and memory management
+- **[Delegation AI](./DELEGATION_AI_REFACTOR_PLAN.md)** - Dedicated AI system for external users to interact with Perin on behalf of owners
 - **[Authentication](./AUTH_README.md)** - NextAuth.js setup, user management, and security
 
 ### Development Documentation

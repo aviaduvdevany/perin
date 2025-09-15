@@ -17,6 +17,10 @@ import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
 import {
+  MULTI_STEP_CONTROL_TOKENS,
+  multiStepOrchestrator,
+} from "./orchestrator/multi-step-orchestrator";
+import {
   fallbackToSimpleResponse,
   withRetry,
 } from "@/lib/ai/resilience/error-handler";
@@ -48,6 +52,8 @@ function extractNetworkParams(messages: ChatMessage[]): {
     conversationText: currentMessageText, // Use only current message for integration detection
   };
 }
+
+
 
 /**
  * Determine if we should use tool mode based on intent heuristics
@@ -158,7 +164,7 @@ export const executePerinChatWithLangGraph = async (
   if (options?.delegationContext?.isDelegation) {
     throw new Error(
       "Delegation requests should be handled by the DelegationAI system, not regular LangGraph. " +
-        "Use executeDelegationChat from @/lib/ai/delegation instead."
+      "Use executeDelegationChat from @/lib/ai/delegation instead."
     );
   }
 
@@ -390,8 +396,127 @@ export const executePerinChatWithLangGraph = async (
             };
           }
 
-          // Step 3: Continue with regular Perin AI processing
-          // NOTE: Delegation is now handled by the dedicated DelegationAI system
+          // Step 3: Regular Perin AI processing (delegation is handled separately)
+          // NOTE: Delegation analysis removed - now handled by DelegationAI system
+          // const unifiedAnalysis = await performUnifiedDelegationAnalysis(
+          //   messages,
+          //   state.delegationContext,
+          //   state.perinName,
+          //   state.tone
+          // );
+
+          // Store contextual messages in state for step executors to use
+          // if (unifiedAnalysis?.contextualMessages) {
+          //   state.contextualMessages = unifiedAnalysis.contextualMessages;
+          //   console.log("🗂️ Storing contextual messages in state:", {
+          //     availabilityConfirmed:
+          //       state.contextualMessages.availabilityConfirmed,
+          //     meetingScheduled: state.contextualMessages.meetingScheduled,
+          //     timeConflict: state.contextualMessages.timeConflict,
+          //   });
+          // } else {
+          //   console.log("⚠️ No contextual messages to store in state");
+          // }
+
+          // console.log("Unified Analysis Result:", {
+          //   requiresScheduling: unifiedAnalysis?.requiresScheduling,
+          //   reasoning: unifiedAnalysis?.reasoning,
+          //   confidence: unifiedAnalysis?.confidence,
+          //   timeDetected: !!unifiedAnalysis?.timeAnalysis?.parsedDateTime,
+          //   userId,
+          // });
+
+          // if (unifiedAnalysis?.requiresScheduling) {
+            // MULTI-STEP DELEGATION MODE
+            console.log("Using multi-step delegation mode", {
+              userId,
+              delegationId: state.delegationContext?.delegationId,
+              reasoning: unifiedAnalysis.reasoning,
+              confidence: unifiedAnalysis.confidence,
+            });
+
+            // Emit multi-step initiation token to frontend
+            controller.enqueue(
+              new TextEncoder().encode(
+                MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_INITIATED(
+                  unifiedAnalysis.reasoning,
+                  unifiedAnalysis.confidence
+                )
+              )
+            );
+
+            // Register delegation step executors (DISABLED - using DelegationAI system)
+            // registerDelegationStepExecutors(multiStepOrchestrator);
+
+            // Extract meeting parameters from unified analysis (DISABLED)
+            // const meetingParams = extractMeetingParamsFromAnalysis(
+            //   unifiedAnalysis,
+            //   state.delegationContext
+            // );
+
+            // if (meetingParams) {
+              // Create delegation steps (DISABLED)
+              // const steps = createDelegationSteps(meetingParams);
+
+              // Execute multi-step delegation flow
+              try {
+                const multiStepContext =
+                  await multiStepOrchestrator.executeSteps(
+                    state,
+                    steps,
+                    controller
+                  );
+
+                // Update state with multi-step context
+                state.multiStepContext = multiStepContext;
+
+                controller.close();
+                return;
+              } catch (error) {
+                console.error("Multi-step delegation failed:", error);
+                controller.enqueue(
+                  new TextEncoder().encode(
+                    `I apologize, but I encountered an issue while processing your request: ${
+                      error instanceof Error ? error.message : "Unknown error"
+                    }`
+                  )
+                );
+                controller.close();
+                return;
+              }
+            } else {
+              // Could not extract clear meeting parameters - need user clarification
+              console.log(
+                "❓ Could not extract clear meeting parameters - asking for clarification"
+              );
+
+              // Use fallback suggestions from unified analysis if available
+              const suggestions =
+                unifiedAnalysis.timeAnalysis?.fallbackSuggestions || [];
+
+              // Emit a clarification request message (language-aware)
+              const lastUserMessage = messages.findLast(
+                (m) => m.role === "user"
+              );
+              const isHebrew =
+                lastUserMessage?.content &&
+                /[\u0590-\u05FF]/.test(lastUserMessage.content);
+
+              const clarificationMessage = isHebrew
+                ? "אני צריך פרטים נוספים לתזמון הפגישה. האם תוכל לציין את היום והשעה? לדוגמה: 'תזמן פגישה ליום שישי בשעה 15:00'"
+                : suggestions.length > 0
+                ? `I need more details to schedule your meeting. ${suggestions.join(
+                    " "
+                  )}`
+                : "I need more details to schedule your meeting. Could you please specify both the day and time? For example: 'Schedule a meeting for Friday at 3 PM'";
+
+              controller.enqueue(
+                new TextEncoder().encode(clarificationMessage)
+              );
+              controller.close();
+              return;
+            }
+          }
 
           // Step 4: Decide execution mode (tool-calling vs direct streaming)
           const useToolMode = shouldUseToolMode(messages, specialization);
