@@ -23,6 +23,7 @@ import { generateMutualProposals } from "@/lib/network/scheduling";
 import { createCalendarEvent } from "@/lib/integrations/calendar/client";
 import { formatInTimezone } from "@/lib/utils/timezone";
 import { isReauthError } from "@/lib/integrations/errors";
+import { getUserIntegration } from "@/lib/queries/integrations";
 // Note: Using local implementations of scheduling utilities for this file
 
 /**
@@ -415,7 +416,6 @@ export const scheduleMeetingHandler: ToolHandler<
     let proposals;
     try {
       // Log calendar integration status before attempting to schedule
-      const { getUserIntegration } = await import("@/lib/queries/integrations");
       const calendarIntegration = await getUserIntegration(
         context.userId,
         "calendar"

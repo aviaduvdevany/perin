@@ -17,6 +17,7 @@ import {
 } from "./types";
 import { createCalendarEvent } from "@/lib/integrations/calendar/client";
 import { isReauthError } from "@/lib/integrations/errors";
+import { getUserById } from "@/lib/queries/users";
 
 /**
  * Create Solo Calendar Event Tool Arguments
@@ -106,9 +107,7 @@ export const createSoloEventHandler: ToolHandler<
 
   try {
     // Get user's timezone from database
-    const user = await import("@/lib/queries/users").then((m) =>
-      m.getUserById(userId)
-    );
+    const user = await getUserById(userId)
     const userTimezone = user?.timezone || "UTC";
 
     const startTime = new Date(args.startTime);

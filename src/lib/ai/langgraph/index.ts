@@ -16,12 +16,18 @@ import { networkNegotiationNode } from "./nodes/network-negotiation-node";
 import { notificationsContextNode } from "./nodes/notifications-node";
 import { notificationsActionNode } from "./nodes/notifications-action-node";
 import { getToolSpecsForContext } from "../tools/registry";
-import { multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
+import { MULTI_STEP_CONTROL_TOKENS, multiStepOrchestrator } from "./orchestrator/multi-step-orchestrator";
 import {
   createDelegationSteps,
   registerDelegationStepExecutors,
 } from "./orchestrator/delegation-step-executors";
 import { OpenAI } from "openai";
+import {
+  fallbackToSimpleResponse,
+  withRetry,
+} from "@/lib/ai/resilience/error-handler";
+import { parseDateTime } from "@/lib/utils/time-parser";
+import { getErrorActionToken } from "@/lib/integrations/error-handler";
 
 function extractNetworkParams(messages: ChatMessage[]): {
   counterpartUserId?: string;
@@ -222,78 +228,6 @@ async function extractDelegationMeetingParams(
 }
 
 /**
- * Try LLM-based date/time parsing for ambiguous cases
- */
-async function tryLLMDateParsing(
-  message: string,
-  conversationContext: string | undefined,
-  timezone: string,
-  userNow: Date
-): Promise<Date | null> {
-  try {
-    const { initializeOpenAI } = await import("./nodes/openai-node");
-    const openaiClient = initializeOpenAI();
-
-    const analysisPrompt = `You are a precise date/time parser. Analyze this scheduling request and extract the intended date and time.
-
-CURRENT DATE/TIME: ${userNow.toLocaleString()} (${timezone})
-CONVERSATION CONTEXT: ${conversationContext || "None"}
-USER MESSAGE: "${message}"
-
-Rules:
-1. If the user mentions a specific day (Monday, Tuesday, etc.), assume the NEXT occurrence of that day
-2. If the user only mentions a time (like "16:00") and there's a day mentioned in the conversation context, use that day
-3. If the user says "today" or "tomorrow", be explicit about which date that means
-4. If you cannot determine the date with confidence, respond with "UNCLEAR"
-
-Respond with JSON only:
-{
-  "confident": boolean,
-  "date": "YYYY-MM-DD" or null,
-  "time": "HH:MM" or null,
-  "reasoning": "Brief explanation"
-}`;
-
-    const response = await openaiClient.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: analysisPrompt }],
-      temperature: 0.1,
-      max_tokens: 300,
-    });
-
-    const content = response.choices[0]?.message?.content;
-    if (!content) return null;
-
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-
-    const analysis = JSON.parse(jsonMatch[0]);
-
-    if (!analysis.confident || !analysis.date || !analysis.time) {
-      console.log("LLM analysis not confident:", analysis);
-      return null;
-    }
-
-    // Parse the LLM-provided date and time
-    const [year, month, day] = analysis.date.split("-").map(Number);
-    const [hour, minute] = analysis.time.split(":").map(Number);
-
-    const parsedDate = new Date(year, month - 1, day, hour, minute, 0, 0);
-
-    console.log("LLM parsed date/time:", {
-      original: message,
-      analysis,
-      parsedDate: parsedDate.toISOString(),
-    });
-
-    return parsedDate;
-  } catch (error) {
-    console.error("LLM date parsing failed:", error);
-    return null;
-  }
-}
-
-/**
  * Parse date and time from user message
  */
 async function parseDateTimeFromMessage(
@@ -301,176 +235,26 @@ async function parseDateTimeFromMessage(
   timezone: string,
   conversationContext?: string
 ): Promise<Date | null> {
-  const lowerMessage = message.toLowerCase();
+  // All date/time parsing is now handled by the dedicated parser module
 
-  // Create a date that represents "now" in the user's timezone
-  const serverNow = new Date();
-  const userNow = new Date(
-    serverNow.toLocaleString("en-US", { timeZone: timezone })
+  // Parse date and time using dedicated parser module
+  const parseResult = await parseDateTime(
+    message,
+    conversationContext,
+    timezone
   );
 
-  // Parse day of week (multilingual support)
-  let targetDate = new Date(userNow);
-  const dayPatterns = [
-    // English + Hebrew Sunday (ראשון)
-    { pattern: /sunday|sun|ראשון/i, dayOffset: 0 },
-    // English + Hebrew Monday (שני)
-    { pattern: /monday|mon|שני/i, dayOffset: 1 },
-    // English + Hebrew Tuesday (שלישי)
-    { pattern: /tuesday|tue|שלישי/i, dayOffset: 2 },
-    // English + Hebrew Wednesday (רביעי)
-    { pattern: /wednesday|wed|רביעי/i, dayOffset: 3 },
-    // English + Hebrew Thursday (חמישי)
-    { pattern: /thursday|thu|חמישי/i, dayOffset: 4 },
-    // English + Hebrew Friday (שישי)
-    { pattern: /friday|fri|שישי/i, dayOffset: 5 },
-    // English + Hebrew Saturday (שבת)
-    { pattern: /saturday|sat|שבת/i, dayOffset: 6 },
-  ];
-
-  let dayOffset = 0;
-  let dayFoundInMessage = false;
-
-  // First, check if the current message contains a specific day
-  for (const { pattern, dayOffset: offset } of dayPatterns) {
-    if (pattern.test(lowerMessage)) {
-      dayOffset = offset;
-      dayFoundInMessage = true;
-      break;
-    }
+  // If parsing was successful, return the complete date
+  if (parseResult.date !== null) {
+    console.log("✅ Date/time parsing successful via", parseResult.method);
+    return parseResult.date;
   }
 
-  // If no day specified in current message, try to extract from conversation context
-  if (!dayFoundInMessage && conversationContext) {
-    console.log(
-      "No day in current message, checking conversation context:",
-      conversationContext
-    );
-
-    // Look for the most recent day mentioned in conversation
-    for (const { pattern, dayOffset: offset } of dayPatterns) {
-      if (pattern.test(conversationContext.toLowerCase())) {
-        dayOffset = offset;
-        console.log(
-          `Found day in context: ${
-            [
-              "Sunday",
-              "Monday",
-              "Tuesday",
-              "Wednesday",
-              "Thursday",
-              "Friday",
-              "Saturday",
-            ][offset]
-          }`
-        );
-        break;
-      }
-    }
-  }
-
-  // If still no day specified and no context, we'll need LLM analysis or clarification
-  // DO NOT default to tomorrow - this is dangerous for scheduling!
-
-  // Calculate target date - FIXED: Use user's timezone for all calculations
-  if (lowerMessage.includes("today") || lowerMessage.includes("היום")) {
-    targetDate = new Date(userNow);
-  } else if (
-    lowerMessage.includes("tomorrow") ||
-    lowerMessage.includes("מחר")
-  ) {
-    targetDate = new Date(userNow.getTime() + 24 * 60 * 60 * 1000);
-  } else if (dayOffset > 0) {
-    // Find next occurrence of the specified day
-    const currentDay = userNow.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    let daysUntilTarget = (dayOffset - currentDay + 7) % 7;
-    if (daysUntilTarget === 0) daysUntilTarget = 7; // Next week
-    targetDate = new Date(
-      userNow.getTime() + daysUntilTarget * 24 * 60 * 60 * 1000
-    );
-  }
-
-  // Parse time
-  let hour = 14; // Default to 2 PM
-  let minute = 0;
-
-  // Look for time patterns
-  const timePatterns = [
-    /(\d{1,2}):(\d{2})/, // 14:00, 2:30
-    /(\d{1,2})\s*(am|pm)/i, // 2pm, 2:30pm
-    /(\d{1,2})\s*(\d{2})\s*(am|pm)/i, // 2 30pm
-  ];
-
-  for (const pattern of timePatterns) {
-    const match = lowerMessage.match(pattern);
-    if (match) {
-      if (match[3]) {
-        // AM/PM format
-        hour = parseInt(match[1]);
-        minute = match[2] ? parseInt(match[2]) : 0;
-        if (match[3].toLowerCase() === "pm" && hour !== 12) {
-          hour += 12;
-        } else if (match[3].toLowerCase() === "am" && hour === 12) {
-          hour = 0;
-        }
-      } else {
-        // 24-hour format
-        hour = parseInt(match[1]);
-        minute = parseInt(match[2]);
-      }
-      break;
-    }
-  }
-
-  targetDate.setHours(hour, minute, 0, 0);
-
+  // If parsing failed, return null to trigger user clarification
   console.log(
-    "Parsed date/time from message (LOCAL TIME - NO UTC CONVERSION):",
-    {
-      originalMessage: message,
-      timezone,
-      dayOffset,
-      hour,
-      minute,
-      localTime: targetDate.toISOString(),
-      note: "Returning local time directly - Google Calendar will handle timezone",
-    }
+    "❌ Date/time parsing failed completely - requiring user clarification"
   );
-
-  // Check if parsing is uncertain and needs LLM analysis
-  const isUncertainParsing =
-    !dayFoundInMessage &&
-    dayOffset === 0 &&
-    !lowerMessage.includes("today") &&
-    !lowerMessage.includes("היום") &&
-    !lowerMessage.includes("tomorrow") &&
-    !lowerMessage.includes("מחר");
-
-  if (isUncertainParsing) {
-    console.log("🤖 Uncertain date parsing - triggering LLM analysis:", {
-      message,
-      hasTime: hour !== 14 || minute !== 0,
-      hasConversationContext: !!conversationContext,
-    });
-
-    // Try LLM analysis for better date/time understanding
-    const llmParsedDate = await tryLLMDateParsing(
-      message,
-      conversationContext,
-      timezone,
-      userNow
-    );
-    if (llmParsedDate) {
-      console.log("✅ LLM successfully parsed ambiguous date/time");
-      return llmParsedDate;
-    }
-
-    // If LLM also can't parse confidently, return null to trigger user clarification
-    console.log("❌ Date/time too ambiguous - requiring user clarification");
-    return null;
-  }
-
-  return targetDate;
+  return null;
 }
 
 /**
@@ -829,9 +613,6 @@ export const executePerinChatWithLangGraph = async (
             });
 
             // Emit multi-step initiation token to frontend
-            const { MULTI_STEP_CONTROL_TOKENS } = await import(
-              "./orchestrator/multi-step-orchestrator"
-            );
             controller.enqueue(
               new TextEncoder().encode(
                 MULTI_STEP_CONTROL_TOKENS.MULTI_STEP_INITIATED(
@@ -928,10 +709,6 @@ export const executePerinChatWithLangGraph = async (
               ...messages,
             ];
 
-            const { withRetry } = await import(
-              "@/lib/ai/resilience/error-handler"
-            );
-
             const plannerResponse = await withRetry(
               async () => {
                 return await openaiClient.chat.completions.create({
@@ -991,9 +768,6 @@ export const executePerinChatWithLangGraph = async (
                 };
               } catch (toolError) {
                 // Use centralized error handling for integration errors
-                const { getErrorActionToken } = await import(
-                  "@/lib/integrations/error-handler"
-                );
                 const actionToken = getErrorActionToken(toolError);
 
                 if (actionToken) {
@@ -1095,11 +869,6 @@ export const executePerinChatWithLangGraph = async (
               { role: "system", content: systemPrompt + currentStepHint },
               ...messages,
             ];
-
-            const { withRetry } = await import(
-              "@/lib/ai/resilience/error-handler"
-            );
-
             const response = await withRetry(
               async () => {
                 return await openaiClient.chat.completions.create({
@@ -1132,9 +901,6 @@ export const executePerinChatWithLangGraph = async (
 
           try {
             // Provide graceful fallback response
-            const { fallbackToSimpleResponse } = await import(
-              "@/lib/ai/resilience/error-handler"
-            );
             const lastUserMessage =
               messages.findLast((msg) => msg.role === "user")?.content || "";
             const fallbackResponse = await fallbackToSimpleResponse(
