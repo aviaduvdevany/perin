@@ -158,6 +158,20 @@ export interface LangGraphChatState {
     isDelegation: boolean;
     externalUserTimezone?: string;
   };
+  // Contextual messages from unified analysis
+  contextualMessages?: {
+    availabilityConfirmed?: string;
+    meetingScheduled?: string;
+    timeConflict?: string;
+    unavailable?: string;
+    needsMoreInfo?: string;
+    clarifyTime?: string;
+    clarifyDate?: string;
+    checkingAvailability?: string;
+    schedulingMeeting?: string;
+    calendarError?: string;
+    generalError?: string;
+  };
 }
 
 // Gmail integration API types

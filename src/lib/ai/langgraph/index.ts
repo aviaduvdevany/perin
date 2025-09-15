@@ -64,7 +64,9 @@ function extractNetworkParams(messages: ChatMessage[]): {
  */
 async function performUnifiedDelegationAnalysis(
   messages: ChatMessage[],
-  delegationContext?: LangGraphChatState["delegationContext"]
+  delegationContext?: LangGraphChatState["delegationContext"],
+  perinName?: string,
+  tone?: string
 ): Promise<UnifiedDelegationAnalysis | null> {
   if (!delegationContext?.isDelegation) {
     return null;
@@ -82,7 +84,7 @@ async function performUnifiedDelegationAnalysis(
   // Build conversation context from all messages for time parsing
   const conversationContext = messages.map((m) => m.content).join(" ");
 
-  // Perform unified analysis
+  // Perform unified analysis with owner personality
   const analysis = await unifiedDelegationAnalyzer.analyzeMessage(
     lastUserMessage,
     {
@@ -91,6 +93,12 @@ async function performUnifiedDelegationAnalysis(
       externalUserTimezone: delegationContext.externalUserTimezone,
       constraints: delegationContext.constraints,
       conversationHistory: conversationContext,
+      ownerPersonality: {
+        perinName: perinName || "Perin",
+        tone: tone || "friendly",
+        language: "auto", // Detect from user's message
+        communicationStyle: "warm", // Could be configured per user
+      },
     }
   );
 
@@ -464,11 +472,26 @@ export const executePerinChatWithLangGraph = async (
             };
           }
 
-          // Step 3: Unified delegation analysis (intent + time parsing)
+          // Step 3: Unified delegation analysis (intent + time parsing + contextual messages)
           const unifiedAnalysis = await performUnifiedDelegationAnalysis(
             messages,
-            state.delegationContext
+            state.delegationContext,
+            state.perinName,
+            state.tone
           );
+
+          // Store contextual messages in state for step executors to use
+          if (unifiedAnalysis?.contextualMessages) {
+            state.contextualMessages = unifiedAnalysis.contextualMessages;
+            console.log("🗂️ Storing contextual messages in state:", {
+              availabilityConfirmed:
+                state.contextualMessages.availabilityConfirmed,
+              meetingScheduled: state.contextualMessages.meetingScheduled,
+              timeConflict: state.contextualMessages.timeConflict,
+            });
+          } else {
+            console.log("⚠️ No contextual messages to store in state");
+          }
 
           console.log("Unified Analysis Result:", {
             requiresScheduling: unifiedAnalysis?.requiresScheduling,

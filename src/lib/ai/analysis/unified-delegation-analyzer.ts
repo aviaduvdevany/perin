@@ -28,6 +28,29 @@ export interface MeetingContext {
   meetingType?: string;
 }
 
+export interface ContextualMessages {
+  // Success scenarios
+  availabilityConfirmed?: string;
+  meetingScheduled?: string;
+
+  // Conflict scenarios
+  timeConflict?: string;
+  unavailable?: string;
+
+  // Clarification scenarios
+  needsMoreInfo?: string;
+  clarifyTime?: string;
+  clarifyDate?: string;
+
+  // Progress messages
+  checkingAvailability?: string;
+  schedulingMeeting?: string;
+
+  // Error scenarios
+  calendarError?: string;
+  generalError?: string;
+}
+
 export interface UnifiedDelegationAnalysis {
   // Intent analysis
   requiresScheduling: boolean;
@@ -40,6 +63,9 @@ export interface UnifiedDelegationAnalysis {
   // Meeting context
   meetingContext?: MeetingContext;
 
+  // Contextual messaging
+  contextualMessages?: ContextualMessages;
+
   // Metadata
   method: "unified" | "fallback";
   processingTime: number;
@@ -51,6 +77,14 @@ export interface DelegationAnalysisContext {
   externalUserTimezone?: string;
   constraints?: Record<string, unknown>;
   conversationHistory?: string;
+
+  // Owner's Perin personality
+  ownerPersonality?: {
+    perinName?: string;
+    tone?: string; // "professional", "friendly", "casual", etc.
+    language?: string; // "auto", "hebrew", "english"
+    communicationStyle?: string; // "formal", "warm", "direct", etc.
+  };
 }
 
 export class UnifiedDelegationAnalyzer {
@@ -149,12 +183,21 @@ CONTEXT:
 
 USER MESSAGE: "${message}"
 
+OWNER'S PERIN PERSONALITY:
+- Name: ${context.ownerPersonality?.perinName || "Perin"}
+- Tone: ${context.ownerPersonality?.tone || "friendly"}
+- Communication Style: ${context.ownerPersonality?.communicationStyle || "warm"}
+- Preferred Language: ${context.ownerPersonality?.language || "auto"}
+
 CRITICAL INSTRUCTIONS:
 1. Analyze ONLY the latest message for intent - ignore conversation history for intent detection
 2. Be VERY conservative on scheduling intent (avoid false positives)
 3. For time parsing, use ALL available context including conversation history
 4. Handle ALL languages (Hebrew, English, etc.) naturally
 5. Extract meeting components when scheduling intent is detected
+6. **LANGUAGE MATCHING RULE**: Generate contextual messages in the SAME LANGUAGE as the user's message If user writes in Hebrew, generate ALL contextual messages in Hebrew. If user writes in English, generate ALL contextual messages in English.
+7. Embody the owner's Perin personality in all generated messages
+8. Keep messages privacy-friendly (no specific calendar details)
 
 SCHEDULING INTENT (requiresScheduling = true) ONLY FOR:
 - Clear intent to schedule: "Schedule a meeting for tomorrow"
@@ -222,6 +265,19 @@ Respond with ONLY valid JSON:
     "title": "suggested meeting title",
     "urgency": "high|medium|low",
     "meetingType": "suggested type based on context"
+  },
+  "contextualMessages": {
+    "availabilityConfirmed": "Message when time slot is available (Hebrew example: 'בדקתי את היומן והזמן פנוי!' English example: 'I checked the calendar and the time is available!')",
+    "meetingScheduled": "Success message when meeting is created (Hebrew example: 'הפגישה נקבעה בהצלחה!' English example: 'The meeting has been successfully scheduled!')",
+    "timeConflict": "Privacy-friendly message when time conflicts (Hebrew example: 'יש התנגשות בזמן המבוקש' English example: 'There is a conflict with the requested time')",
+    "unavailable": "Message when owner is unavailable",
+    "needsMoreInfo": "Message when more details needed",
+    "clarifyTime": "Message asking to clarify time",
+    "clarifyDate": "Message asking to clarify date", 
+    "checkingAvailability": "Progress message while checking calendar (Hebrew example: 'בודק זמינות ביומן...' English example: 'Checking calendar availability...')",
+    "schedulingMeeting": "Progress message while creating meeting (Hebrew example: 'מכין את הפגישה...' English example: 'Setting up the meeting...')",
+    "calendarError": "Error message for calendar issues",
+    "generalError": "Generic error message"
   }
 }`;
 
@@ -244,6 +300,14 @@ Respond with ONLY valid JSON:
     }
 
     const analysis = JSON.parse(jsonMatch[0]);
+
+    // Console log the raw LLM response for debugging
+    console.log("🤖 Raw LLM Analysis Response:", {
+      requiresScheduling: analysis.requiresScheduling,
+      timeAnalysis: analysis.timeAnalysis,
+      contextualMessages: analysis.contextualMessages,
+      fullResponse: analysis,
+    });
 
     // Validate and process the response
     return this.processAnalysisResponse(analysis);
@@ -311,6 +375,35 @@ Respond with ONLY valid JSON:
           (meetingContext.urgency as "high" | "medium" | "low") || "medium",
         meetingType: meetingContext.meetingType as string,
       };
+    }
+
+    // Process contextual messages
+    if (analysis.contextualMessages) {
+      const messages = analysis.contextualMessages as Record<string, unknown>;
+      result.contextualMessages = {
+        availabilityConfirmed: messages.availabilityConfirmed as string,
+        meetingScheduled: messages.meetingScheduled as string,
+        timeConflict: messages.timeConflict as string,
+        unavailable: messages.unavailable as string,
+        needsMoreInfo: messages.needsMoreInfo as string,
+        clarifyTime: messages.clarifyTime as string,
+        clarifyDate: messages.clarifyDate as string,
+        checkingAvailability: messages.checkingAvailability as string,
+        schedulingMeeting: messages.schedulingMeeting as string,
+        calendarError: messages.calendarError as string,
+        generalError: messages.generalError as string,
+      };
+
+      // Console log the contextual messages to debug
+      console.log("🗣️ Generated Contextual Messages:", {
+        availabilityConfirmed: result.contextualMessages.availabilityConfirmed,
+        meetingScheduled: result.contextualMessages.meetingScheduled,
+        timeConflict: result.contextualMessages.timeConflict,
+        checkingAvailability: result.contextualMessages.checkingAvailability,
+        schedulingMeeting: result.contextualMessages.schedulingMeeting,
+      });
+    } else {
+      console.log("⚠️ No contextual messages generated by LLM");
     }
 
     return result;

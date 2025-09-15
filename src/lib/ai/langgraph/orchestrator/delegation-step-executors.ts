@@ -26,7 +26,16 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
   _context: MultiStepContext,
   onProgress
 ) => {
-  onProgress("Analyzing your request...");
+  // Use contextual messages if available, otherwise fall back to defaults
+  const checkingMessage =
+    state.contextualMessages?.checkingAvailability ||
+    "Analyzing your request...";
+  console.log("📋 Step Executor - Using checking message:", {
+    contextualMessage: state.contextualMessages?.checkingAvailability,
+    fallbackMessage: "Analyzing your request...",
+    finalMessage: checkingMessage,
+  });
+  onProgress(checkingMessage);
 
   try {
     // Extract step data (should be passed through step metadata)
@@ -62,27 +71,28 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       const data = result.data;
 
       if (data.isAvailable) {
-        onProgress("✅ Time slot is available!");
+        const availableMessage =
+          state.contextualMessages?.availabilityConfirmed ||
+          "✅ Time slot is available!";
+        onProgress(availableMessage);
 
         return {
           stepId: step.id,
           status: "completed",
           result: data,
-          progressMessage:
-            data.message ||
-            `Found available slot: ${new Date(
-              data.proposedStartTime
-            ).toLocaleString()}`,
+          progressMessage: availableMessage,
         };
       } else {
-        onProgress("❌ Time slot is not available, checking alternatives...");
+        const conflictMessage =
+          state.contextualMessages?.timeConflict ||
+          "❌ Time slot is not available, checking alternatives...";
+        onProgress(conflictMessage);
 
         return {
           stepId: step.id,
           status: "failed",
           result: data,
-          progressMessage:
-            data.message || "Time slot unavailable, alternatives found",
+          progressMessage: conflictMessage,
         };
       }
     } else {
@@ -138,7 +148,11 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
   _context: MultiStepContext,
   onProgress
 ) => {
-  onProgress("Preparing to schedule the meeting...");
+  // Use contextual messages for scheduling progress
+  const schedulingMessage =
+    state.contextualMessages?.schedulingMeeting ||
+    "Preparing to schedule the meeting...";
+  onProgress(schedulingMessage);
 
   try {
     // Extract step data
@@ -171,15 +185,16 @@ export const delegationScheduleMeetingExecutor: StepExecutor = async (
 
     if (result.ok && result.data) {
       const data = result.data;
-      onProgress("✅ Meeting scheduled successfully!");
+      const successMessage =
+        state.contextualMessages?.meetingScheduled ||
+        "✅ Meeting scheduled successfully!";
+      onProgress(successMessage);
 
       return {
         stepId: step.id,
         status: "completed",
         result: data,
-        progressMessage: `Meeting scheduled for ${new Date(
-          data.startTime
-        ).toLocaleString()}`,
+        progressMessage: successMessage,
       };
     } else {
       const errorMessage = result.error || "Meeting scheduling failed";
