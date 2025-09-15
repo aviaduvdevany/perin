@@ -23,29 +23,8 @@ async function executeToolCall(
   toolCall: ToolCall,
   context: ToolContext
 ): Promise<ToolExecutionResult> {
-  // Check if we're in delegation mode and restrict tool access
-  const isDelegation = context.delegationContext?.isDelegation;
-
-  if (isDelegation) {
-    // In delegation mode, only allow delegation-specific tools
-    const allowedTools = [
-      "delegation_check_availability",
-      "delegation_schedule_meeting",
-    ];
-
-    if (!allowedTools.includes(toolCall.function.name)) {
-      return {
-        toolCallId: toolCall.id,
-        toolName: toolCall.function.name,
-        result: createToolError(
-          ToolErrorCode.PERMISSION_DENIED,
-          `Tool '${toolCall.function.name}' is not available in delegation mode. Only scheduling tools are allowed.`
-        ),
-        duration: 0,
-        timestamp: new Date().toISOString(),
-      };
-    }
-  }
+  // NOTE: Delegation is now handled by a separate DelegationAI system
+  // Regular LangGraph should never receive delegation requests
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
 

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { validateAndAccessDelegation } from "@/lib/delegation/session-manager";
 import { createDelegationMessage } from "@/lib/queries/delegation";
-import { executePerinChatWithLangGraph } from "@/lib/ai/langgraph";
+import { executeDelegationChat } from "@/lib/ai/delegation";
+import { getUserById } from "@/lib/queries/users";
 import { rateLimit } from "@/lib/utils/rate-limit";
 
 // Validation schema for chat requests
@@ -73,38 +74,42 @@ export const POST = async (request: NextRequest) => {
       "text"
     );
 
-    // For delegation, we only need the current message - no conversation history
-    // This prevents context pollution and maintains privacy/security
-    const chatMessages = [
-      {
-        role: "user" as const,
-        content: message,
-      },
-    ];
+    // Get owner's user data for delegation context
+    const ownerData = await getUserById(session.ownerUserId);
+    if (!ownerData) {
+      throw new Error("Owner user data not found");
+    }
 
-    // Execute AI chat with delegation context using full LangGraph system
-    const { stream } = await executePerinChatWithLangGraph(
-      chatMessages,
-      session.ownerUserId,
-      "friendly",
-      "Perin",
-      "scheduling",
-      undefined, // user data
-      {
-        // Add delegation context
-        connectedIntegrationTypes: ["calendar"], // Only calendar for external users
-        delegationContext: {
-          delegationId: session.id,
-          externalUserName: externalUserName || session.externalUserName,
-          ...(session.externalUserEmail && {
-            externalUserEmail: session.externalUserEmail,
-          }),
-          constraints: session.constraints as Record<string, unknown>,
-          isDelegation: true,
-          externalUserTimezone: timezone,
-        },
-      }
-    );
+    // Build delegation context with owner's personality and preferences
+    const delegationContext = {
+      delegationId: session.id,
+      ownerUserId: session.ownerUserId,
+      ownerName: ownerData.name || "Owner",
+      ownerTimezone: ownerData.timezone || "UTC",
+      externalUserName: externalUserName || session.externalUserName,
+      externalUserTimezone: timezone,
+      constraints: session.constraints as Record<string, unknown>,
+      conversationHistory: "", // Empty for privacy - only current message
+      perinPersonality: {
+        name: ownerData.perin_name || "Perin",
+        tone: ownerData.tone || "friendly",
+        communicationStyle: "warm", // Could be configurable in the future
+        language: "auto", // Auto-detect from user message
+      },
+    };
+
+    console.log("🎯 Delegation Context:", {
+      delegationId: delegationContext.delegationId,
+      ownerName: delegationContext.ownerName,
+      ownerTimezone: delegationContext.ownerTimezone,
+      externalUserName: delegationContext.externalUserName,
+      externalUserTimezone: delegationContext.externalUserTimezone,
+      perinName: delegationContext.perinPersonality.name,
+      tone: delegationContext.perinPersonality.tone,
+    });
+
+    // Execute delegation chat using new Delegation AI system
+    const stream = await executeDelegationChat(message, delegationContext);
 
     // For delegation, we'll collect the response and store it, but also return the stream
     // This allows for multi-step processing while maintaining message persistence
@@ -150,13 +155,10 @@ export const POST = async (request: NextRequest) => {
   } catch (error) {
     console.error("Error in delegation chat:", error);
 
-    // Create error message
-    await createDelegationMessage(
-      delegationId,
-      false,
-      "I apologize, but I'm having trouble processing your request right now. Please try again in a moment.",
-      "text"
-    );
+    // Create error message with owner's Perin personality
+    const errorMessage = `I apologize, but I'm having trouble processing your request right now. Please try again in a moment.`;
+
+    await createDelegationMessage(delegationId, false, errorMessage, "text");
 
     return NextResponse.json(
       { error: "Failed to process chat request" },
