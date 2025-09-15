@@ -131,8 +131,27 @@ function extractMeetingParamsFromAnalysis(
     return null;
   }
 
+  // Ensure we handle both Date objects and ISO strings from LLM
+  let startTimeISO: string;
+  if (typeof analysis.timeAnalysis.parsedDateTime === "string") {
+    startTimeISO = analysis.timeAnalysis.parsedDateTime;
+  } else {
+    startTimeISO = analysis.timeAnalysis.parsedDateTime.toISOString();
+  }
+
+  console.log("📅 Date extraction debug:", {
+    originalParsedDateTime: analysis.timeAnalysis.parsedDateTime,
+    startTimeISO,
+    timezone: delegationContext.externalUserTimezone,
+    dateAsObject: new Date(startTimeISO),
+    dayOfWeek: new Date(startTimeISO).toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: delegationContext.externalUserTimezone,
+    }),
+  });
+
   return {
-    startTime: analysis.timeAnalysis.parsedDateTime.toISOString(),
+    startTime: startTimeISO,
     durationMins: analysis.meetingContext?.duration || 30,
     title: analysis.meetingContext?.title || "Meeting",
     timezone: delegationContext.externalUserTimezone || "UTC",

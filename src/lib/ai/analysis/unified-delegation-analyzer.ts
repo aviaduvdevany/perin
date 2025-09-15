@@ -175,6 +175,10 @@ CONTEXT:
 - Today's date: ${userTime.toLocaleDateString("en-US", {
       timeZone: userTimezone,
     })}
+- **IMPORTANT**: Today is ${userTime.toLocaleDateString("en-US", {
+      weekday: "long",
+      timeZone: userTimezone,
+    })}. If user says "שישי" (Friday), find the NEXT Friday date.
 - Default meeting duration: ${defaultDuration} minutes
 - Available meeting types: ${JSON.stringify(
       constraints.meetingType || ["video", "in_person"]
@@ -241,8 +245,10 @@ DAY CALCULATION RULES:
 - When user says "ביום שישי" (on Friday), find the NEXT Friday from today
 - When user says "tomorrow"/"מחר", use tomorrow's date
 - When user says "today"/"היום", use today's date
-- ALWAYS verify the day name matches the calculated date
+- **CRITICAL**: ALWAYS verify the day name matches the calculated date
+- **VALIDATION**: If you calculate 2025-09-18, verify that Sep 18, 2025 is actually the day requested
 - EXAMPLE: If today is Monday and user says "שישי" (Friday), schedule for THIS WEEK's Friday
+- **DOUBLE CHECK**: Before returning parsedDateTime, confirm the date's day-of-week matches the user's request
 
 Respond with ONLY valid JSON:
 {
@@ -267,17 +273,11 @@ Respond with ONLY valid JSON:
     "meetingType": "suggested type based on context"
   },
   "contextualMessages": {
-    "availabilityConfirmed": "Message when time slot is available (Hebrew example: 'בדקתי את היומן והזמן פנוי!' English example: 'I checked the calendar and the time is available!')",
-    "meetingScheduled": "Success message when meeting is created (Hebrew example: 'הפגישה נקבעה בהצלחה!' English example: 'The meeting has been successfully scheduled!')",
-    "timeConflict": "Privacy-friendly message when time conflicts (Hebrew example: 'יש התנגשות בזמן המבוקש' English example: 'There is a conflict with the requested time')",
-    "unavailable": "Message when owner is unavailable",
-    "needsMoreInfo": "Message when more details needed",
-    "clarifyTime": "Message asking to clarify time",
-    "clarifyDate": "Message asking to clarify date", 
-    "checkingAvailability": "Progress message while checking calendar (Hebrew example: 'בודק זמינות ביומן...' English example: 'Checking calendar availability...')",
-    "schedulingMeeting": "Progress message while creating meeting (Hebrew example: 'מכין את הפגישה...' English example: 'Setting up the meeting...')",
-    "calendarError": "Error message for calendar issues",
-    "generalError": "Generic error message"
+    "availabilityConfirmed": "Simple message in user's language when time is available",
+    "meetingScheduled": "Simple success message in user's language when meeting created", 
+    "timeConflict": "Simple conflict message in user's language (ALWAYS provide, even if no current conflict)",
+    "checkingAvailability": "Progress message in user's language while checking",
+    "schedulingMeeting": "Progress message in user's language while scheduling"
   }
 }`;
 
@@ -293,15 +293,51 @@ Respond with ONLY valid JSON:
       throw new Error("No response from LLM");
     }
 
-    // Extract and parse JSON response
+    // Console log the raw LLM response for debugging
+    console.log("🤖 Raw LLM Response (before parsing):", {
+      response: content.substring(0, 1000),
+      fullLength: content.length,
+    });
+
+    // Extract and parse JSON response with better error handling
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error("❌ No JSON found in LLM response:", content);
       throw new Error("Invalid response format - no JSON found");
     }
 
-    const analysis = JSON.parse(jsonMatch[0]);
+    let analysis;
+    try {
+      analysis = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error("❌ JSON parsing failed:", {
+        error: parseError,
+        jsonString: jsonMatch[0],
+        position:
+          parseError instanceof SyntaxError
+            ? (parseError as unknown as { message: string }).message
+            : "unknown",
+      });
 
-    // Console log the raw LLM response for debugging
+      // Try to fix common JSON issues
+      let fixedJson = jsonMatch[0];
+
+      // Fix trailing commas
+      fixedJson = fixedJson.replace(/,(\s*[}\]])/g, "$1");
+
+      // Fix unescaped quotes in strings
+      fixedJson = fixedJson.replace(/(".*?[^\\])"([^,}\]]*?)"/g, '$1\\"$2"');
+
+      try {
+        analysis = JSON.parse(fixedJson);
+        console.log("✅ Fixed JSON parsing succeeded");
+      } catch (fixError) {
+        console.error("❌ Even fixed JSON failed:", fixError);
+        throw new Error(`JSON parsing failed: ${parseError}`);
+      }
+    }
+
+    // Console log the parsed analysis for debugging
     console.log("🤖 Raw LLM Analysis Response:", {
       requiresScheduling: analysis.requiresScheduling,
       timeAnalysis: analysis.timeAnalysis,
@@ -429,8 +465,15 @@ Respond with ONLY valid JSON:
       "book an appointment",
       "create a meeting",
       "arrange a meeting",
+      "i want a meeting",
+      "i need a meeting",
       "לקבוע פגישה",
       "תזמן פגישה",
+      "אני רוצה פגישה",
+      "אני צריך פגישה",
+      "רוצה פגישה",
+      "צריך פגישה",
+      "פגישה ביום",
     ];
 
     const hasExplicitIntent = explicitSchedulingPhrases.some((phrase) =>

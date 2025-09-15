@@ -83,9 +83,27 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
           progressMessage: availableMessage,
         };
       } else {
-        const conflictMessage =
-          state.contextualMessages?.timeConflict ||
-          "❌ Time slot is not available, checking alternatives...";
+        // Use contextual message if available and not empty, otherwise use language-aware fallback
+        let conflictMessage = state.contextualMessages?.timeConflict;
+
+        if (!conflictMessage || conflictMessage.trim() === "") {
+          // Detect user's language from conversation for fallback
+          const isHebrew =
+            state.conversationContext &&
+            /[\u0590-\u05FF]/.test(state.conversationContext);
+          conflictMessage = isHebrew
+            ? "❌ יש התנגשות בזמן המבוקש, בודק חלופות..."
+            : "❌ Time slot is not available, checking alternatives...";
+        }
+
+        console.log("📋 Step Executor - Using conflict message:", {
+          contextualMessage: state.contextualMessages?.timeConflict,
+          fallbackMessage: conflictMessage,
+          isHebrew:
+            state.conversationContext &&
+            /[\u0590-\u05FF]/.test(state.conversationContext),
+        });
+
         onProgress(conflictMessage);
 
         return {
