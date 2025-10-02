@@ -135,9 +135,15 @@ export default function DelegationChat({
       const urlParams = new URLSearchParams(window.location.search);
       const signature = urlParams.get("sig");
 
+      // Build conversation history for context
+      const conversationHistory = messages
+        .map((msg) => `${msg.fromExternal ? "User" : "Perin"}: ${msg.content}`)
+        .join("\n");
+
       const requestData = {
         delegationId,
         message: userMessage.content,
+        conversationHistory,
         externalUserName: externalUserName || undefined,
         signature: signature || undefined,
         timezone: userTimezone,
