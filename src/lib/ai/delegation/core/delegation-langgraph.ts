@@ -62,15 +62,9 @@ async function executeDelegationMultiStep(
   );
 
   console.log("🎯 Passing contextual messages to orchestrator:", {
-    availabilityConfirmed:
-      response.schedulingAnalysis.contextualMessages.availabilityConfirmed,
     meetingScheduled:
       response.schedulingAnalysis.contextualMessages.meetingScheduled,
     timeConflict: response.schedulingAnalysis.contextualMessages.timeConflict,
-    checkingAvailability:
-      response.schedulingAnalysis.contextualMessages.checkingAvailability,
-    schedulingMeeting:
-      response.schedulingAnalysis.contextualMessages.schedulingMeeting,
   });
 
   // Execute the multi-step flow with delegation orchestrator

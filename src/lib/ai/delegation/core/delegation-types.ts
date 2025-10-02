@@ -39,26 +39,11 @@ export interface MeetingContext {
 }
 
 export interface ContextualMessages {
-  // Success scenarios
-  availabilityConfirmed?: string;
-  meetingScheduled?: string;
+  // Success message when meeting is successfully scheduled
+  meetingScheduled: string;
 
-  // Conflict scenarios
-  timeConflict?: string;
-  unavailable?: string;
-
-  // Clarification scenarios
-  needsMoreInfo?: string;
-  clarifyTime?: string;
-  clarifyDate?: string;
-
-  // Progress messages
-  checkingAvailability?: string;
-  schedulingMeeting?: string;
-
-  // Error scenarios
-  calendarError?: string;
-  generalError?: string;
+  // Conflict message when time slot is not available
+  timeConflict: string;
 }
 
 // Base response interface

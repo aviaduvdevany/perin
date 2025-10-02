@@ -353,6 +353,28 @@ export function MultiStepMessage({
     }
   };
 
+  const getSuccessDescription = (step: CinematicStep) => {
+    switch (step.id) {
+      case "check_availability":
+        return "✅ Time slot is available";
+      case "schedule_meeting":
+        return "✅ Meeting scheduled successfully";
+      default:
+        return "✅ Completed successfully";
+    }
+  };
+
+  const getFailureDescription = (step: CinematicStep) => {
+    switch (step.id) {
+      case "check_availability":
+        return "❌ Time slot not available";
+      case "schedule_meeting":
+        return "❌ Failed to schedule meeting";
+      default:
+        return "❌ Step failed";
+    }
+  };
+
   const getOverallProgress = () => {
     if (cinematicSteps.length === 0) return 0;
 
@@ -588,7 +610,13 @@ export function MultiStepMessage({
                       </div>
 
                       <p className="text-sm text-[var(--foreground-muted)] mb-3">
-                        {step.description}
+                        {step.cinematicStatus === "processing"
+                          ? step.description
+                          : step.cinematicStatus === "completed"
+                          ? getSuccessDescription(step)
+                          : step.cinematicStatus === "failed"
+                          ? getFailureDescription(step)
+                          : step.description}
                       </p>
 
                       {/* Cinematic Progress Bar for Current Step */}

@@ -250,21 +250,19 @@ RESPONSE FORMAT - Choose the appropriate structure based on user intent:
       "meetingType": "suggested type based on context"
     },
     "contextualMessages": {
-      "availabilityConfirmed": "Simple message in user's language when time is available",
-      "meetingScheduled": "Simple success message in user's language when meeting created", 
-      "timeConflict": "MANDATORY: Always provide a conflict message like 'That time isn't available, let me check other options' - NEVER leave empty",
-      "checkingAvailability": "Progress message in user's language while checking",
-      "schedulingMeeting": "Progress message in user's language while scheduling"
+      "meetingScheduled": "MANDATORY: Success message when meeting is successfully scheduled (e.g., 'Great! I've scheduled your meeting for tomorrow at 17:00')",
+      "timeConflict": "MANDATORY: Conflict message when time slot is not available (e.g., 'That time isn't available, let me check other options')"
     }
   }
 }
 
 **CRITICAL CONTEXTUAL MESSAGES RULES**:
-1. ALL contextual messages in schedulingAnalysis MUST be provided - NEVER leave them empty
-2. These messages are shown to users during the scheduling process
-3. Write them in the user's detected language (English/Hebrew)
-4. Keep them simple, friendly, and informative
-5. "timeConflict" is especially important - always provide a helpful message even for potential conflicts
+1. BOTH contextual messages MUST be provided - NEVER leave them empty
+2. "meetingScheduled" - Used when the entire process succeeds
+3. "timeConflict" - Used when time slot is unavailable (process fails)
+4. Write them in the user's detected language (English/Hebrew)
+5. Keep them simple, friendly, and informative
+6. Include specific details like time/date when relevant
 
 **CRITICAL**: Only include schedulingAnalysis for actual scheduling requests. For greetings like "hello", "how are you", "what can you help with" - use the simple conversation format.
 

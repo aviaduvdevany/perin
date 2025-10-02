@@ -296,31 +296,9 @@ export class DelegationAI {
         unknown
       >;
       const contextualMessages: ContextualMessages = {
-        availabilityConfirmed: messagesData?.availabilityConfirmed as string,
         meetingScheduled: messagesData?.meetingScheduled as string,
         timeConflict: messagesData?.timeConflict as string,
-        unavailable: messagesData?.unavailable as string,
-        needsMoreInfo: messagesData?.needsMoreInfo as string,
-        clarifyTime: messagesData?.clarifyTime as string,
-        clarifyDate: messagesData?.clarifyDate as string,
-        checkingAvailability: messagesData?.checkingAvailability as string,
-        schedulingMeeting: messagesData?.schedulingMeeting as string,
-        calendarError: messagesData?.calendarError as string,
-        generalError: messagesData?.generalError as string,
       };
-
-      // Generate fallback messages if critical ones are missing
-      const isHebrew = /[\u0590-\u05FF]/.test(perinResponse);
-      if (!contextualMessages.checkingAvailability) {
-        contextualMessages.checkingAvailability = isHebrew
-          ? "בודק זמינות..."
-          : "Checking availability...";
-      }
-      if (!contextualMessages.schedulingMeeting) {
-        contextualMessages.schedulingMeeting = isHebrew
-          ? "מתזמן את הפגישה..."
-          : "Scheduling the meeting...";
-      }
 
       const result: Omit<
         SchedulingDelegationResponse,
@@ -481,12 +459,12 @@ export class DelegationAI {
             urgency: "medium",
           },
           contextualMessages: {
-            checkingAvailability: isHebrew
-              ? "בודק זמינות..."
-              : "Checking availability...",
-            schedulingMeeting: isHebrew
-              ? "מתזמן את הפגישה..."
-              : "Scheduling the meeting...",
+            meetingScheduled: isHebrew
+              ? "הפגישה נקבעה בהצלחה!"
+              : "Meeting scheduled successfully!",
+            timeConflict: isHebrew
+              ? "הזמן הזה לא פנוי, אבדוק חלופות"
+              : "That time isn't available, let me check alternatives",
           },
         },
         method: "fallback",
