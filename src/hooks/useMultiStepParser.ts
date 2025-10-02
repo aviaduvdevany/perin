@@ -293,7 +293,7 @@ export function useMultiStepParser() {
       }
 
       return {
-        cleanContent: cleanContent.trim(),
+        cleanContent: cleanContent,
         hasControlTokens,
         emotionalContext,
       };
