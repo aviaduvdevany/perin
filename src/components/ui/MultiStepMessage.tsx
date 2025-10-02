@@ -243,7 +243,6 @@ export function MultiStepMessage({
     };
   }, []);
 
-
   const getStepIcon = (step: CinematicStep, index: number) => {
     const iconClass = "w-5 h-5 transition-all duration-500";
 
@@ -351,6 +350,28 @@ export function MultiStepMessage({
             )}
           />
         );
+    }
+  };
+
+  const getSuccessDescription = (step: CinematicStep) => {
+    switch (step.id) {
+      case "check_availability":
+        return "✅ Time slot is available";
+      case "schedule_meeting":
+        return "✅ Meeting scheduled successfully";
+      default:
+        return "✅ Completed successfully";
+    }
+  };
+
+  const getFailureDescription = (step: CinematicStep) => {
+    switch (step.id) {
+      case "check_availability":
+        return "❌ Time slot not available";
+      case "schedule_meeting":
+        return "❌ Failed to schedule meeting";
+      default:
+        return "❌ Step failed";
     }
   };
 
@@ -589,7 +610,13 @@ export function MultiStepMessage({
                       </div>
 
                       <p className="text-sm text-[var(--foreground-muted)] mb-3">
-                        {step.description}
+                        {step.cinematicStatus === "processing"
+                          ? step.description
+                          : step.cinematicStatus === "completed"
+                          ? getSuccessDescription(step)
+                          : step.cinematicStatus === "failed"
+                          ? getFailureDescription(step)
+                          : step.description}
                       </p>
 
                       {/* Cinematic Progress Bar for Current Step */}
@@ -610,32 +637,7 @@ export function MultiStepMessage({
                         </motion.div>
                       )}
 
-                      {/* Cinematic Result Messages */}
-                      <AnimatePresence>
-                        {step.progressMessage &&
-                          step.cinematicStatus !== "processing" && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.4 }}
-                              className="mt-3"
-                            >
-                              <Glass
-                                variant="subtle"
-                                className={cn(
-                                  "p-3 text-sm font-medium",
-                                  step.cinematicStatus === "completed" &&
-                                    "text-[var(--success)]",
-                                  step.cinematicStatus === "failed" &&
-                                    "text-[var(--error)]"
-                                )}
-                              >
-                                {step.progressMessage}
-                              </Glass>
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
+                      {/* Progress messages removed - now shown as separate message after multi-step completion */}
                     </div>
                   </div>
                 </Glass>

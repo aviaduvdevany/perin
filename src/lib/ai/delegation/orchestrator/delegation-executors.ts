@@ -79,9 +79,7 @@ export const delegationCheckAvailabilityExecutor: StepExecutor = async (
       const data = result.data;
 
       if (data.isAvailable) {
-        const availableMessage =
-          state.contextualMessages?.availabilityConfirmed ||
-          "✅ Time slot is available!";
+        const availableMessage = "✅ Time slot is available!";
         onProgress(availableMessage);
 
         return {

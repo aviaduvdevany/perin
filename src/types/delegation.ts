@@ -57,8 +57,10 @@ export interface CreateDelegationResponse {
 export interface DelegationChatRequest {
   delegationId: string;
   message: string;
+  conversationHistory?: string; // ← Add conversation history
   externalUserName?: string;
   signature?: string;
+  timezone?: string;
 }
 
 export interface DelegationDetails {

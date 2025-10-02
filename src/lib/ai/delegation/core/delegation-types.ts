@@ -39,29 +39,52 @@ export interface MeetingContext {
 }
 
 export interface ContextualMessages {
-  // Success scenarios
-  availabilityConfirmed?: string;
-  meetingScheduled?: string;
+  // Success message when meeting is successfully scheduled
+  meetingScheduled: string;
 
-  // Conflict scenarios
-  timeConflict?: string;
-  unavailable?: string;
-
-  // Clarification scenarios
-  needsMoreInfo?: string;
-  clarifyTime?: string;
-  clarifyDate?: string;
-
-  // Progress messages
-  checkingAvailability?: string;
-  schedulingMeeting?: string;
-
-  // Error scenarios
-  calendarError?: string;
-  generalError?: string;
+  // Conflict message when time slot is not available
+  timeConflict: string;
 }
 
-export interface DelegationResponse {
+// Base response interface
+export interface BaseDelegationResponse {
+  // Intent classification
+  intent: "scheduling" | "conversation" | "information";
+  confidence: number;
+
+  // Perin's conversational response (always present)
+  perinResponse: string;
+
+  // Metadata
+  method: "unified" | "fallback";
+  processingTime: number;
+}
+
+// Simple conversation response (for greetings, questions, etc.)
+export interface ConversationDelegationResponse extends BaseDelegationResponse {
+  intent: "conversation" | "information";
+  // No additional fields needed - just the response
+}
+
+// Scheduling-specific response (only when scheduling is detected)
+export interface SchedulingDelegationResponse extends BaseDelegationResponse {
+  intent: "scheduling";
+
+  // Scheduling-specific analysis
+  schedulingAnalysis: {
+    timeAnalysis: TimeAnalysis;
+    meetingContext: MeetingContext;
+    contextualMessages: ContextualMessages;
+  };
+}
+
+// Union type for all possible responses
+export type DelegationResponse =
+  | ConversationDelegationResponse
+  | SchedulingDelegationResponse;
+
+// Legacy interface for backward compatibility
+export interface LegacyDelegationResponse {
   // Analysis data (for multi-step flow)
   analysis: {
     requiresScheduling: boolean;

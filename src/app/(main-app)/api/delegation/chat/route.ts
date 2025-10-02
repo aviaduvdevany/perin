@@ -10,6 +10,7 @@ import { rateLimit } from "@/lib/utils/rate-limit";
 const chatRequestSchema = z.object({
   delegationId: z.string().uuid(),
   message: z.string().min(1).max(2000),
+  conversationHistory: z.string().max(10000).optional(),
   externalUserName: z.string().max(100).optional(),
   signature: z.string().optional(),
   timezone: z.string().optional(),
@@ -27,8 +28,14 @@ export const POST = async (request: NextRequest) => {
     );
   }
 
-  const { delegationId, message, externalUserName, signature, timezone } =
-    validation.data;
+  const {
+    delegationId,
+    message,
+    conversationHistory,
+    externalUserName,
+    signature,
+    timezone,
+  } = validation.data;
 
   // Debug logging for timezone detection
   console.log("🌍 Delegation chat timezone received:", {
@@ -89,12 +96,12 @@ export const POST = async (request: NextRequest) => {
       externalUserName: externalUserName || session.externalUserName,
       externalUserTimezone: timezone,
       constraints: session.constraints as Record<string, unknown>,
-      conversationHistory: "", // Empty for privacy - only current message
+      conversationHistory: conversationHistory || "",
       perinPersonality: {
         name: ownerData.perin_name || "Perin",
         tone: ownerData.tone || "friendly",
-        communicationStyle: "warm", // Could be configurable in the future
-        language: "auto", // Auto-detect from user message
+        communicationStyle: "warm",
+        language: "auto",
       },
     };
 
@@ -106,6 +113,9 @@ export const POST = async (request: NextRequest) => {
       externalUserTimezone: delegationContext.externalUserTimezone,
       perinName: delegationContext.perinPersonality.name,
       tone: delegationContext.perinPersonality.tone,
+      conversationHistoryLength: delegationContext.conversationHistory.length,
+      conversationHistory:
+        delegationContext.conversationHistory.substring(0, 200) + "...", // First 200 chars
     });
 
     // Execute delegation chat using new Delegation AI system

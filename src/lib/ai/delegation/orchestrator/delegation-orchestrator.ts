@@ -45,17 +45,8 @@ export interface DelegationExecutionContext {
   constraints?: Record<string, unknown>;
   calendarIntegration?: IntegrationContext; // Calendar integration context
   contextualMessages?: {
-    availabilityConfirmed?: string;
     meetingScheduled?: string;
     timeConflict?: string;
-    unavailable?: string;
-    needsMoreInfo?: string;
-    clarifyTime?: string;
-    clarifyDate?: string;
-    checkingAvailability?: string;
-    schedulingMeeting?: string;
-    calendarError?: string;
-    generalError?: string;
   };
 }
 
@@ -322,12 +313,10 @@ class DelegationOrchestrator {
           const finalMessage =
             multiStepContext.status === "completed"
               ? context.contextualMessages?.meetingScheduled ||
-                (context.contextualMessages?.availabilityConfirmed?.includes(
-                  "עברית"
-                ) || context.contextualMessages?.timeConflict?.includes("עברית")
+                (context.contextualMessages?.timeConflict?.includes("עברית")
                   ? "הפגישה נקבעה בהצלחה! 🎉"
                   : "Meeting scheduled successfully! 🎉")
-              : context.contextualMessages?.calendarError ||
+              : context.contextualMessages?.timeConflict ||
                 (context.contextualMessages?.timeConflict?.includes("עברית")
                   ? "אני מתנצל, אבל לא הצלחתי לקבוע את הפגישה כרגע."
                   : "I apologize, but I couldn't schedule the meeting at this time.");

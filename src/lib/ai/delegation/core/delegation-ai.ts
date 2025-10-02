@@ -10,6 +10,8 @@ import { buildDelegationPrompt } from "./delegation-prompts";
 import type {
   DelegationContext,
   DelegationResponse,
+  ConversationDelegationResponse,
+  SchedulingDelegationResponse,
   DelegationAnalysisContext,
   TimeAnalysis,
   MeetingContext,
@@ -48,18 +50,17 @@ export class DelegationAI {
         method: "unified",
         latency: finalResult.processingTime,
         success: true,
-        confidence: finalResult.analysis.confidence,
+        confidence: finalResult.confidence,
         timestamp: new Date(),
       });
 
-      return finalResult;
+      return finalResult as DelegationResponse;
     } catch (error) {
       console.error("Delegation AI analysis failed, using fallback:", error);
       const fallbackResult = this.createFallbackResponse(
         message,
         context,
-        startTime,
-        error
+        startTime
       );
 
       // Track failed analysis
@@ -68,7 +69,7 @@ export class DelegationAI {
         method: fallbackResult.method,
         latency: fallbackResult.processingTime,
         success: false,
-        confidence: fallbackResult.analysis.confidence,
+        confidence: fallbackResult.confidence,
         errorType: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date(),
       });
@@ -151,52 +152,75 @@ export class DelegationAI {
     });
 
     // Process and validate the response
-    return this.processLLMResponse(parsedResponse);
+    return this.processLLMResponse(parsedResponse, context);
   }
 
   /**
-   * Process and validate the LLM response
+   * Process and validate the new optimized LLM response
    */
   private processLLMResponse(
-    response: Record<string, unknown>
+    response: Record<string, unknown>,
+    context: DelegationContext
   ): Omit<DelegationResponse, "method" | "processingTime"> {
     // Validate required fields
-    if (!response.analysis || typeof response.analysis !== "object") {
-      throw new Error("Invalid analysis field in response");
+    if (typeof response.intent !== "string") {
+      throw new Error("Invalid intent field in response");
     }
 
     if (typeof response.perinResponse !== "string") {
       throw new Error("Invalid perinResponse field in response");
     }
 
-    const analysis = response.analysis as Record<string, unknown>;
-
-    if (typeof analysis.requiresScheduling !== "boolean") {
-      throw new Error("Invalid requiresScheduling field");
+    if (typeof response.confidence !== "number") {
+      throw new Error("Invalid confidence field in response");
     }
 
-    const result: Omit<DelegationResponse, "method" | "processingTime"> = {
-      analysis: {
-        requiresScheduling: analysis.requiresScheduling,
-        confidence: Math.max(
-          0,
-          Math.min(1, Number(analysis.confidence) || 0.5)
-        ),
-        reasoning: String(analysis.reasoning || "Analysis completed"),
-      },
-      perinResponse: String(response.perinResponse),
-    };
+    const intent = response.intent as
+      | "scheduling"
+      | "conversation"
+      | "information";
+    const confidence = Math.max(0, Math.min(1, response.confidence));
+    const perinResponse = String(response.perinResponse);
 
-    // Process time analysis if scheduling is required
-    if (analysis.requiresScheduling && analysis.timeAnalysis) {
-      const timeAnalysis = analysis.timeAnalysis as Record<string, unknown>;
+    // Handle conversation/information intents (simple response)
+    if (intent === "conversation" || intent === "information") {
+      const result: Omit<
+        ConversationDelegationResponse,
+        "method" | "processingTime"
+      > = {
+        intent,
+        confidence,
+        perinResponse,
+      };
+
+      console.log("💬 Simple conversation response generated");
+      return result;
+    }
+
+    // Handle scheduling intent (complex response with analysis)
+    if (intent === "scheduling") {
+      if (
+        !response.schedulingAnalysis ||
+        typeof response.schedulingAnalysis !== "object"
+      ) {
+        throw new Error("Missing schedulingAnalysis for scheduling intent");
+      }
+
+      const schedulingAnalysis = response.schedulingAnalysis as Record<
+        string,
+        unknown
+      >;
+
+      // Process time analysis
+      const timeAnalysisData = schedulingAnalysis.timeAnalysis as Record<
+        string,
+        unknown
+      >;
       let parsedDateTime: Date | null = null;
 
-      // Parse the datetime if provided
-      if (typeof timeAnalysis.parsedDateTime === "string") {
+      if (typeof timeAnalysisData?.parsedDateTime === "string") {
         try {
-          parsedDateTime = new Date(timeAnalysis.parsedDateTime);
-          // Validate the date
+          parsedDateTime = new Date(timeAnalysisData.parsedDateTime);
           if (isNaN(parsedDateTime.getTime())) {
             parsedDateTime = null;
           }
@@ -205,74 +229,166 @@ export class DelegationAI {
         }
       }
 
-      result.analysis.timeAnalysis = {
+      // Smart fallback: If LLM didn't parse date but we have time and conversation context
+      if (!parsedDateTime && timeAnalysisData?.extractedComponents) {
+        const components = timeAnalysisData.extractedComponents as Record<
+          string,
+          string
+        >;
+        const time = components.time;
+        const timezone =
+          components.timezone || context.externalUserTimezone || "UTC";
+
+        if (time && context.conversationHistory) {
+          parsedDateTime = this.inferDateFromConversationContext(
+            time,
+            timezone,
+            context.conversationHistory,
+            context.externalUserTimezone || "UTC"
+          );
+
+          if (parsedDateTime) {
+            console.log(
+              "🧠 Smart fallback: Inferred date from conversation context:",
+              {
+                originalTime: time,
+                inferredDateTime: parsedDateTime.toISOString(),
+                conversationContext: context.conversationHistory.substring(
+                  0,
+                  100
+                ),
+              }
+            );
+          }
+        }
+      }
+
+      const timeAnalysis: TimeAnalysis = {
         parsedDateTime,
         confidence:
-          (timeAnalysis.confidence as "high" | "medium" | "low") || "low",
+          (timeAnalysisData?.confidence as "high" | "medium" | "low") || "low",
         extractedComponents:
-          (timeAnalysis.extractedComponents as Record<string, string>) || {},
+          (timeAnalysisData?.extractedComponents as Record<string, string>) ||
+          {},
         reasoning:
-          (timeAnalysis.reasoning as string) || "Time analysis completed",
+          (timeAnalysisData?.reasoning as string) || "Time analysis completed",
         fallbackSuggestions:
-          (timeAnalysis.fallbackSuggestions as string[]) || [],
+          (timeAnalysisData?.fallbackSuggestions as string[]) || [],
       };
-    }
 
-    // Process meeting context
-    if (analysis.meetingContext) {
-      const meetingContext = analysis.meetingContext as Record<string, unknown>;
-      result.analysis.meetingContext = {
-        duration: (meetingContext.duration as number) || 30,
-        title: (meetingContext.title as string) || "Meeting",
+      // Process meeting context
+      const meetingContextData = schedulingAnalysis.meetingContext as Record<
+        string,
+        unknown
+      >;
+      const meetingContext: MeetingContext = {
+        duration: (meetingContextData?.duration as number) || 30,
+        title: (meetingContextData?.title as string) || "Meeting",
         urgency:
-          (meetingContext.urgency as "high" | "medium" | "low") || "medium",
-        meetingType: meetingContext.meetingType as string,
-      };
-    }
-
-    // Process contextual messages
-    if (response.contextualMessages) {
-      const messages = response.contextualMessages as Record<string, unknown>;
-      result.contextualMessages = {
-        availabilityConfirmed: messages.availabilityConfirmed as string,
-        meetingScheduled: messages.meetingScheduled as string,
-        timeConflict: messages.timeConflict as string,
-        unavailable: messages.unavailable as string,
-        needsMoreInfo: messages.needsMoreInfo as string,
-        clarifyTime: messages.clarifyTime as string,
-        clarifyDate: messages.clarifyDate as string,
-        checkingAvailability: messages.checkingAvailability as string,
-        schedulingMeeting: messages.schedulingMeeting as string,
-        calendarError: messages.calendarError as string,
-        generalError: messages.generalError as string,
+          (meetingContextData?.urgency as "high" | "medium" | "low") ||
+          "medium",
+        meetingType: meetingContextData?.meetingType as string,
       };
 
-      // Generate fallback messages if critical ones are missing
-      const isHebrew = /[\u0590-\u05FF]/.test(result.perinResponse);
-      if (!result.contextualMessages.checkingAvailability) {
-        result.contextualMessages.checkingAvailability = isHebrew
-          ? "בודק זמינות..."
-          : "Checking availability...";
-      }
-      if (!result.contextualMessages.schedulingMeeting) {
-        result.contextualMessages.schedulingMeeting = isHebrew
-          ? "מתזמן את הפגישה..."
-          : "Scheduling the meeting...";
-      }
+      // Process contextual messages
+      const messagesData = schedulingAnalysis.contextualMessages as Record<
+        string,
+        unknown
+      >;
+      const contextualMessages: ContextualMessages = {
+        meetingScheduled: messagesData?.meetingScheduled as string,
+        timeConflict: messagesData?.timeConflict as string,
+      };
 
-      // Console log the contextual messages to debug
-      console.log("🗣️ Generated Contextual Messages:", {
-        availabilityConfirmed: result.contextualMessages.availabilityConfirmed,
-        meetingScheduled: result.contextualMessages.meetingScheduled,
-        timeConflict: result.contextualMessages.timeConflict,
-        checkingAvailability: result.contextualMessages.checkingAvailability,
-        schedulingMeeting: result.contextualMessages.schedulingMeeting,
-      });
-    } else {
-      console.log("⚠️ No contextual messages generated by Delegation AI");
+      const result: Omit<
+        SchedulingDelegationResponse,
+        "method" | "processingTime"
+      > = {
+        intent: "scheduling",
+        confidence,
+        perinResponse,
+        schedulingAnalysis: {
+          timeAnalysis,
+          meetingContext,
+          contextualMessages,
+        },
+      };
+
+      console.log("📅 Scheduling response generated with full analysis");
+      return result;
     }
 
-    return result;
+    throw new Error(`Unknown intent: ${intent}`);
+  }
+
+  /**
+   * Smart fallback: Infer date from conversation context when LLM fails to parse
+   */
+  private inferDateFromConversationContext(
+    time: string,
+    timezone: string,
+    conversationHistory: string,
+    userTimezone: string
+  ): Date | null {
+    try {
+      // Look for date references in conversation history
+
+      let baseDate: Date | null = null;
+      const now = new Date();
+      const userNow = new Date(
+        now.toLocaleString("en-US", { timeZone: userTimezone })
+      );
+
+      // Look for specific dates in ISO format (from previous LLM responses) - highest priority
+      const isoMatch = conversationHistory.match(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
+      );
+      if (isoMatch) {
+        baseDate = new Date(isoMatch[0]);
+        console.log("🧠 Found ISO date in conversation:", isoMatch[0]);
+      }
+      // Check for "tomorrow" in conversation
+      else if (conversationHistory.toLowerCase().includes("tomorrow")) {
+        baseDate = new Date(userNow);
+        baseDate.setDate(baseDate.getDate() + 1);
+        console.log(
+          "🧠 Found 'tomorrow' in conversation, using:",
+          baseDate.toISOString().split("T")[0]
+        );
+      }
+      // Check for "today" in conversation
+      else if (conversationHistory.toLowerCase().includes("today")) {
+        baseDate = new Date(userNow);
+        console.log(
+          "🧠 Found 'today' in conversation, using:",
+          baseDate.toISOString().split("T")[0]
+        );
+      }
+
+      if (baseDate) {
+        // Parse the time (e.g., "15:00", "3pm", "14:30")
+        const timeMatch = time.match(/(\d{1,2}):?(\d{0,2})\s*(am|pm)?/i);
+        if (timeMatch) {
+          let hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2] || "0");
+          const ampm = timeMatch[3]?.toLowerCase();
+
+          // Handle AM/PM
+          if (ampm === "pm" && hours !== 12) hours += 12;
+          if (ampm === "am" && hours === 12) hours = 0;
+
+          // Set the time on the base date
+          baseDate.setHours(hours, minutes, 0, 0);
+
+          return baseDate;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("Error inferring date from conversation context:", error);
+      return null;
+    }
   }
 
   /**
@@ -281,8 +397,7 @@ export class DelegationAI {
   private createFallbackResponse(
     message: string,
     context: DelegationContext,
-    startTime: number,
-    _error: unknown
+    startTime: number
   ): DelegationResponse {
     const text = message.toLowerCase().trim();
 
@@ -320,38 +435,53 @@ export class DelegationAI {
       ? `שלום! איך אני יכול לעזור לך היום?`
       : `Hello! How can I help you today?`;
 
-    return {
-      analysis: {
-        requiresScheduling: hasExplicitIntent,
-        confidence: hasExplicitIntent ? 0.7 : 0.9,
-        reasoning: hasExplicitIntent
-          ? "Fallback detected explicit scheduling phrase"
-          : "Fallback found no clear scheduling intent",
-        timeAnalysis: hasExplicitIntent
-          ? {
-              parsedDateTime: null,
-              confidence: "low",
-              extractedComponents: {},
-              reasoning:
-                "Fallback could not parse time - user clarification needed",
-              fallbackSuggestions: [
-                "Please specify both the day and time for your meeting",
-                "For example: 'Schedule for Friday at 2 PM'",
-              ],
-            }
-          : undefined,
-        meetingContext: hasExplicitIntent
-          ? {
-              duration: (context.constraints?.defaultDuration as number) || 30,
-              title: "Meeting",
-              urgency: "medium",
-            }
-          : undefined,
-      },
-      perinResponse: fallbackPerinResponse,
-      method: "fallback",
-      processingTime: Date.now() - startTime,
-    };
+    if (hasExplicitIntent) {
+      // Return scheduling response for explicit scheduling intent
+      const result: SchedulingDelegationResponse = {
+        intent: "scheduling",
+        confidence: 0.7,
+        perinResponse: fallbackPerinResponse,
+        schedulingAnalysis: {
+          timeAnalysis: {
+            parsedDateTime: null,
+            confidence: "low",
+            extractedComponents: {},
+            reasoning:
+              "Fallback could not parse time - user clarification needed",
+            fallbackSuggestions: [
+              "Please specify both the day and time for your meeting",
+              "For example: 'Schedule for Friday at 2 PM'",
+            ],
+          },
+          meetingContext: {
+            duration: (context.constraints?.defaultDuration as number) || 30,
+            title: "Meeting",
+            urgency: "medium",
+          },
+          contextualMessages: {
+            meetingScheduled: isHebrew
+              ? "הפגישה נקבעה בהצלחה!"
+              : "Meeting scheduled successfully!",
+            timeConflict: isHebrew
+              ? "הזמן הזה לא פנוי, אבדוק חלופות"
+              : "That time isn't available, let me check alternatives",
+          },
+        },
+        method: "fallback",
+        processingTime: Date.now() - startTime,
+      };
+      return result;
+    } else {
+      // Return simple conversation response
+      const result: ConversationDelegationResponse = {
+        intent: "conversation",
+        confidence: 0.9,
+        perinResponse: fallbackPerinResponse,
+        method: "fallback",
+        processingTime: Date.now() - startTime,
+      };
+      return result;
+    }
   }
 
   /**
@@ -390,15 +520,26 @@ export class DelegationAI {
 
     const response = await this.processMessage(message, delegationContext);
 
-    return {
-      requiresScheduling: response.analysis.requiresScheduling,
-      confidence: response.analysis.confidence,
-      reasoning: response.analysis.reasoning,
-      timeAnalysis: response.analysis.timeAnalysis,
-      meetingContext: response.analysis.meetingContext,
-      contextualMessages: response.contextualMessages,
-      method: response.method,
-      processingTime: response.processingTime,
-    };
+    // Convert new format to legacy format
+    if (response.intent === "scheduling") {
+      return {
+        requiresScheduling: true,
+        confidence: response.confidence,
+        reasoning: "Scheduling intent detected",
+        timeAnalysis: response.schedulingAnalysis.timeAnalysis,
+        meetingContext: response.schedulingAnalysis.meetingContext,
+        contextualMessages: response.schedulingAnalysis.contextualMessages,
+        method: response.method,
+        processingTime: response.processingTime,
+      };
+    } else {
+      return {
+        requiresScheduling: false,
+        confidence: response.confidence,
+        reasoning: "Conversation intent detected",
+        method: response.method,
+        processingTime: response.processingTime,
+      };
+    }
   }
 }

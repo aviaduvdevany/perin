@@ -43,23 +43,28 @@ async function executeDelegationMultiStep(
   response: DelegationResponse,
   context: DelegationContext
 ): Promise<ReadableStream> {
+  // Type guard to ensure we have a scheduling response
+  if (response.intent !== "scheduling") {
+    throw new Error(
+      "executeDelegationMultiStep called with non-scheduling response"
+    );
+  }
+
   // Load calendar integration before executing steps
   const calendarIntegration = await loadCalendarIntegrationForDelegation(
     context.ownerUserId
   );
 
-  // Create delegation steps with the new contextual messages
+  // Create delegation steps with the scheduling analysis
   const steps = createDelegationSteps(
-    response.analysis.timeAnalysis!,
-    response.analysis.meetingContext!
+    response.schedulingAnalysis.timeAnalysis,
+    response.schedulingAnalysis.meetingContext
   );
 
   console.log("🎯 Passing contextual messages to orchestrator:", {
-    availabilityConfirmed: response.contextualMessages?.availabilityConfirmed,
-    meetingScheduled: response.contextualMessages?.meetingScheduled,
-    timeConflict: response.contextualMessages?.timeConflict,
-    checkingAvailability: response.contextualMessages?.checkingAvailability,
-    schedulingMeeting: response.contextualMessages?.schedulingMeeting,
+    meetingScheduled:
+      response.schedulingAnalysis.contextualMessages.meetingScheduled,
+    timeConflict: response.schedulingAnalysis.contextualMessages.timeConflict,
   });
 
   // Execute the multi-step flow with delegation orchestrator
@@ -70,7 +75,7 @@ async function executeDelegationMultiStep(
     externalUserTimezone: context.externalUserTimezone,
     constraints: context.constraints,
     calendarIntegration,
-    contextualMessages: response.contextualMessages, // ← Pass the contextual messages!
+    contextualMessages: response.schedulingAnalysis.contextualMessages,
   });
 }
 
@@ -123,13 +128,12 @@ export const executeDelegationChat = async (
   const response = await delegationAI.processMessage(message, context);
 
   console.log("🎯 Delegation Chat Decision:", {
-    requiresScheduling: response.analysis.requiresScheduling,
-    confidence: response.analysis.confidence,
-    hasTimeAnalysis: !!response.analysis.timeAnalysis,
+    intent: response.intent,
+    confidence: response.confidence,
     perinResponseLength: response.perinResponse.length,
   });
 
-  if (response.analysis.requiresScheduling && response.analysis.timeAnalysis) {
+  if (response.intent === "scheduling") {
     // Multi-step flow for scheduling
     console.log("📅 Using multi-step scheduling flow");
     return await executeDelegationMultiStep(response, context);

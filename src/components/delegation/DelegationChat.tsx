@@ -19,6 +19,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { Logo } from "../ui/Logo";
+import { Input } from "../ui/input";
+
+// Helper function to detect Hebrew text
+const isHebrewText = (text: string): boolean => {
+  const hebrewRegex = /[\u0590-\u05FF]/;
+  return hebrewRegex.test(text);
+};
 
 interface DelegationChatProps {
   delegationId: string;
@@ -46,6 +53,7 @@ export default function DelegationChat({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [userTimezone, setUserTimezone] = useState<string>("UTC");
+  const [isInputRTL, setIsInputRTL] = useState(false);
   const [streamingMessage, setStreamingMessage] = useState("");
   const [
     currentSessionInitiatedMultiStep,
@@ -135,9 +143,15 @@ export default function DelegationChat({
       const urlParams = new URLSearchParams(window.location.search);
       const signature = urlParams.get("sig");
 
+      // Build conversation history for context
+      const conversationHistory = messages
+        .map((msg) => `${msg.fromExternal ? "User" : "Perin"}: ${msg.content}`)
+        .join("\n");
+
       const requestData = {
         delegationId,
         message: userMessage.content,
+        conversationHistory,
         externalUserName: externalUserName || undefined,
         signature: signature || undefined,
         timezone: userTimezone,
@@ -379,7 +393,18 @@ export default function DelegationChat({
                       {/* Show streaming content */}
                       {streamingMessage && (
                         <div className="mt-2 p-2 bg-[var(--background-primary)]/50 rounded text-xs">
-                          <p className="text-[var(--foreground-muted)]">
+                          <p
+                            className={`text-[var(--foreground-muted)] ${
+                              isHebrewText(streamingMessage)
+                                ? "text-right"
+                                : "text-left"
+                            }`}
+                            style={{
+                              direction: isHebrewText(streamingMessage)
+                                ? "rtl"
+                                : "ltr",
+                            }}
+                          >
                             {streamingMessage}
                           </p>
                         </div>
@@ -404,7 +429,18 @@ export default function DelegationChat({
 
                       {/* Regular message content */}
                       {message.content && (
-                        <p className="text-sm whitespace-pre-wrap ">
+                        <p
+                          className={`text-sm whitespace-pre-wrap ${
+                            isHebrewText(message.content)
+                              ? "text-right"
+                              : "text-left"
+                          }`}
+                          style={{
+                            direction: isHebrewText(message.content)
+                              ? "rtl"
+                              : "ltr",
+                          }}
+                        >
                           {message.content}
                         </p>
                       )}
@@ -441,15 +477,26 @@ export default function DelegationChat({
         className="p-4 border-t border-[var(--card-border)]"
       >
         <div className="flex gap-3">
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              setInputMessage(value);
+              setIsInputRTL(isHebrewText(value));
+            }}
             onKeyPress={handleKeyPress}
-            placeholder="Type your message..."
+            placeholder={
+              isInputRTL ? "הקלד את ההודעה שלך..." : "Type your message..."
+            }
             disabled={isLoading}
-            className="flex-1 px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:border-[var(--accent-primary)] disabled:opacity-50"
+            className={`flex-1 px-3 py-2 bg-[var(--background-secondary)]/50 border border-[var(--card-border)] rounded-lg text-[var(--cta-text)] placeholder-[var(--foreground-muted)] focus:outline-none focus:border-[var(--accent-primary)] disabled:opacity-50 ${
+              isInputRTL ? "text-right" : "text-left"
+            }`}
+            style={{
+              direction: isInputRTL ? "rtl" : "ltr",
+            }}
           />
           <Button
             onClick={handleSendMessage}
