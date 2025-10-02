@@ -243,7 +243,6 @@ export function MultiStepMessage({
     };
   }, []);
 
-
   const getStepIcon = (step: CinematicStep, index: number) => {
     const iconClass = "w-5 h-5 transition-all duration-500";
 
@@ -610,32 +609,7 @@ export function MultiStepMessage({
                         </motion.div>
                       )}
 
-                      {/* Cinematic Result Messages */}
-                      <AnimatePresence>
-                        {step.progressMessage &&
-                          step.cinematicStatus !== "processing" && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: "auto" }}
-                              exit={{ opacity: 0, height: 0 }}
-                              transition={{ duration: 0.4 }}
-                              className="mt-3"
-                            >
-                              <Glass
-                                variant="subtle"
-                                className={cn(
-                                  "p-3 text-sm font-medium",
-                                  step.cinematicStatus === "completed" &&
-                                    "text-[var(--success)]",
-                                  step.cinematicStatus === "failed" &&
-                                    "text-[var(--error)]"
-                                )}
-                              >
-                                {step.progressMessage}
-                              </Glass>
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
+                      {/* Progress messages removed - now shown as separate message after multi-step completion */}
                     </div>
                   </div>
                 </Glass>
