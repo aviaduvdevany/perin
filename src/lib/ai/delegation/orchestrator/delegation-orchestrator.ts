@@ -327,8 +327,12 @@ class DelegationOrchestrator {
                 ) || context.contextualMessages?.timeConflict?.includes("עברית")
                   ? "הפגישה נקבעה בהצלחה! 🎉"
                   : "Meeting scheduled successfully! 🎉")
-              : context.contextualMessages?.calendarError ||
-                (context.contextualMessages?.timeConflict?.includes("עברית")
+              : context.contextualMessages?.timeConflict ||
+                context.contextualMessages?.calendarError ||
+                (context.contextualMessages?.timeConflict?.includes("עברית") ||
+                context.contextualMessages?.availabilityConfirmed?.includes(
+                  "עברית"
+                )
                   ? "אני מתנצל, אבל לא הצלחתי לקבוע את הפגישה כרגע."
                   : "I apologize, but I couldn't schedule the meeting at this time.");
 
